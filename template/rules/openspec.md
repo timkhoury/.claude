@@ -1,4 +1,4 @@
-# OpenSpec Rules (when openspec/ folder exists)
+# OpenSpec Rules
 
 These rules apply when the project uses OpenSpec for change management.
 
@@ -8,12 +8,6 @@ These rules apply when the project uses OpenSpec for change management.
 /openspec:proposal <description>   # Create new OpenSpec change proposal
 /openspec:apply <change-id>        # Implement an approved OpenSpec change
 /openspec:archive <change-id>      # Archive a deployed OpenSpec change
-```
-
-**Invalid commands - do NOT use:**
-```bash
-npx openspec new ...               # This command does NOT exist
-npx openspec proposal ...          # Use slash command instead
 ```
 
 **Validation command:**
@@ -30,8 +24,6 @@ npx openspec validate <change-id>        # Validate specific change
 - Anything that benefits from upfront design and structured implementation
 
 ## Commit Timing
-
-Use gitbutler skill for commits during OpenSpec workflows:
 
 | Command | When to commit |
 |---------|----------------|
@@ -55,7 +47,18 @@ Do NOT include "Generated with Claude Code" footer in PR descriptions or commit 
 |----------|-------------|
 | Mark manual testing tasks as complete | Only humans can verify manual tests |
 | Mark tasks complete without doing them | False progress, bugs slip through |
+| Use `--skip-specs` without asking user | Specs become out of sync with implementation |
 
-## Reference
+**Archive failures:** If `openspec archive` fails due to spec validation errors, STOP and ask the user how to proceed. Never use `--skip-specs` without explicit user approval.
 
-For detailed OpenSpec workflow, format, and conventions, see `openspec/AGENTS.md` in the project.
+## Beads Integration
+
+OpenSpec changes should be tracked with beads for visibility:
+
+| OpenSpec Stage | Beads Action |
+|----------------|--------------|
+| After `/openspec:proposal` | Create tracking bead: `bd create --title="<change-id>" --type=feature` |
+| Before `/openspec:archive` | Ensure bead exists and is `in_progress` |
+| After `/openspec:archive` | Close bead: `bd close <id> --reason="Archived: <change-id>"` |
+
+**Critical:** Always archive OpenSpec BEFORE closing the tracking bead.
