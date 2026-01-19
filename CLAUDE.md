@@ -23,6 +23,6 @@ Personal preferences applied across all projects.
 
 ## Session Management
 
-- **Track work with todos** - use TodoWrite for multi-step tasks
+- **Track multi-step work** - use appropriate tracking (beads, TodoWrite, or project-specific)
 - **Land the plane** - ensure all work is committed and pushed before ending
-- **Create issues for remaining work** - don't leave loose ends undocumented
+- **Document remaining work** - don't leave loose ends undocumented
