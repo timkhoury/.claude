@@ -14,6 +14,9 @@ shell-snapshots/
 statsig/
 todos/
 
+cache/
+paste-cache/
+
 history.jsonl
 security_*.json
 settings.json
