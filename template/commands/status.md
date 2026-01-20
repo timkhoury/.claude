@@ -112,6 +112,41 @@ To detect if a bead is linked to an OpenSpec change:
 - Check if bead title contains the change-id
 - Check if bead description references the change
 
+## Example Output
+
+```markdown
+## Workflow Status
+
+### Active OpenSpec Changes
+| Change ID | Summary |
+|-----------|---------|
+| add-user-preferences | Add user preference settings to dashboard |
+
+### In-Progress Beads
+| ID | Title | Linked to OpenSpec? |
+|----|-------|---------------------|
+| PROJ-42 | add-user-preferences | Yes: add-user-preferences |
+
+### Ready to Work
+| ID | Title | Priority |
+|----|-------|----------|
+| PROJ-38 | Fix login timeout | P1 |
+| PROJ-45 | Update error messages | P2 |
+
+### Git Status
+**GitButler Branches:**
+| Branch | Local SHA | Remote Status |
+|--------|-----------|---------------|
+| add-user-preferences | 85f03b3 | Not pushed |
+| fix-login-bug | 7af62d2 | Pushed |
+
+**Uncommitted changes:**
+- add-user-preferences: 3 files modified
+
+### Warnings
+_No warnings_
+```
+
 ## Usage Tips
 
 - Run at **session start** to orient yourself

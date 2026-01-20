@@ -9,7 +9,19 @@ Standards for creating and maintaining Claude Code skills.
 
 ## Core Principles
 
-### 1. Skills vs Agents
+### 1. Context Over Configuration
+
+**Skills should be generic and read from project context.**
+
+| Do | Don't |
+|----|-------|
+| "Run the project's lint command" | "Run `npm run lint`" |
+| "Check CLAUDE.md for the test command" | Hardcode specific commands |
+| "Use the patterns from project rules" | Embed project-specific patterns |
+
+**Why:** Project-specific details belong in CLAUDE.md and `.claude/rules/`, which are already in context. Skills that reference context are portable and don't duplicate information.
+
+### 2. Skills vs Agents
 
 | Aspect | Skill | Agent |
 |--------|-------|-------|
@@ -20,7 +32,7 @@ Standards for creating and maintaining Claude Code skills.
 
 **Rule:** If it's a quick reference or pattern guide → Skill. If it requires complex reasoning or orchestration → Agent.
 
-### 2. Description is Critical
+### 3. Description is Critical
 
 The `description` field determines when Claude auto-activates the skill. Be specific about triggers and use cases.
 
@@ -37,7 +49,7 @@ description: >
 description: Helper for UI stuff.
 ```
 
-### 3. Token Efficiency
+### 4. Token Efficiency
 
 Skills should be scannable and concise. Use tables and bullet points instead of prose.
 

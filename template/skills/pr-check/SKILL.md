@@ -12,16 +12,18 @@ allowed-tools: [Task]
 
 Run quality checks in two waves using fast subagent tasks.
 
-## Configuration
+## Finding Commands
 
-Customize these commands for your project:
+Look in the project's CLAUDE.md or rules files for the specific commands. Common patterns:
 
-| Check | Default Command | Your Project |
-|-------|-----------------|--------------|
-| Lint | `npm run lint` | <!-- customize --> |
-| Typecheck | `npm run typecheck` | <!-- customize --> |
-| Test | `npm run test` | <!-- customize --> |
-| Build | `npm run build` | <!-- customize --> |
+| Check | Typical Commands |
+|-------|------------------|
+| Lint | `npm run lint`, `ruff check .`, `golangci-lint run`, `cargo clippy` |
+| Typecheck | `npm run typecheck`, `mypy .`, `tsc --noEmit` |
+| Test | `npm run test`, `pytest`, `go test ./...`, `cargo test` |
+| Build | `npm run build`, `go build ./...`, `cargo build` |
+
+Use whatever commands are documented for this specific project.
 
 ## Execution
 
@@ -33,15 +35,15 @@ All tasks use:
 
 | Task | Prompt |
 |------|--------|
-| Lint | Run lint command. Report pass/fail with error summary if failed. |
-| Typecheck | Run typecheck command. Report pass/fail with error summary if failed. |
-| Test | Run test command. Report pass/fail with test count (N passed, M skipped). |
+| Lint | Run the project's lint command. Report pass/fail with error summary if failed. |
+| Typecheck | Run the project's typecheck command. Report pass/fail with error summary if failed. |
+| Test | Run the project's test command. Report pass/fail with test count (N passed, M skipped). |
 
 ### Wave 2: Sequential (after Lint and Typecheck pass)
 
 | Task | Prompt |
 |------|--------|
-| Build | Run build command. Report pass/fail with error summary if failed. |
+| Build | Run the project's build command. Report pass/fail with error summary if failed. |
 
 **Note:** If Lint or Typecheck fails, skip the Build step and report failure.
 
@@ -61,36 +63,4 @@ After all tasks complete, summarize:
 
 [If any failed: show error output]
 [If all passed: "Ready to create PR."]
-```
-
-## Customization Examples
-
-### Node.js / npm
-```bash
-npm run lint
-npm run typecheck
-npm run test
-npm run build
-```
-
-### Python / pytest
-```bash
-ruff check .
-mypy .
-pytest
-python -m build
-```
-
-### Go
-```bash
-golangci-lint run
-go build ./...
-go test ./...
-```
-
-### Rust
-```bash
-cargo clippy
-cargo build
-cargo test
 ```
