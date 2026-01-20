@@ -42,12 +42,16 @@ includes:
   # Full CLAUDE.md (for implementers needing all project rules)
   claudeMd: "@/CLAUDE.md"
 
+  # General patterns (from template - always available)
+  documentationLookup: "@/.claude/rules/documentation-lookup.md"
+  researchPatterns: "@/.claude/rules/research-patterns.md"
+  deterministicSystems: "@/.claude/rules/deterministic-systems.md"
+
   # Add your project-specific rule files here:
   # Example:
   # architecture: "@/.claude/rules/architecture.md"
   # patterns: "@/.claude/rules/patterns.md"
   # dangerZone: "@/.claude/rules/danger-zone.md"
-  # gitRules: "@/.claude/rules/git-rules.md"
 
 # Rule bundles for different agent types
 # Bundles are arrays of $includes.* references
@@ -57,7 +61,10 @@ ruleBundles:
   implementation:
     - $includes.baseline
     - $includes.claudeMd
-    # Add more: $includes.architecture, $includes.patterns, $includes.gitRules, etc.
+    - $includes.documentationLookup
+    - $includes.researchPatterns
+    - $includes.deterministicSystems
+    # Add more: $includes.architecture, $includes.patterns, etc.
 
   # Rules for code reviewers (validates against these)
   review:
@@ -67,6 +74,9 @@ ruleBundles:
   # Rules for planners (architecture focus)
   planning:
     - $includes.baseline
+    - $includes.documentationLookup
+    - $includes.researchPatterns
+    - $includes.deterministicSystems
     # Add architecture/design rules
 
   # Minimal rules for testers

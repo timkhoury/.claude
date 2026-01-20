@@ -57,6 +57,31 @@ The `bd` command is the correct CLI. `npx beads` does not exist and will fail.
 - Use descriptive titles and set appropriate priority/type
 - Always `bd sync` before ending session
 
+## Proactive Issue Creation
+
+**Always create beads issues for discovered work.** When you encounter:
+
+- Bugs that don't block current work
+- Technical debt or code smells
+- Missing tests or test failures unrelated to current task
+- Documentation gaps
+- Performance issues
+- Accessibility problems
+
+Create a bead immediately with `bd create`. This ensures nothing gets lost and provides visibility into discovered work.
+
+```bash
+# Example: Found a bug while working on something else
+bd create --title="Fix null check in auth middleware" --type=bug --priority=2 \
+  --description="Discovered while testing sign-out flow. See auth/sign-out.spec.ts"
+```
+
+**Why this matters:**
+- Work discovered but not tracked is work forgotten
+- Beads provide context recovery after session compaction
+- Future sessions can pick up where you left off
+- Users have visibility into all known issues
+
 ## Epic Structure (for complex work)
 
 For changes with 3+ tasks, use epics:
