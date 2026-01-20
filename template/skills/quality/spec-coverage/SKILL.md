@@ -1,5 +1,5 @@
 ---
-name: spec-coverage
+name: quality:spec-coverage
 description: >
   Analyze implementation coverage against OpenSpec functional requirements.
   Maps each spec scenario to code implementation, identifies gaps, reports coverage.

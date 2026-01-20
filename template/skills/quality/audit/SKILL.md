@@ -1,5 +1,5 @@
 ---
-name: quality-audit
+name: quality:audit
 description: >
   Combined quality analysis: spec implementation coverage AND test coverage.
   Single pass through OpenSpec specs, produces both SPEC_COVERAGE_REPORT.md

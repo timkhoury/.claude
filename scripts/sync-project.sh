@@ -35,7 +35,7 @@ HAS_OPENSPEC=false
 
 # Files that require specific tools
 BEADS_FILES="rules/beads-workflow.md|skills/beads-cleanup/|commands/work.md|commands/status.md|commands/wrap.md"
-OPENSPEC_FILES="rules/openspec.md|skills/spec-coverage/|skills/spec-quality/|skills/test-quality/|skills/quality-audit/"
+OPENSPEC_FILES="rules/openspec.md|skills/quality/"
 BEADS_AND_OPENSPEC_FILES="rules/workflow-integration.md"
 
 # Parse arguments

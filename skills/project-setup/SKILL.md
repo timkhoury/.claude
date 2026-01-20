@@ -103,10 +103,7 @@ Based on tool selections, copy from `~/.claude/template/`:
 
 **If OpenSpec enabled:**
 - `rules/openspec.md` → `./.claude/rules/openspec.md`
-- `skills/spec-coverage/` → `./.claude/skills/spec-coverage/`
-- `skills/spec-quality/` → `./.claude/skills/spec-quality/`
-- `skills/test-quality/` → `./.claude/skills/test-quality/`
-- `skills/quality-audit/` → `./.claude/skills/quality-audit/`
+- `skills/quality/` → `./.claude/skills/quality/` (includes spec-coverage, test-quality, spec-quality, audit)
 
 **If Beads + OpenSpec enabled:**
 - `rules/workflow-integration.md` → `./.claude/rules/workflow-integration.md`
