@@ -8,7 +8,7 @@ skills: $skillSets.patterns
 
 includes:
   - $includes.baseline
-  # Add architecture rules via ruleBundles.planning in _shared.yaml
+  - $ruleBundles.planning
 
 description:
   summary: >
