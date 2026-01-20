@@ -1,5 +1,5 @@
 ---
-name: spec-quality
+name: quality:spec-quality
 description: >
   Analyze OpenSpec structure for organizational issues. Detects merge/split
   candidates, duplicates, naming inconsistencies, and boundary overlaps.

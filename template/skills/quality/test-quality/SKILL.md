@@ -1,5 +1,5 @@
 ---
-name: test-quality
+name: quality:test-quality
 description: >
   Analyze test coverage against OpenSpec functional requirements.
   Maps each spec scenario to tests, identifies gaps, reports on test health.
