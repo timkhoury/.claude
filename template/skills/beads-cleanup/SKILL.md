@@ -1,57 +1,103 @@
 ---
-name: beads-cleanup
-description: Clean up old closed beads issues to reduce database size. Use when the beads database is getting cluttered with old closed issues.
+name: beads:cleanup
+description: >
+  Clean up old closed beads issues to reduce database size.
+  Use when the beads database is getting cluttered with old closed issues.
+allowed-tools: [Bash, AskUserQuestion]
 ---
 
 # Beads Cleanup
 
-Clean up old closed issues to keep the beads database lean.
+Reduce database size by compacting or deleting old closed issues.
 
-## When to Use
+## Usage
 
-- `.beads/` directory is getting large
-- Many old closed issues cluttering `bd list`
-- Before archiving/sharing the project
-
-## Cleanup Commands
-
-```bash
-# Compact old closed issues (summarizes and archives)
-bd compact --older-than 30d
-
-# Delete specific closed issues
-bd delete <id1> <id2> ...
-
-# Export before cleanup (backup)
-bd export --status=closed > closed-issues-backup.jsonl
+```
+/beads:cleanup [--days N] [--hard]
 ```
 
-## Compaction
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `--days` | 30 | Minimum age in days for closed issues |
+| `--hard` | false | Use aggressive deletion instead of compaction |
 
-Compaction uses semantic summarization to preserve essential context while reducing storage:
+## Approaches
+
+| Mode | Command | Effect |
+|------|---------|--------|
+| **Compact** (default) | `bd admin compact` | Summarizes content, preserves metadata, recoverable |
+| **Cleanup** (`--hard`) | `bd admin cleanup` | Deletes issues, converts to tombstones, permanent |
+
+Prefer compaction unless you need aggressive cleanup.
+
+## Workflow
+
+### Step 1: Parse Arguments
+
+Extract `--days` (default 30) and `--hard` flag from arguments.
+
+### Step 2: Preview Changes
+
+Run dry-run to show what would be affected:
 
 ```bash
-bd compact --older-than 30d --dry-run  # Preview what would be compacted
-bd compact --older-than 30d            # Actually compact
+# Compaction (default)
+bd admin compact --prune --older-than <days> --dry-run
+
+# Or cleanup (if --hard)
+bd admin cleanup --older-than <days> --dry-run
 ```
 
-**What compaction does:**
-- Summarizes issue description and comments
-- Preserves key metadata (title, type, priority, dates)
-- Reduces storage while maintaining searchability
-- Original history recoverable via `bd restore`
+### Step 3: Confirm with User
 
-## Best Practices
+Use AskUserQuestion to confirm before proceeding. Show:
+- Number of issues to be affected
+- The `--days` threshold used
+- Which mode (compact vs cleanup)
 
-1. **Export first** - Always backup before bulk operations
-2. **Use dry-run** - Preview changes before applying
-3. **Keep recent** - Don't compact issues less than 30 days old
-4. **Sync after** - Run `bd sync` to push changes
+### Step 4: Execute
+
+If confirmed, run the appropriate command:
+
+```bash
+# Compaction (default)
+bd admin compact --prune --older-than <days>
+
+# Or cleanup (if --hard)
+bd admin cleanup --older-than <days> --force
+```
+
+### Step 5: Sync Changes
+
+After cleanup, sync to commit the changes:
+
+```bash
+bd sync
+```
 
 ## Recovery
 
-If you need to restore a compacted issue's full history:
+Compacted issues can be restored from git history:
 
 ```bash
-bd restore <id>  # Restores from git history
+bd restore <id>
+```
+
+Deleted issues (via `--hard`) cannot be recovered.
+
+## Example Session
+
+```
+User: /beads:cleanup --days 14
+
+Claude: Running preview...
+[Shows dry-run output]
+
+Found 5 closed issues older than 14 days eligible for compaction.
+Proceed?
+
+User: Yes
+
+Claude: [Runs compact]
+Compacted 5 issues. Use `bd restore <id>` if you need to recover any.
 ```

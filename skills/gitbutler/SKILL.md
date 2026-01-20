@@ -35,11 +35,15 @@ git mv src/old-path/file.tsx src/new-path/file.tsx
 
 | Command | Description |
 |---------|-------------|
-| `but status` | View uncommitted changes by branch (`-v` for details, `-f` for committed files) |
+| `but status` | View uncommitted changes by branch (`-v` verbose, `-f` files, `-u` upstream) |
+| `but show <id>` | Show commit or branch details (`-v` for verbose) |
 | `but branch new <name>` | Create new virtual branch |
 | `but rub <file-id> <branch-id>` | Assign file to branch |
 | `but commit <branch> --only -m "..."` | Commit only assigned files |
-| `but push <branch>` | Push branch to remote |
+| `but reword <id> -m "message"` | Edit commit message (or rename branch) |
+| `but push <branch>` | Push branch to remote (`--dry-run` to preview) |
+| `but pull` | Update branches from remote (replaces `but base update`) |
+| `but pull --check` | Check merge status without updating |
 | `but oplog` | View operation history |
 | `but restore <snapshot-id>` | Restore to specific snapshot |
 
@@ -137,7 +141,8 @@ Example: `but rub abc123 def456` squashes abc123 into def456.
 |----------|-------------|
 | `but undo` | Can lose uncommitted work permanently - restores to previous snapshot |
 | `but commit` without `--only` | Includes unassigned files (exception: ID ambiguity workaround) |
-| `but describe <sha>` | Opens interactive editor, hangs session |
+| `but reword <id>` without `-m` | Opens interactive editor, hangs session - always use `-m "message"` |
+| `but pr new` | Opens interactive editor - use `gh pr create` instead |
 | `but push --force` | Invalid flag - `but push` auto-handles force push when needed |
 | `git push` instead of `but push` | Bypasses GitButler, use `but push <branch>` instead |
 | `git commit` instead of `but commit` | Bypasses GitButler, breaks virtual branches |

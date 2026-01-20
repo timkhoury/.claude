@@ -5,7 +5,7 @@
 
 **When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until changes are pushed to remote.
 
-## Mandatory Workflow
+### Mandatory Workflow
 
 1. **File issues for remaining work** - Create beads for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Run pr-check for code changes, skip for docs-only
@@ -26,7 +26,7 @@
 7. **Verify** - All changes committed AND pushed
 8. **Hand off** - Provide context for next session
 
-## Critical Rules
+### Critical Rules
 
 - Work is NOT complete until `but push <branch>` succeeds
 - NEVER stop before pushing - that leaves work stranded locally

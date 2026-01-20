@@ -80,7 +80,7 @@ bd update <task-id> --status=in_progress
    bd close <task-id> --reason="<brief summary>"
    ```
 
-3. If task has associated tasks.md, tick the checkbox
+3. If task has associated OpenSpec tasks.md, tick the checkbox
 
 **If working directly:**
 
@@ -105,7 +105,7 @@ bd update <task-id> --status=in_progress
 After all work complete, run quality gates:
 
 1. **Code review** - Run `code-reviewer` agent to review changes
-2. **Quality gates** - If review passes, run pr-check
+2. **Quality gates** - If review passes, run `/pr-check` skill
 3. **Prompt user** - Ask if they want to create a PR (don't auto-create)
 
 ```bash

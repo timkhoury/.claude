@@ -9,7 +9,7 @@ tools: $toolSets.readOnly
 
 includes:
   - $includes.baseline
-  # Add testing rules via ruleBundles.testing in _shared.yaml
+  - $ruleBundles.testing
 
 description:
   summary: >

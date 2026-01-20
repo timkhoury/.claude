@@ -1,11 +1,14 @@
 # Beads Workflow
 
-This project uses [beads](https://github.com/Dicklesworthstone/beads_viewer) for issue tracking. Issues are stored in `.beads/` and tracked in git.
+This project uses [beads](https://github.com/steveyegge/beads) for issue tracking. Issues are stored in `.beads/` and tracked in git.
 
 ## Essential Commands
 
 ```bash
-# View issues
+# View issues (TUI - avoid in automated sessions)
+bv
+
+# CLI commands (use these for agents)
 bd ready              # Show issues ready to work (no blockers)
 bd list --status=open # All open issues
 bd show <id>          # Full issue details with dependencies
@@ -40,9 +43,11 @@ bd sync               # Commit and push changes
 | Never | Use Instead |
 |-------|-------------|
 | `npx beads ...` | `bd ...` |
+| `npx beads ready` | `bd ready` |
+| `npx beads list` | `bd list` |
 | `bd close <id> --comment "..."` | `bd close <id> --reason "..."` |
 
-The `bd` command is the correct CLI. `npx beads` does not exist.
+The `bd` command is the correct CLI. `npx beads` does not exist and will fail.
 
 ## Best Practices
 

@@ -83,6 +83,7 @@ If other branches have unpushed commits, mention them in the handoff summary but
 ```bash
 but status                   # Verify all branches pushed
 bd list --status=in_progress # Verify no forgotten beads
+openspec list                # Verify no forgotten changes (if using OpenSpec)
 ```
 
 For each pushed branch, check if a PR exists:

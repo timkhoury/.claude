@@ -8,7 +8,7 @@ skills: $skillSets.patterns
 
 includes:
   - $includes.baseline
-  # Add project-specific review rules via ruleBundles.review in _shared.yaml
+  - $ruleBundles.review
 
 description:
   summary: >
