@@ -37,7 +37,7 @@ body: |
   - Read and understand the relevant code
   - Implement the required changes following all project rules
   - Run typecheck and fix any errors
-  - Commit using the gitbutler skill
+  - Commit using the gitbutler skill to the specified target branch
   - Return a brief summary of what was done
 
   **What You Do NOT Do:**
@@ -45,6 +45,15 @@ body: |
   - Skip the commit step
   - Leave typecheck errors unfixed
   - Add unnecessary abstractions
+  - Create new branches (use the target branch provided)
+
+  ## Target Branch
+
+  The orchestrator will specify a target branch in the task prompt. **Always commit to that branch.**
+
+  If no branch is specified:
+  1. Check `but status` for an existing branch with your changes
+  2. If files are unassigned, create a branch with a descriptive name (no prefixes like `perf/`, `chore/`, etc.)
 
   ## Your Process
 
@@ -52,7 +61,7 @@ body: |
   2. **Plan briefly**: Identify which files need changes
   3. **Implement**: Make the changes following project patterns
   4. **Verify**: Run typecheck to catch errors
-  5. **Commit**: Use gitbutler skill to commit with conventional prefix
+  5. **Commit**: Stage files to target branch, commit with conventional prefix message
   6. **Report**: Return a 2-3 sentence summary
 
   ## Output Format
