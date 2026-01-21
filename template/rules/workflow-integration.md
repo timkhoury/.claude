@@ -85,8 +85,52 @@ Epic: add-user-notifications (abc)
 ├── Task 1: Create notification service (def) ← ready
 ├── Task 2: Add database schema (ghi) ← blocked by def
 ├── Task 3: Build UI components (jkl) ← blocked by def, ghi
-└── Task 4: Write tests (mno) ← blocked by jkl
+├── [Standard] Unit & integration tests (mno) ← blocked by implementation tasks
+├── [Standard] E2E tests (pqr) ← blocked by tests, if user-facing
+├── [Standard] Documentation updates (stu) ← blocked by implementation tasks
+└── [Standard] Manual QA verification (vwx) ← blocked by all, human-only
 ```
+
+### Standard Epic Tasks
+
+**Every epic MUST include these tasks.** Create them when setting up the epic structure.
+
+| Task | Type | Blocked By | Closed By |
+|------|------|------------|-----------|
+| Unit & integration tests | `task` | All implementation tasks | Agent (after tests pass) |
+| E2E tests | `task` | Unit tests (if user-facing) | Agent (after tests pass) |
+| Documentation updates | `task` | Implementation tasks | Agent (if docs changed) |
+| Manual QA verification | `task` | All other tasks | **Human only** |
+
+**Creating standard tasks:**
+```bash
+# After creating implementation tasks, add standard tasks:
+bd create --title="Unit & integration tests" --type=task --priority=2 \
+  --description="Write tests for new functionality. Target: unit tests for logic, integration tests for DB/API."
+bd update <test-id> --parent=<epic-id>
+bd dep add <test-id> <last-implementation-task>
+
+bd create --title="E2E tests" --type=task --priority=2 \
+  --description="Write E2E tests for user-facing flows. Skip if no UI changes."
+bd update <e2e-id> --parent=<epic-id>
+bd dep add <e2e-id> <unit-test-id>
+
+bd create --title="Documentation updates" --type=task --priority=2 \
+  --description="Update docs if API, schema, or user-facing behavior changed."
+bd update <docs-id> --parent=<epic-id>
+bd dep add <docs-id> <last-implementation-task>
+
+bd create --title="Manual QA verification" --type=task --priority=3 \
+  --description="Human verification of functionality. DO NOT close automatically."
+bd update <qa-id> --parent=<epic-id>
+bd dep add <qa-id> <e2e-id>  # Blocked by everything else
+```
+
+**Rules for standard tasks:**
+- **Tests**: Must pass `npm run test` and achieve reasonable coverage for new code
+- **E2E**: Required if feature has user-facing UI; skip with `--reason="No UI changes"` if not
+- **Docs**: Update relevant docs in `docs/` or inline comments; skip if truly no doc changes
+- **Manual QA**: **NEVER** close automatically - only a human can verify and close this task
 
 ### During Implementation
 
@@ -122,15 +166,25 @@ bd ready                              # See what's unblocked next
 
 **CRITICAL: Follow this order exactly:**
 
-1. **Archive OpenSpec first** (if applicable) - `/openspec:archive <change-id>`
-2. **Then close the bead(s)**:
+1. **Verify Epic Completion Checklist** (for epics only):
+   ```
+   [ ] All implementation tasks closed
+   [ ] Unit & integration tests task closed (tests passing)
+   [ ] E2E tests task closed (or skipped with reason)
+   [ ] Documentation updates task closed (or skipped with reason)
+   [ ] Manual QA verification task closed BY HUMAN
+   ```
+   **DO NOT proceed until all boxes are checked.** The Manual QA task requires human sign-off.
+
+2. **Archive OpenSpec first** (if applicable) - `/openspec:archive <change-id>`
+3. **Then close the bead(s)**:
    - Simple bead: `bd close <bead-id> --reason="Archived: <change-id>"`
    - Epic: `bd close <epic-id> --reason="Archived: <change-id>"` (closes epic; tasks should already be closed)
-3. **Run quality gates**:
+4. **Run quality gates**:
    - Run `code-reviewer` agent to review all changes
    - If review passes, run `/pr-check` skill
    - Prompt user if they want to create a PR (don't auto-create)
-4. **Then land the plane** - Push, sync, verify
+5. **Then land the plane** - Push, sync, verify
 
 **Why this order matters:**
 - OpenSpec archive updates the specs (source of truth)
@@ -329,3 +383,6 @@ These must remain unticked until a human confirms completion. This applies to bo
 | Skip subagent delegation for complex tasks | Main context bloated, loses efficiency |
 | Skip commit after task completion | Work lost, can't attribute commits to tasks |
 | Batch multiple tasks into one commit | Loses granularity, harder to review/revert |
+| Create epic without standard tasks | Missing tests, docs, QA - incomplete delivery |
+| Close Manual QA task automatically | Only humans can verify - this task is human-only |
+| Close epic before Manual QA sign-off | Feature not verified by human, bugs slip through |
