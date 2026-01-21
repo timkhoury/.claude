@@ -14,10 +14,12 @@ Audit security vulnerabilities and guide through dependency updates with migrati
 
 1. **Security first** - Always run security audit before updates
 2. **Ecosystem awareness** - Group related packages and update them together
-3. **Research major updates** - Use WebSearch for breaking changes and migration guides
-4. **Present choices** - Use AskUserQuestion to let user select which updates to apply
-5. **One ecosystem at a time** - Update major versions by ecosystem with testing between
-6. **Commit incrementally** - Separate commits for security fixes, major updates, minor/patch updates
+3. **Analyze transitive dependencies** - Before major upgrades, check peer/regular dependencies of the target version
+4. **Detect cascading upgrades** - If a transitive dep needs upgrading, check if that triggers more upgrades
+5. **Research major updates** - Use WebSearch for breaking changes and migration guides
+6. **Present choices** - Use AskUserQuestion to let user select which updates to apply
+7. **One ecosystem at a time** - Update major versions by ecosystem with testing between
+8. **Commit incrementally** - Separate commits for security fixes, major updates, minor/patch updates
 
 ## Phase 1: Detect Package Manager
 
@@ -198,7 +200,74 @@ After categorizing, group packages by their ecosystem (from Phase 2) and present
 
 ## Phase 5: Research Major Updates
 
-**For each ecosystem with major updates**, use WebSearch to find:
+**For each ecosystem with major updates**, perform dependency analysis and web research.
+
+### Step 1: Analyze Transitive Dependencies
+
+Before researching online, check what the new version requires:
+
+```bash
+# Check peer dependencies of the target version
+npm info {package}@{target_version} peerDependencies
+
+# Check regular dependencies
+npm info {package}@{target_version} dependencies
+
+# Check what version ranges are acceptable
+npm info {package}@{target_version} peerDependenciesMeta
+```
+
+**For each peer/regular dependency found:**
+
+1. **Check if it's installed** - Is this dependency in our package.json?
+2. **Check version compatibility** - Does our installed version satisfy the new requirement?
+3. **Check if it needs upgrading** - If not compatible, what version do we need?
+4. **Check cascading requirements** - Does upgrading that dependency trigger more upgrades?
+
+### Transitive Dependency Analysis Format
+
+```markdown
+### {Package}: Dependency Requirements for v{version}
+
+**Peer Dependencies:**
+| Dependency | Required | Installed | Status |
+|------------|----------|-----------|--------|
+| react | ^19.0.0 | 18.2.0 | ⚠️ Upgrade needed |
+| react-dom | ^19.0.0 | 18.2.0 | ⚠️ Upgrade needed |
+
+**Regular Dependencies (bundled, but check for conflicts):**
+| Dependency | Version | Notes |
+|------------|---------|-------|
+| scheduler | 0.25.0 | Internal, no action needed |
+
+**Cascading Upgrades Required:**
+- Upgrading to `next@16` requires `react@19`
+- `react@19` is compatible with current `@types/react` (check: `npm info @types/react peerDependencies`)
+- No further cascading upgrades detected
+
+**Blockers:** None / List any blocking issues
+```
+
+### Detecting Cascading Upgrades
+
+When a transitive dependency also needs a major upgrade:
+
+```bash
+# Check if the required dependency version supports our other packages
+npm info {required_dep}@{required_version} peerDependencies
+
+# Example: next@16 requires react@19, check if react@19 works with our other react-dependent packages
+npm info @tanstack/react-query peerDependencies  # Does it support react@19?
+```
+
+**Flag blockers when:**
+- A required dependency version doesn't exist yet
+- A required dependency conflicts with another package's requirements
+- Upgrading one package forces incompatible upgrades elsewhere
+
+### Step 2: Web Research
+
+Use WebSearch to find:
 
 1. **Changelog/Release notes** - Search: `{primary_package} {version} changelog`
 2. **Migration guide** - Search: `{primary_package} migrate {old_version} to {new_version}`
@@ -214,14 +283,24 @@ For each ecosystem major update, document:
 
 **Packages:** {list of packages in ecosystem}
 
+**Transitive Dependency Analysis:**
+| Dependency | Required | Installed | Action |
+|------------|----------|-----------|--------|
+| react | ^19.0.0 | 19.0.0 | ✅ Compatible |
+| typescript | ^5.0.0 | 5.3.0 | ✅ Compatible |
+| node | >=18.17.0 | 20.x | ✅ Compatible |
+
+**Cascading Upgrades:** None required / List packages that must also upgrade
+
 **Breaking Changes:**
 - List key breaking changes affecting this ecosystem
 
 **Migration Steps:**
 1. Step-by-step migration instructions
 2. Include any ecosystem-specific coordination steps
+3. Include cascading upgrade steps if applicable
 
-**Peer Dependencies:** Any version constraints between packages
+**Blockers:** None / List any blocking dependency conflicts
 
 **Effort Estimate:** Low / Medium / High
 
@@ -232,13 +311,40 @@ For each ecosystem major update, document:
 
 ### Ecosystem-Specific Research Tips
 
-| Ecosystem | What to Check |
-|-----------|---------------|
-| Next.js | Check if eslint-config-next has matching major release |
-| React | Verify @types/react matches react version |
-| Vitest | Check vite compatibility, @vitejs/plugin-react compatibility |
-| Supabase | Check @supabase/ssr and @supabase/supabase-js compatibility matrix |
-| Stripe | Verify server SDK (stripe) and client SDK (@stripe/stripe-js) are compatible |
+| Ecosystem | What to Check | Transitive Dependency Commands |
+|-----------|---------------|-------------------------------|
+| Next.js | Check if eslint-config-next has matching major release | `npm info next@{ver} peerDependencies` - check react version requirement |
+| React | Verify @types/react matches react version | `npm info react@{ver} peerDependencies` - usually none, but check scheduler |
+| Vitest | Check vite compatibility, @vitejs/plugin-react compatibility | `npm info vitest@{ver} peerDependencies` - check vite version requirement |
+| Supabase | Check @supabase/ssr and @supabase/supabase-js compatibility matrix | `npm info @supabase/ssr@{ver} peerDependencies` - check supabase-js requirement |
+| Stripe | Verify server SDK (stripe) and client SDK (@stripe/stripe-js) are compatible | Check both packages have compatible API versions |
+| Tailwind | Check PostCSS plugin compatibility | `npm info tailwindcss@{ver} peerDependencies` - check postcss version |
+| TypeScript | Check @types/node matches Node.js target | `npm info typescript@{ver} engines` - check node requirement |
+
+### Cross-Ecosystem Dependency Checks
+
+When upgrading affects multiple ecosystems, verify compatibility:
+
+```bash
+# Example: Upgrading React affects many packages
+# Check if Tanstack Query supports the new React version
+npm info @tanstack/react-query peerDependencies
+
+# Check if Testing Library supports the new React version
+npm info @testing-library/react peerDependencies
+
+# Check if Radix UI components support the new React version
+npm info @radix-ui/react-dialog peerDependencies
+```
+
+**Present cross-ecosystem conflicts clearly:**
+
+```markdown
+⚠️ **Cross-Ecosystem Dependency Conflict:**
+- `next@16` requires `react@^19.0.0`
+- `@tanstack/react-query@5.50.0` requires `react@^18.0.0`
+- **Resolution:** Upgrade @tanstack/react-query to 5.60.0+ (supports React 19)
+```
 
 ## Phase 6: Present Update Plan
 
@@ -425,31 +531,68 @@ Now checking for outdated packages and grouping by ecosystem...
 | motion | 12.23.x | 12.27.x | Minor |
 | lucide-react | 0.544.0 | 0.562.0 | Minor |
 
-Let me research the major ecosystem updates...
+Let me analyze transitive dependencies for major updates...
+[Runs npm info next@16 peerDependencies]
+[Runs npm info vitest@4 peerDependencies]
+[Runs npm info zod@4 peerDependencies]
+
+### Transitive Dependency Analysis
+
+**next@16 requires:**
+| Dependency | Required | Installed | Status |
+|------------|----------|-----------|--------|
+| react | ^19.0.0 | 19.0.0 | ✅ Compatible |
+| react-dom | ^19.0.0 | 19.0.0 | ✅ Compatible |
+
+**vitest@4 requires:**
+| Dependency | Required | Installed | Status |
+|------------|----------|-----------|--------|
+| vite | ^6.0.0 | 5.4.0 | ⚠️ Upgrade needed |
+
+**Cascading check:** Does vite@6 affect other packages?
+[Runs npm info @vitejs/plugin-react peerDependencies]
+- @vitejs/plugin-react needs update to support vite@6
+
+Now researching breaking changes...
 [WebSearch for Next.js 16 migration, Vitest 4 migration, Zod 4 migration]
 
 ### Next.js Ecosystem: 15.x → 16.x
 **Packages:** next, eslint-config-next
 
+**Transitive Dependency Analysis:**
+| Dependency | Required | Installed | Action |
+|------------|----------|-----------|--------|
+| react | ^19.0.0 | 19.0.0 | ✅ Compatible |
+| react-dom | ^19.0.0 | 19.0.0 | ✅ Compatible |
+
+**Cascading Upgrades:** None required
+
 **Breaking Changes:**
-- React 19 required (already satisfied)
 - New turbopack defaults
 - Middleware changes
 
-**Peer Dependencies:** eslint-config-next@16 requires next@16
+**Blockers:** None
 
 **Effort Estimate:** Medium
 
 ### Vitest Ecosystem: 3.x → 4.x
-**Packages:** vitest, @vitest/ui, @vitejs/plugin-react
+**Packages:** vitest, @vitest/ui, @vitejs/plugin-react, vite
+
+**Transitive Dependency Analysis:**
+| Dependency | Required | Installed | Action |
+|------------|----------|-----------|--------|
+| vite | ^6.0.0 | 5.4.0 | ⚠️ Upgrade to 6.x |
+
+**Cascading Upgrades:** vite must upgrade to 6.x (included in ecosystem)
 
 **Breaking Changes:**
 - New configuration format
 - Browser mode changes
+- Vite 6 migration required
 
-**Peer Dependencies:** All packages should be v4.x together
+**Blockers:** None - vite@6 is available
 
-**Effort Estimate:** Low
+**Effort Estimate:** Medium (was Low, increased due to vite upgrade)
 
 [AskUserQuestion: Which updates would you like to apply?]
 Options:

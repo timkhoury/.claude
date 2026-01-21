@@ -7,77 +7,152 @@ description: >
   saying "setup project", "initialize claude", or "configure claude code".
 ---
 
-# Project Setup Guide
+# Project Setup
 
-Interactive setup for Claude Code project configuration.
+Initialize Claude Code configuration using the deterministic setup script.
 
-## Prerequisites
+## Usage
 
-Ensure you're in the project root directory before running this skill.
-
-## Setup Flow
-
-### Phase 1: Gather Information
-
-Use `AskUserQuestion` to collect:
-
-**Question 1: Project Info**
+```bash
+~/.claude/skills/project-setup/setup-project.sh [options]
 ```
-Header: "Project"
-Question: "What is this project? (name and brief description)"
-```
-(Free text - use "Other" option)
 
-**Question 2: Tools to Enable**
+| Option | Description |
+|--------|-------------|
+| `--tools=TOOLS` | Tools to enable: `all`, `beads+openspec`, `beads`, `openspec`, `none` (default: `all`) |
+| `--framework=NAME` | Framework: `nextjs`, `react`, `node`, `other` (optional) |
+| `--scaffold-rules` | Create scaffolded rule files (architecture.md, project-overview.md, danger-zone.md) |
+| `--project-name=NAME` | Project name for beads prefix (default: directory name) |
+| `--skip-init` | Skip tool initialization (bd init, openspec init) |
+| `--skip-build` | Skip agent building step |
+
+## Interactive Workflow
+
+When invoked as a skill, gather information first:
+
+### Question 1: Tools
+
 ```
 Header: "Tools"
 Question: "Which tools do you want to enable?"
 Options:
-  - "All (Recommended)" - GitButler + Beads + OpenSpec
-  - "GitButler + Beads" - Issue tracking without specs
-  - "GitButler only" - Just virtual branches
-  - "None" - Manual git workflow
-MultiSelect: false
+  - "All (Recommended)" → --tools=all
+  - "Beads + OpenSpec" → --tools=beads+openspec
+  - "Beads only" → --tools=beads
+  - "None" → --tools=none
 ```
 
-**Question 3: Framework (if applicable)**
+### Question 2: Framework (optional)
+
 ```
 Header: "Framework"
 Question: "What framework is this project using?"
 Options:
-  - "Next.js" - React Server Components, App Router
-  - "React (Vite/CRA)" - Client-side React
-  - "Node.js" - Backend/CLI project
-  - "Other" - Different framework or none
-MultiSelect: false
+  - "Next.js" → --framework=nextjs
+  - "React (Vite/CRA)" → --framework=react
+  - "Node.js" → --framework=node
+  - "Other/None" → (omit flag)
 ```
 
-**Question 4: Rule Scaffolding**
+### Question 3: Scaffolding
+
 ```
 Header: "Rules"
-Question: "Create scaffolded rule files for project-specific documentation?"
+Question: "Create scaffolded rule files for project documentation?"
 Options:
-  - "Yes (Recommended)" - Creates architecture.md, patterns.md, danger-zone.md
-  - "No" - Skip rule scaffolding
-MultiSelect: false
+  - "Yes (Recommended)" → --scaffold-rules
+  - "No" → (omit flag)
 ```
 
-### Phase 2: Tool Installation Check
+### Run Script
 
-For each enabled tool, verify installation:
+After gathering answers, run:
 
 ```bash
-# GitButler
-which but && but --version
-
-# Beads
-which bd && bd --version
-
-# OpenSpec
-which openspec && openspec --version
+~/.claude/skills/project-setup/setup-project.sh --tools=<choice> [--framework=<choice>] [--scaffold-rules]
 ```
 
-If missing, provide installation commands:
+## What Gets Copied
+
+### Always Copied
+
+| Source | Destination |
+|--------|-------------|
+| `CLAUDE.md` | `./CLAUDE.md` |
+| `baseline-agent.md` | `.claude/baseline-agent.md` |
+| `agents-src/` | `.claude/agents-src/` |
+| `scripts/` | `.claude/scripts/` |
+| `rules/landing-the-plane.md` | `.claude/rules/` |
+| `rules/deterministic-systems.md` | `.claude/rules/` |
+| `rules/research-patterns.md` | `.claude/rules/` |
+| `rules/documentation-lookup.md` | `.claude/rules/` |
+| `rules/agents-system.md` | `.claude/rules/` |
+| `skills/pr-check/` | `.claude/skills/` |
+| `skills/deps-update/` | `.claude/skills/` |
+| `skills/adr-writer/` | `.claude/skills/` |
+| `skills/skill-writer/` | `.claude/skills/` |
+| `skills/agent-writer/` | `.claude/skills/` |
+| `commands/plan.md` | `.claude/commands/` |
+| `commands/check.md` | `.claude/commands/` |
+| `commands/fix.md` | `.claude/commands/` |
+| `commands/review.md` | `.claude/commands/` |
+| `commands/test.md` | `.claude/commands/` |
+
+### If Beads Enabled
+
+| Source | Destination |
+|--------|-------------|
+| `rules/beads-workflow.md` | `.claude/rules/` |
+| `skills/beads-cleanup/` | `.claude/skills/` |
+| `commands/work.md` | `.claude/commands/` |
+| `commands/status.md` | `.claude/commands/` |
+
+### If OpenSpec Enabled
+
+| Source | Destination |
+|--------|-------------|
+| `rules/openspec.md` | `.claude/rules/` |
+| `skills/quality/` | `.claude/skills/` |
+| `commands/openspec/` | `.claude/commands/` |
+
+### If Beads + OpenSpec Enabled
+
+| Source | Destination |
+|--------|-------------|
+| `rules/workflow-integration.md` | `.claude/rules/` |
+| `commands/wrap.md` | `.claude/commands/` |
+
+## Examples
+
+```bash
+# Full setup with all tools
+~/.claude/skills/project-setup/setup-project.sh --tools=all --scaffold-rules
+
+# Next.js project with all tools
+~/.claude/skills/project-setup/setup-project.sh --tools=all --framework=nextjs --scaffold-rules
+
+# Just beads for issue tracking
+~/.claude/skills/project-setup/setup-project.sh --tools=beads --project-name=myapp
+
+# Minimal setup (no tools)
+~/.claude/skills/project-setup/setup-project.sh --tools=none
+```
+
+## After Setup
+
+1. **Customize CLAUDE.md** - Add project description, commands, rules reference
+2. **Customize _shared.yaml** - Add project-specific skills to bundles
+3. **Customize scaffolded rules** - Fill in architecture.md, danger-zone.md, etc.
+4. **Commit**:
+   ```bash
+   git add .claude/ CLAUDE.md
+   git add .beads/ openspec/  # if applicable
+   git commit -m "chore: add claude code configuration"
+   ```
+
+## Tool Installation
+
+If tools are missing, install them:
 
 | Tool | Install Command |
 |------|-----------------|
@@ -85,219 +160,14 @@ If missing, provide installation commands:
 | Beads | `npm install -g beads-ui@latest` |
 | OpenSpec | `npm install -g @fission-ai/openspec@latest` |
 
-### Phase 3: Copy Template Structure
-
-Based on tool selections, copy from `~/.claude/template/`:
-
-**Always copy:**
-- `CLAUDE.md` → `./CLAUDE.md`
-- `baseline-agent.md` → `./.claude/baseline-agent.md`
-- `agents-src/` → `./.claude/agents-src/`
-- `scripts/build-agents.ts` → `./.claude/scripts/build-agents.ts`
-
-**If Beads enabled:**
-- `rules/beads-workflow.md` → `./.claude/rules/beads-workflow.md`
-- `skills/beads-cleanup/` → `./.claude/skills/beads-cleanup/`
-- `commands/work.md` → `./.claude/commands/work.md`
-- `commands/status.md` → `./.claude/commands/status.md`
-
-**If OpenSpec enabled:**
-- `rules/openspec.md` → `./.claude/rules/openspec.md`
-- `skills/quality/` → `./.claude/skills/quality/` (includes spec-coverage, test-quality, spec-quality, audit)
-
-**If Beads + OpenSpec enabled:**
-- `rules/workflow-integration.md` → `./.claude/rules/workflow-integration.md`
-- `commands/wrap.md` → `./.claude/commands/wrap.md`
-
-**Always copy (from template):**
-- `rules/landing-the-plane.md` → `./.claude/rules/landing-the-plane.md`
-- `skills/pr-check/` → `./.claude/skills/pr-check/`
-
-### Phase 4: Tool Initialization
-
-**GitButler:**
-```bash
-# Check if already initialized
-but status 2>/dev/null || echo "Not initialized"
-
-# If not initialized, prompt user to open GitButler desktop app
-# CLI init not available - requires desktop app
-```
-
-**Beads:**
-```bash
-# Check if already initialized
-ls .beads/ 2>/dev/null || bd init --prefix=<project-name>
-```
-
-**OpenSpec:**
-```bash
-# Check if already initialized
-ls openspec/ 2>/dev/null || openspec init --tools=claude
-```
-
-### Phase 5: Parameterize Templates
-
-**Update `_shared.yaml`** based on framework:
-
-```yaml
-# For Next.js projects, add:
-skillSets:
-  patterns:
-    - nextjs-patterns
-    - ui-patterns-reference
-    - test-patterns-guide
-
-includes:
-  # Add framework-specific rules if they exist
-  nextjsPatterns: "@/.claude/rules/nextjs-patterns.md"
-```
-
-**Update `CLAUDE.md`** with project info:
-
-1. Replace `<!-- Describe your project here -->` with project description
-2. Update Quick Commands section based on package.json scripts
-3. Add framework-specific sections
-
-### Phase 6: Create Scaffolded Rules (if enabled)
-
-Create empty rule files with templates:
-
-**`.claude/rules/architecture.md`:**
-```markdown
-# Architecture
-
-## Overview
-
-<!-- Describe your architecture here -->
-
-## Key Patterns
-
-<!-- Document important patterns -->
-
-## Data Flow
-
-<!-- How data moves through the system -->
-```
-
-**`.claude/rules/patterns.md`:**
-```markdown
-# Project Patterns
-
-## Code Patterns
-
-<!-- Common patterns in this codebase -->
-
-## Naming Conventions
-
-<!-- Project-specific naming rules -->
-
-## File Organization
-
-<!-- How files are organized -->
-```
-
-**`.claude/rules/danger-zone.md`:**
-```markdown
-# Danger Zone
-
-> These actions cause problems. Never do them.
-
-## Commands
-
-| Never | Consequence |
-|-------|-------------|
-| <!-- Add project-specific "never do" rules --> | |
-
-## Code Patterns
-
-| Never | Consequence |
-|-------|-------------|
-| <!-- Add anti-patterns to avoid --> | |
-```
-
-### Phase 7: Build Agents
-
-```bash
-# Install yaml dependency if needed
-npm list yaml 2>/dev/null || npm install --save-dev yaml
-
-# Build agents from YAML
-npx tsx .claude/scripts/build-agents.ts
-```
-
-### Phase 8: Git Setup
-
-```bash
-# Add .claude/ to git
-git add .claude/
-
-# Add CLAUDE.md
-git add CLAUDE.md
-
-# If beads initialized, add .beads/
-git add .beads/ 2>/dev/null || true
-
-# If openspec initialized, add openspec/
-git add openspec/ 2>/dev/null || true
-```
-
-### Phase 9: Summary
-
-Print setup summary:
-
-```
-## Project Setup Complete
-
-**Project:** <name>
-**Tools enabled:** <list>
-
-### Next Steps
-
-1. Review and customize `.claude/rules/` files
-2. Update `_shared.yaml` with project-specific skills
-3. Run `npx tsx .claude/scripts/build-agents.ts` after changes
-4. Commit the setup: `git commit -m "chore: add claude code configuration"`
-
-### Quick Reference
-
-| Command | Purpose |
-|---------|---------|
-| `bd ready` | Find available work |
-| `/work <id>` | Execute a task |
-| `/status` | Check workflow state |
-| `/wrap` | End session workflow |
-| `/pr-check` | Run quality gates |
-```
-
-## Tool Reference
-
-### Installation Commands
-
-| Tool | Check | Install |
-|------|-------|---------|
-| GitButler | `but --version` | `curl -fsSL https://app.gitbutler.com/install.sh \| sh` |
-| Beads | `bd --version` | `npm install -g beads-ui@latest` |
-| OpenSpec | `openspec --version` | `npm install -g @fission-ai/openspec@latest` |
-
-### Initialization Commands
-
-| Tool | Check | Initialize |
-|------|-------|------------|
-| GitButler | `but status` | Open GitButler desktop app |
-| Beads | `ls .beads/` | `bd init --prefix=<name>` |
-| OpenSpec | `ls openspec/` | `openspec init --tools=claude` |
-
 ## Troubleshooting
 
-### "but: command not found"
-GitButler CLI not installed. Run the install script or download from gitbutler.com.
-
 ### "bd: command not found"
-Beads not installed. Run `npm install -g beads-ui@latest`.
+Install beads: `npm install -g beads-ui@latest`
 
 ### "openspec: command not found"
-OpenSpec not installed. Run `npm install -g @fission-ai/openspec@latest`.
+Install openspec: `npm install -g @fission-ai/openspec@latest`
 
-### Build agents fails
-Ensure `yaml` package is installed: `npm install --save-dev yaml`
+### Agent build fails
+Install yaml package: `npm install --save-dev yaml`
+Then rebuild: `npx tsx .claude/scripts/build-agents.ts`
