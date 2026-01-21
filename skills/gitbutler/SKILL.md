@@ -11,7 +11,7 @@ GitButler manages multiple virtual branches simultaneously.
 
 > **When the user says "commit", use GitButler (`but commit`), not `git commit`.**
 
-- **Run `but status` after every action** - File IDs shift after commits, rubs, and other operations. Always refresh IDs before the next action.
+- **Run `but status` after every action** - File IDs shift after commits, stages, rubs, and other operations. Always refresh IDs before the next action. Never chain stage commands with `&&` or run them in parallel.
 - **Commit in logical groupings** - Group related changes into separate commits (e.g., feature + tests in one commit, config changes in another)
 - **Use the `--only` flag** when committing: `but commit <branch> --only -m "..."`
 - **Ask which branch** if target is ambiguous (multiple branches with changes)
@@ -38,7 +38,8 @@ git mv src/old-path/file.tsx src/new-path/file.tsx
 | `but status` | View uncommitted changes by branch (`-v` verbose, `-f` files, `-u` upstream) |
 | `but show <id>` | Show commit or branch details (`-v` for verbose) |
 | `but branch new <name>` | Create new virtual branch |
-| `but rub <file-id> <branch-id>` | Assign file to branch |
+| `but stage <file-id> <branch>` | Assign file/hunk to branch (preferred for file assignment) |
+| `but rub <source> <target>` | General operation: squash commits, amend, move commits |
 | `but commit <branch> --only -m "..."` | Commit only assigned files |
 | `but reword <id> -m "message"` | Edit commit message (or rename branch) |
 | `but push <branch>` | Push branch to remote (`--dry-run` to preview) |
@@ -47,11 +48,34 @@ git mv src/old-path/file.tsx src/new-path/file.tsx
 | `but oplog` | View operation history |
 | `but restore <snapshot-id>` | Restore to specific snapshot |
 
-## The `rub` Command
+## Stage vs Rub
+
+**Use `but stage`** for assigning files/hunks to branches (clearer intent):
+```bash
+but stage <file-id> <branch>    # Assign file to branch
+```
+
+**CRITICAL: Stage files one at a time.** File IDs change after each operation. Never use for loops, `&&` chains, or parallel commands:
+
+```bash
+# WRONG - IDs become stale after first stage
+but stage a1 branch && but stage b2 branch && but stage c3 branch
+
+# WRONG - parallel execution with stale IDs
+but stage a1 branch & but stage b2 branch & but stage c3 branch
+
+# CORRECT - refresh IDs after each operation
+but stage a1 branch
+but status              # Get fresh IDs
+but stage <new-id> branch
+but status              # Get fresh IDs again
+but stage <new-id> branch
+```
+
+**Use `but rub`** for commit operations:
 
 | Source | Target | Operation |
 |--------|--------|-----------|
-| File/Hunk | Branch | Assign to branch |
 | File/Hunk | Commit | Amend commit |
 | Commit | Commit | Squash |
 | Commit | Branch | Move commit |
@@ -62,7 +86,7 @@ git mv src/old-path/file.tsx src/new-path/file.tsx
 but branch new feature-name           # 1. Create branch
 # ... make changes ...
 but status                            # 2. See file IDs
-but rub <file-id> feature-name        # 3. Assign files to branch
+but stage <file-id> feature-name      # 3. Assign files to branch
 but commit feature-name --only -m ""  # 4. Commit (use --only)
 ```
 
@@ -78,7 +102,7 @@ When user asks to commit:
    - Documentation updates = separate commit
    - Unrelated bug fixes = separate commits
 4. For each logical group:
-   - Assign related files with `but rub <file-id> <branch>`
+   - Assign related files with `but stage <file-id> <branch>`
    - Use `but commit <branch> --only -m "<message>"`
 5. Confirm success with `but status`
 
@@ -91,14 +115,14 @@ When user asks to commit:
 **Example logical groupings:**
 ```
 # Group 1: Feature + tests
-but status                        # Get current file IDs
-but rub <component-file> my-branch
-but rub <test-file> my-branch
+but status                          # Get current file IDs
+but stage <component-file> my-branch
+but stage <test-file> my-branch
 but commit my-branch --only -m "feat: add feature X with tests"
 
 # Group 2: Config change
-but status                        # IDs shifted after commit - refresh!
-but rub <config-file> my-branch
+but status                          # IDs shifted after commit - refresh!
+but stage <config-file> my-branch
 but commit my-branch --only -m "chore: update config for Y"
 ```
 
@@ -139,6 +163,7 @@ Example: `but rub abc123 def456` squashes abc123 into def456.
 
 | Never Do | Consequence |
 |----------|-------------|
+| Chain `but stage` with `&&` or loops | File IDs change after each operation - subsequent commands use stale IDs |
 | `but undo` | Can lose uncommitted work permanently - restores to previous snapshot |
 | `but commit` without `--only` | Includes unassigned files (exception: ID ambiguity workaround) |
 | `but reword <id>` without `-m` | Opens interactive editor, hangs session - always use `-m "message"` |
@@ -153,7 +178,7 @@ Example: `but rub abc123 def456` squashes abc123 into def456.
 When `but status` shows a file with 🔒 locked to a commit on another branch:
 
 **DO NOT undo previous commits.** Instead:
-1. Assign the locked file to its locked branch: `but rub <file-id> <locked-branch>`
+1. Assign the locked file to its locked branch: `but stage <file-id> <locked-branch>`
 2. Commit it to that branch separately
 3. Continue with other branches normally
 
