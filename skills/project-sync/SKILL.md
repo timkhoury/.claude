@@ -14,7 +14,7 @@ Sync project `.claude/` with `~/.claude/template/` using the deterministic sync 
 ## Usage
 
 ```bash
-~/.claude/scripts/sync-project.sh [--auto|--report|--force]
+~/.claude/skills/project-sync/sync-project.sh [--auto|--report|--force]
 ```
 
 | Flag | Behavior |
@@ -39,7 +39,7 @@ The script detects enabled tools by directory existence:
 ## Quick Sync
 
 ```bash
-~/.claude/scripts/sync-project.sh
+~/.claude/skills/project-sync/sync-project.sh
 ```
 
 This will:
