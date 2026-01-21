@@ -225,6 +225,20 @@ Main Orchestrator (this conversation - stays lean)
   └─ Done when no more ready tasks
 ```
 
+### Branch Management for Epics
+
+**For epics, create a single branch at the start and use it for all tasks:**
+
+```bash
+# Before first task
+but branch new <epic-name>           # Descriptive name, no prefixes like feat/, perf/
+```
+
+**Branch naming rules:**
+- Use descriptive kebab-case: `server-action-optimizations`, `user-notifications`
+- NO conventional prefixes: not `perf/...`, `feat/...`, `fix/...`
+- Prefixes are for commit messages, not branch names
+
 ### Default Task Execution Pattern
 
 **For the specified task, delegate to the task-implementer agent:**
@@ -232,6 +246,7 @@ Main Orchestrator (this conversation - stays lean)
 ```
 Use the task-implementer agent to implement this task:
 
+Target Branch: <branch-name>
 Task ID: <bead-id>
 Task: <title from bd show>
 Description: <description from bd show>
@@ -239,9 +254,11 @@ Description: <description from bd show>
 
 The task-implementer agent has CLAUDE.md and all rules pre-loaded via file inclusion. No need to repeat project conventions in the prompt.
 
+**CRITICAL: Pass the target branch to every task-implementer invocation.** This ensures all commits go to the same branch.
+
 **After subagent completes:**
 1. Tick the task in tasks.md (if applicable) - update checkboxes before committing
-2. **Commit via gitbutler** - Use `but status`, assign files (including tasks.md), `but commit <branch> --only -m "..."`
+2. Verify commit landed on correct branch with `but status`
 3. Close the bead: `bd close <id> --reason="<summary>"`
 4. If epic mode: find next ready child and continue
 5. If task mode: stop (user runs `/work <next-id>` to continue)
