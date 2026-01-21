@@ -19,11 +19,6 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Check if GitButler is managing the current directory
-is_gitbutler_active() {
-  command -v but >/dev/null 2>&1 && [[ -d ".git" ]] && but status >/dev/null 2>&1
-}
-
 # Protected files (never auto-update, but shown in report)
 PROTECTED_PATTERNS="CLAUDE.md|agents-src/_shared.yaml"
 
@@ -243,13 +238,8 @@ elif [[ $count_updated -gt 0 || $count_added -gt 0 ]]; then
   echo -e "${GREEN}Sync complete.${NC}"
   echo ""
   echo "Next steps:"
-  if is_gitbutler_active; then
-    echo "  1. but status  # Review changes"
-    echo "  2. but stage <file> <branch> && but commit <branch> --only -m 'chore: sync claude config'"
-  else
-    echo "  1. git diff .claude/  # Review changes"
-    echo "  2. git add .claude/ && git commit -m 'chore: sync claude config'"
-  fi
+  echo "  1. but status  # Review changes"
+  echo "  2. but stage <file> <branch> && but commit <branch> --only -m 'chore: sync claude config'"
 
   # Check if agents need rebuild
   if grep -q "agents-src/" "$updated_files" "$added_files" 2>/dev/null; then

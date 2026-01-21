@@ -16,11 +16,6 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Check if GitButler is managing the current directory
-is_gitbutler_active() {
-  command -v but >/dev/null 2>&1 && [[ -d ".git" ]] && but status >/dev/null 2>&1
-}
-
 # Defaults
 TOOLS="all"
 FRAMEWORK=""
@@ -33,6 +28,7 @@ SKIP_BUILD=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tools=*)
+      # Accept for backwards compatibility but gitbutler is always assumed
       TOOLS="${1#*=}"
       shift
       ;;
@@ -61,7 +57,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Options:"
       echo "  --tools=TOOLS        Tools to enable: all, beads+openspec, beads, openspec, none"
-      echo "                       (default: all = gitbutler+beads+openspec)"
+      echo "                       (default: all = beads+openspec)"
       echo "  --framework=NAME     Framework: nextjs, react, node, other (optional)"
       echo "  --scaffold-rules     Create scaffolded rule files (architecture.md, etc.)"
       echo "  --project-name=NAME  Project name for beads prefix (default: directory name)"
@@ -88,13 +84,11 @@ if [[ -z "$PROJECT_NAME" ]]; then
 fi
 
 # Parse tool flags
-ENABLE_GITBUTLER=false
 ENABLE_BEADS=false
 ENABLE_OPENSPEC=false
 
 case "$TOOLS" in
   all)
-    ENABLE_GITBUTLER=true
     ENABLE_BEADS=true
     ENABLE_OPENSPEC=true
     ;;
@@ -108,14 +102,11 @@ case "$TOOLS" in
   openspec)
     ENABLE_OPENSPEC=true
     ;;
-  gitbutler)
-    ENABLE_GITBUTLER=true
-    ;;
   none)
     ;;
   *)
     echo -e "${RED}Unknown tools option: $TOOLS${NC}"
-    echo "Valid options: all, beads+openspec, beads, openspec, gitbutler, none"
+    echo "Valid options: all, beads+openspec, beads, openspec, none"
     exit 1
     ;;
 esac
@@ -368,17 +359,6 @@ if [[ "$SKIP_INIT" != "true" ]]; then
     fi
   fi
 
-  if [[ "$ENABLE_GITBUTLER" == "true" ]]; then
-    if command -v but &> /dev/null; then
-      if but status &> /dev/null; then
-        echo -e "  ${YELLOW}GitButler:${NC} Already initialized"
-      else
-        echo -e "  ${YELLOW}GitButler:${NC} Open GitButler desktop app to initialize"
-      fi
-    else
-      echo -e "  ${YELLOW}GitButler:${NC} CLI not installed (run: curl -fsSL https://app.gitbutler.com/install.sh | sh)"
-    fi
-  fi
   echo ""
 fi
 
@@ -416,7 +396,6 @@ echo "Files copied: $files_copied"
 [[ $files_skipped -gt 0 ]] && echo "Files skipped: $files_skipped"
 echo ""
 echo "Tools enabled:"
-[[ "$ENABLE_GITBUTLER" == "true" ]] && echo "  - GitButler"
 [[ "$ENABLE_BEADS" == "true" ]] && echo "  - Beads"
 [[ "$ENABLE_OPENSPEC" == "true" ]] && echo "  - OpenSpec"
 [[ "$TOOLS" == "none" ]] && echo "  - (none)"
@@ -427,13 +406,6 @@ echo "  1. Review and customize CLAUDE.md"
 echo "  2. Review and customize .claude/rules/ files"
 [[ "$ENABLE_BEADS" == "true" ]] && echo "  3. Run 'bd ready' to see available work"
 echo ""
-if is_gitbutler_active; then
-  echo "  but status  # See files to commit"
-  echo "  but stage <file> <branch>  # Stage files"
-  echo "  but commit <branch> --only -m 'chore: add claude code configuration'"
-else
-  echo "  git add .claude/ CLAUDE.md"
-  [[ "$ENABLE_BEADS" == "true" ]] && echo "  git add .beads/"
-  [[ "$ENABLE_OPENSPEC" == "true" ]] && echo "  git add openspec/"
-  echo "  git commit -m 'chore: add claude code configuration'"
-fi
+echo "  but status  # See files to commit"
+echo "  but stage <file> <branch>  # Stage files"
+echo "  but commit <branch> --only -m 'chore: add claude code configuration'"
