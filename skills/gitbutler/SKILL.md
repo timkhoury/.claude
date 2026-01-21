@@ -80,6 +80,36 @@ but stage <new-id> branch
 | Commit | Commit | Squash |
 | Commit | Branch | Move commit |
 
+## Helper Scripts
+
+Scripts in `~/.claude/skills/gitbutler/` automate common workflows. All support `--help` and `--dry-run`.
+
+| Script | Purpose |
+|--------|---------|
+| `bulk-stage.sh` | Stage multiple files with automatic ID refresh |
+| `resolve-ambiguous.sh` | Handle ID ambiguity using git add workaround |
+| `stage-locked.sh` | Detect and stage locked files to correct branches |
+| `branch-health.sh` | Branch status overview (unpushed, remote sync) |
+| `commit-groups.sh` | Suggest logical commit groupings |
+
+**Examples:**
+```bash
+# Stage multiple files (handles ID refresh automatically)
+~/.claude/skills/gitbutler/bulk-stage.sh <branch> file1.ts file2.ts
+
+# Handle ambiguous file ID
+~/.claude/skills/gitbutler/resolve-ambiguous.sh <branch> <file-path>
+
+# Auto-stage all locked files to their branches
+~/.claude/skills/gitbutler/stage-locked.sh --auto
+
+# Show branch health report
+~/.claude/skills/gitbutler/branch-health.sh
+
+# Suggest commit groupings for uncommitted files
+~/.claude/skills/gitbutler/commit-groups.sh
+```
+
 ## Standard Workflow
 
 ```bash
