@@ -16,6 +16,11 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Check if GitButler is managing the current directory
+is_gitbutler_active() {
+  command -v but >/dev/null 2>&1 && [[ -d ".git" ]] && but status >/dev/null 2>&1
+}
+
 # Defaults
 TOOLS="all"
 FRAMEWORK=""
@@ -422,7 +427,13 @@ echo "  1. Review and customize CLAUDE.md"
 echo "  2. Review and customize .claude/rules/ files"
 [[ "$ENABLE_BEADS" == "true" ]] && echo "  3. Run 'bd ready' to see available work"
 echo ""
-echo "  git add .claude/ CLAUDE.md"
-[[ "$ENABLE_BEADS" == "true" ]] && echo "  git add .beads/"
-[[ "$ENABLE_OPENSPEC" == "true" ]] && echo "  git add openspec/"
-echo "  git commit -m 'chore: add claude code configuration'"
+if is_gitbutler_active; then
+  echo "  but status  # See files to commit"
+  echo "  but stage <file> <branch>  # Stage files"
+  echo "  but commit <branch> --only -m 'chore: add claude code configuration'"
+else
+  echo "  git add .claude/ CLAUDE.md"
+  [[ "$ENABLE_BEADS" == "true" ]] && echo "  git add .beads/"
+  [[ "$ENABLE_OPENSPEC" == "true" ]] && echo "  git add openspec/"
+  echo "  git commit -m 'chore: add claude code configuration'"
+fi
