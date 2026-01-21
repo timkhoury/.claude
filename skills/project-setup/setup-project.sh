@@ -135,6 +135,16 @@ echo "Tools:   $TOOLS"
 [[ -n "$FRAMEWORK" ]] && echo "Framework: $FRAMEWORK"
 echo ""
 
+# Initialize git if needed (idempotent - safe on existing repos)
+if [[ ! -d ".git" ]]; then
+  echo -e "${BLUE}Initializing git repository...${NC}"
+  git init
+  echo ""
+else
+  echo -e "${BLUE}Git repository already initialized${NC}"
+  echo ""
+fi
+
 # Track what we do
 files_copied=0
 files_skipped=0
