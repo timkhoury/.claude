@@ -48,13 +48,13 @@ All tasks use:
 
 **Note:** If Lint or Typecheck fails, skip the Build step and report failure.
 
-### Wave 3: E2E Tests (after Build passes, if project has E2E tests)
+### Wave 3: E2E Tests (after Build passes)
 
 | Task | Prompt |
 |------|--------|
-| E2E | Run the project's E2E test command if one exists. The test framework will start a dev server automatically. Report pass/fail with test count. If no E2E command exists, skip this step. |
+| E2E | Check if the project has an E2E test command (look in CLAUDE.md, package.json scripts, Makefile, etc.). If found, run it and report pass/fail with test count. If no E2E command exists, report "No E2E tests configured". |
 
-**Note:** If Build fails, skip the E2E step and report failure. E2E tests require a working build.
+**Note:** If Build fails, skip E2E and report failure. Always run this wave - don't skip based on assumptions.
 
 ## Output Format
 
@@ -69,7 +69,7 @@ After all tasks complete, summarize:
 | Typecheck | ✓ Pass / ✗ Fail |
 | Test | ✓ Pass (N passed, M skipped) / ✗ Fail |
 | Build | ✓ Pass / ✗ Fail / ⏭ Skipped |
-| E2E | ✓ Pass (N passed) / ✗ Fail / ⏭ Skipped |
+| E2E | ✓ Pass (N passed) / ✗ Fail / ⏭ Skipped (build failed) / − None configured |
 
 [If any failed: show error output]
 [If all passed: "Ready to create PR."]

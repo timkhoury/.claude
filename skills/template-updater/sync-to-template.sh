@@ -41,6 +41,11 @@ case "${1:-}" in
     ;;
 esac
 
+# Check if GitButler is managing the template directory
+is_gitbutler_active() {
+  command -v but >/dev/null 2>&1 && [[ -d "$HOME/.claude/.git" ]] && but status >/dev/null 2>&1
+}
+
 # Check prerequisites
 if [[ ! -d "$TEMPLATE_DIR" ]]; then
   echo -e "${RED}Error: Template not found at $TEMPLATE_DIR${NC}"
@@ -185,8 +190,14 @@ elif [[ $count_would_update -gt 0 ]]; then
   echo -e "${GREEN}Template updated.${NC}"
   echo ""
   echo "Next steps:"
-  echo "  1. cd ~/.claude && git diff  # Review changes"
-  echo "  2. git add . && git commit -m 'chore: update template from project improvements'"
+  if is_gitbutler_active; then
+    echo "  1. cd ~/.claude && but status  # Review changes"
+    echo "  2. but branch new template-sync && but stage <file> template-sync"
+    echo "  3. but commit template-sync --only -m 'chore: update template from project improvements'"
+  else
+    echo "  1. cd ~/.claude && git diff  # Review changes"
+    echo "  2. git add . && git commit -m 'chore: update template from project improvements'"
+  fi
 else
   echo -e "${GREEN}Template is up to date with project.${NC}"
 fi
