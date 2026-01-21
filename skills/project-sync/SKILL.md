@@ -58,6 +58,12 @@ Never auto-updated (contain project-specific content):
 - `agents-src/_shared.yaml` - Project skill/rule configuration
 - Files with `<!-- PROJECT-SPECIFIC -->` marker
 
+## Agent YAMLs
+
+Agent definition files (`agents-src/*.yaml` except `_shared.yaml`) **are synced** from template. This keeps agent definitions generic across projects. Project-specific customization happens through:
+- `_shared.yaml` - Define which rules go in each bundle
+- Rule files - Create project-specific rules included via bundles
+
 ## After Sync
 
 ```bash
