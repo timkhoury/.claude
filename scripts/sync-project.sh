@@ -24,8 +24,8 @@ PROTECTED_PATTERNS="CLAUDE.md|agents-src/_shared.yaml"
 
 # Excluded files (skip entirely, not synced to projects)
 # - README.md: template documentation
-# - agents-src/*.yaml: project-specific agent configurations
-EXCLUDED_PATTERNS="README.md|agents-src/.*\\.yaml"
+# Note: agents-src/*.yaml now synced (except _shared.yaml which is protected)
+EXCLUDED_PATTERNS="README.md"
 
 # Detect enabled tools
 HAS_BEADS=false
