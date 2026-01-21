@@ -72,6 +72,14 @@ After gathering answers, run:
 ~/.claude/skills/project-setup/setup-project.sh --tools=<choice> [--framework=<choice>] [--scaffold-rules]
 ```
 
+## What the Script Does
+
+1. **Initializes git** (if not already a repo)
+2. **Copies template files** to `.claude/`
+3. **Scaffolds rule files** (optional)
+4. **Initializes tools** (beads, openspec)
+5. **Builds agents**
+
 ## What Gets Copied
 
 ### Always Copied
