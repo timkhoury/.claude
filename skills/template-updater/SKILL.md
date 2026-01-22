@@ -74,10 +74,13 @@ This will:
 
 ## After Sync
 
+**Load the gitbutler skill first** (`/gitbutler`), then commit the template changes:
+
 ```bash
-cd ~/.claude
-git diff                    # Review changes
-git add . && git commit -m "chore: update template"
+cd ~/.claude && but status          # Review changes
+but branch new template-sync        # Create branch (if needed)
+but stage <file-id> template-sync   # Stage changed files
+but commit template-sync --only -m "chore: update template"
 ```
 
 ## When to Use

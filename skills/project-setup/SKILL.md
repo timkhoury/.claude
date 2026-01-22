@@ -151,11 +151,14 @@ After gathering answers, run:
 1. **Customize CLAUDE.md** - Add project description, commands, rules reference
 2. **Customize _shared.yaml** - Add project-specific skills to bundles
 3. **Customize scaffolded rules** - Fill in architecture.md, danger-zone.md, etc.
-4. **Commit**:
+4. **Commit** (load gitbutler skill first with `/gitbutler`):
    ```bash
-   git add .claude/ CLAUDE.md
-   git add .beads/ openspec/  # if applicable
-   git commit -m "chore: add claude code configuration"
+   but status                        # Review changes
+   but branch new claude-setup       # Create branch
+   # Stage files (use bulk-stage.sh for multiple files)
+   ~/.claude/skills/gitbutler/bulk-stage.sh claude-setup .claude/ CLAUDE.md
+   # Add .beads/ openspec/ if applicable
+   but commit claude-setup --only -m "chore: add claude code configuration"
    ```
 
 ## Tool Installation
