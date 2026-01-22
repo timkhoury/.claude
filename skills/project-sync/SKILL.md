@@ -70,8 +70,8 @@ Agent definition files (`agents-src/*.yaml` except `_shared.yaml`) **are synced*
 # Review changes
 git diff .claude/
 
-# If agent YAMLs changed, rebuild
-npx tsx .claude/scripts/build-agents.ts
+# If agent YAMLs changed, rebuild (script auto-adds npm script if missing)
+npm run build:agents
 
 # Commit
 git add .claude/ && git commit -m "chore: sync claude config"

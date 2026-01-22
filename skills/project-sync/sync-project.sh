@@ -244,8 +244,27 @@ elif [[ $count_updated -gt 0 || $count_added -gt 0 ]]; then
   # Check if agents need rebuild
   if grep -q "agents-src/" "$updated_files" "$added_files" 2>/dev/null; then
     echo ""
-    echo -e "${YELLOW}Agent YAMLs changed. Rebuild with:${NC}"
-    echo "  npx tsx .claude/scripts/build-agents.ts"
+    echo -e "${YELLOW}Agent YAMLs changed.${NC}"
+
+    # Ensure build:agents npm script exists
+    if [[ -f "package.json" ]]; then
+      if ! grep -q '"build:agents"' package.json; then
+        echo "  Adding build:agents npm script..."
+        # Install required packages first
+        npm install --save-dev yaml tsx 2>/dev/null || true
+        # Add the script
+        node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.scripts = pkg.scripts || {};
+          pkg.scripts['build:agents'] = 'npx tsx .claude/scripts/build-agents.ts';
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+        " 2>/dev/null && echo -e "  ${GREEN}Added build:agents script${NC}"
+      fi
+    fi
+
+    echo "  Rebuild with:"
+    echo "  npm run build:agents"
   fi
 else
   echo -e "${GREEN}Everything up to date.${NC}"
