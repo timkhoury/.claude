@@ -15,6 +15,7 @@ statsig/
 todos/
 
 cache/
+image-cache/
 paste-cache/
 
 history.jsonl
