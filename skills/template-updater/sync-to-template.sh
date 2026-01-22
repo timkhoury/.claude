@@ -185,9 +185,10 @@ elif [[ $count_would_update -gt 0 ]]; then
   echo -e "${GREEN}Template updated.${NC}"
   echo ""
   echo "Next steps:"
-  echo "  1. cd ~/.claude && but status  # Review changes"
-  echo "  2. but branch new template-sync && but stage <file> template-sync"
-  echo "  3. but commit template-sync --only -m 'chore: update template from project improvements'"
+  echo "  1. Load gitbutler skill: /gitbutler"
+  echo "  2. cd ~/.claude && but status  # Review changes"
+  echo "  3. but branch new template-sync && but stage <file-id> template-sync"
+  echo "  4. but commit template-sync --only -m 'chore: update template from project improvements'"
 else
   echo -e "${GREEN}Template is up to date with project.${NC}"
 fi

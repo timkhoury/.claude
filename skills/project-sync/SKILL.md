@@ -66,15 +66,13 @@ Agent definition files (`agents-src/*.yaml` except `_shared.yaml`) **are synced*
 
 ## After Sync
 
+**Load the gitbutler skill first** (`/gitbutler`), then commit the changes:
+
 ```bash
-# Review changes
-git diff .claude/
-
-# If agent YAMLs changed, rebuild (script auto-adds npm script if missing)
-npm run build:agents
-
-# Commit
-git add .claude/ && git commit -m "chore: sync claude config"
+but status                          # Review changes
+npm run build:agents                # If agent YAMLs changed (script auto-adds npm script if missing)
+but stage <file-id> <branch>        # Stage changed files
+but commit <branch> --only -m "chore: sync claude config"
 ```
 
 ## Design Philosophy
