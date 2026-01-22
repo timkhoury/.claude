@@ -377,10 +377,34 @@ if [[ "$SKIP_BUILD" != "true" ]]; then
   echo -e "${BLUE}Phase 6: Building agents...${NC}"
 
   if [[ -f "$PROJECT_DIR/scripts/build-agents.ts" ]]; then
-    # Check for yaml package
-    if ! npm list yaml &> /dev/null; then
-      echo "  Installing yaml package..."
-      npm install --save-dev yaml 2>/dev/null || true
+    # Check for required packages
+    needs_install=false
+    if ! npm list yaml &> /dev/null 2>&1; then
+      needs_install=true
+    fi
+    if ! npm list tsx &> /dev/null 2>&1; then
+      needs_install=true
+    fi
+
+    if [[ "$needs_install" == "true" ]]; then
+      echo "  Installing yaml and tsx packages..."
+      npm install --save-dev yaml tsx 2>/dev/null || true
+    fi
+
+    # Add build:agents npm script if missing
+    if [[ -f "package.json" ]]; then
+      if ! grep -q '"build:agents"' package.json; then
+        echo "  Adding build:agents npm script..."
+        # Use node to safely modify package.json
+        node -e "
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          pkg.scripts = pkg.scripts || {};
+          pkg.scripts['build:agents'] = 'npx tsx .claude/scripts/build-agents.ts';
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+        " 2>/dev/null && echo -e "  ${GREEN}Added build:agents script${NC}" || \
+          echo -e "  ${YELLOW}Warning: Could not add npm script (add manually)${NC}"
+      fi
     fi
 
     # Build agents
@@ -388,9 +412,9 @@ if [[ "$SKIP_BUILD" != "true" ]]; then
       echo "  Running build-agents.ts..."
       npx tsx "$PROJECT_DIR/scripts/build-agents.ts" 2>/dev/null && \
         echo -e "  ${GREEN}Agents built successfully${NC}" || \
-        echo -e "  ${YELLOW}Warning: Agent build failed (run manually: npx tsx $PROJECT_DIR/scripts/build-agents.ts)${NC}"
+        echo -e "  ${YELLOW}Warning: Agent build failed (run manually: npm run build:agents)${NC}"
     else
-      echo -e "  ${YELLOW}npx not available - run manually: npx tsx $PROJECT_DIR/scripts/build-agents.ts${NC}"
+      echo -e "  ${YELLOW}npx not available - run manually: npm run build:agents${NC}"
     fi
   else
     echo -e "  ${YELLOW}build-agents.ts not found${NC}"

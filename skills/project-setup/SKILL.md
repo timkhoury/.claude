@@ -177,5 +177,12 @@ Install beads: `npm install -g beads-ui@latest`
 Install openspec: `npm install -g @fission-ai/openspec@latest`
 
 ### Agent build fails
-Install yaml package: `npm install --save-dev yaml`
-Then rebuild: `npx tsx .claude/scripts/build-agents.ts`
+Install required packages: `npm install --save-dev yaml tsx`
+Then rebuild: `npm run build:agents`
+
+### "build:agents" script missing
+The setup script adds this automatically. If missing, add manually:
+```bash
+npm install --save-dev yaml tsx
+npm pkg set scripts.build:agents="npx tsx .claude/scripts/build-agents.ts"
+```
