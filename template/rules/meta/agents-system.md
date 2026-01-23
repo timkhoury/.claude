@@ -38,6 +38,7 @@ ruleBundles:
 **File naming convention:** kebab-case files map to camelCase keys:
 - `supabase-testing.md` → `$includes.tech.supabaseTesting`
 - `tanstack-query.md` → `$includes.tech.tanstackQuery`
+- `nextjs-tanstack-query.md` → `$includes.tech.nextjsTanstackQuery`
 
 ## When Modifying Rules
 

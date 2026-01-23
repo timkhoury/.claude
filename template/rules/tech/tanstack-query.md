@@ -2,19 +2,6 @@
 
 > Client-side data fetching with caching, polling, and optimistic updates.
 
-## When to Use Tanstack Query
-
-| Use Case | Approach |
-|----------|----------|
-| Initial page load | Server Component (not Query) |
-| Refetch/polling | Tanstack Query |
-| Infinite scroll | Tanstack Query |
-| Optimistic updates | Tanstack Query |
-| Background refresh | Tanstack Query |
-| Mutations | Server Actions (or Query mutations) |
-
-**Rule:** Use Server Components for initial data. Add Query only when you need refetching.
-
 ## Query Keys
 
 Centralize query keys for type safety:
@@ -45,37 +32,16 @@ useQuery({
 
 **Never hardcode keys** - leads to typos and cache invalidation bugs.
 
-## Hybrid Pattern (Server + Client)
+## Common Options
 
-Initial data from Server Component, refetching from Client:
-
-```typescript
-// page.tsx - Server Component
-import { getData } from './actions';
-import { PageClient } from './page.client';
-
-export default async function Page() {
-  const initialData = await getData();
-  return <PageClient initialData={initialData} />;
-}
-
-// page.client.tsx - Client Component
-'use client';
-
-import { useQuery } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/query-keys';
-
-export function PageClient({ initialData }) {
-  const { data, isRefetching } = useQuery({
-    queryKey: queryKeys.items.all,
-    queryFn: getData,
-    initialData, // No loading state on first render
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-
-  return <ItemList items={data} isRefetching={isRefetching} />;
-}
-```
+| Option | Purpose |
+|--------|---------|
+| `staleTime` | How long data stays fresh (default: 0) |
+| `gcTime` | How long inactive data stays in cache (default: 5min) |
+| `refetchInterval` | Auto-refetch interval (false to disable) |
+| `enabled` | Conditional fetching |
+| `initialData` | SSR/hydration data |
+| `placeholderData` | Shown while loading (keeps previous data) |
 
 ## Polling Pattern
 
@@ -94,17 +60,6 @@ const { data } = useQuery({
 });
 ```
 
-## Common Options
-
-| Option | Purpose |
-|--------|---------|
-| `staleTime` | How long data stays fresh (default: 0) |
-| `gcTime` | How long inactive data stays in cache (default: 5min) |
-| `refetchInterval` | Auto-refetch interval (false to disable) |
-| `enabled` | Conditional fetching |
-| `initialData` | SSR/hydration data |
-| `placeholderData` | Shown while loading (keeps previous data) |
-
 ## Mutations
 
 ```typescript
@@ -118,25 +73,17 @@ const mutation = useMutation({
 
 ## Anti-Patterns
 
-### Don't: useQuery for static data
-
-```typescript
-// Bad - Server Component is better
-useQuery({ queryKey: ['user'], queryFn: getUser });
-
-// Good - fetch once on server
-export default async function Page() {
-  const user = await getUser();
-}
-```
-
 ### Don't: useState + useEffect for fetching
 
 ```typescript
 // Bad
 useEffect(() => { fetch('/api').then(setData) }, []);
 
-// Good - use Server Component or Query
+// Good - use Tanstack Query
+const { data } = useQuery({
+  queryKey: queryKeys.items.all,
+  queryFn: fetchItems,
+});
 ```
 
 ## Danger Zone
@@ -146,4 +93,3 @@ useEffect(() => { fetch('/api').then(setData) }, []);
 | Hardcode query keys | Cache invalidation bugs |
 | Skip `staleTime` for stable data | Unnecessary refetches |
 | Forget `enabled` for conditional queries | Wasted requests |
-| Use Query when Server Component suffices | Extra complexity |
