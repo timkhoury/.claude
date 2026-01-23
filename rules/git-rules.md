@@ -2,6 +2,10 @@
 
 > NEVER use `git commit` or `git push` directly. Use GitButler (`but`) commands.
 
+## Prerequisite
+
+**Always invoke the `gitbutler` skill before using `but` commands.** The skill loads GitButler-specific context and ensures correct command usage.
+
 ## Mandatory Commands
 
 | Instead of | Use |

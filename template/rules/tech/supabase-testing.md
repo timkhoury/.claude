@@ -6,16 +6,27 @@
 
 Use real Supabase database for Server Action tests. Mocking Supabase loses the value of testing RLS and query behavior.
 
+## Recommended Test Utilities
+
+Create project-specific test helpers in a consistent location:
+
+| Utility | Recommended Location | Purpose |
+|---------|---------------------|---------|
+| Admin client | `lib/supabase/admin.ts` | Bypasses RLS for setup/cleanup |
+| Test user management | `test/utils/` | Create/cleanup test users |
+| Auth helpers | `test/utils/` | Sign in as test user |
+
 ## Test Setup Pattern
 
 ```typescript
-import { createAdminClient, signInAsTestUser } from '@/test/utils/supabase-test-helpers';
-import { setupTestUsers } from '@/test/utils/test-lifecycle';
+// Import your project's test utilities
+import { createAdminClient } from '@/lib/supabase/admin';
+import { signInAsTestUser, setupTestUsers } from '@/test/utils';
 
 const adminClient = createAdminClient();
 const [testUser] = setupTestUsers([{ fullName: 'Test User' }]);
 
-let orgId: string;
+let recordId: string;
 
 beforeEach(async () => {
   // Sign in as test user
@@ -29,16 +40,16 @@ beforeEach(async () => {
 
   // Create test data
   const { data } = await adminClient
-    .from('organizations')
-    .insert({ name: 'Test Org' })
+    .from('your_table')
+    .insert({ name: 'Test Record' })
     .select()
     .single();
-  orgId = data!.id;
+  recordId = data!.id;
 });
 
 afterEach(async () => {
   // ALWAYS clean up - this is critical
-  await adminClient.from('organizations').delete().eq('id', orgId);
+  await adminClient.from('your_table').delete().eq('id', recordId);
 });
 ```
 
@@ -48,11 +59,10 @@ afterEach(async () => {
 
 ```typescript
 afterEach(async () => {
-  // Children first
-  await adminClient.from('team_members').delete().eq('organization_id', orgId);
-  await adminClient.from('repositories').delete().eq('organization_id', orgId);
+  // Children first (tables with foreign keys)
+  await adminClient.from('child_table').delete().eq('parent_id', parentId);
   // Parent last
-  await adminClient.from('organizations').delete().eq('id', orgId);
+  await adminClient.from('parent_table').delete().eq('id', parentId);
 });
 ```
 
@@ -66,15 +76,15 @@ const [owner, other] = setupTestUsers([
   { fullName: 'Other User' },
 ]);
 
-it('prevents access to other org data', async () => {
+it('prevents access to other user data', async () => {
   // Sign in as other user
   const otherClient = await signInAsTestUser(other.getEmail(), other.getPassword());
 
   // Should not see owner's data
   const { data } = await otherClient
-    .from('organizations')
+    .from('protected_table')
     .select()
-    .eq('id', ownerOrgId);
+    .eq('id', ownerRecordId);
 
   expect(data).toHaveLength(0);  // RLS blocks access
 });
@@ -103,16 +113,20 @@ await adminClient.from('items').delete().eq('id', itemId);
 
 ## Test User Management
 
+Create a utility that manages test user lifecycle:
+
 ```typescript
-// setupTestUsers creates users before tests and cleans up after
+// Example API - implement based on your project's needs
 const [owner, member] = setupTestUsers([
   { fullName: 'Owner', email: 'owner@test.com' },
-  { fullName: 'Member' },  // Auto-generates email if not specified
+  { fullName: 'Member' },  // Auto-generate email if not specified
 ]);
 
 // Access credentials
 const email = owner.getEmail();
 const password = owner.getPassword();
+
+// Users should auto-cleanup in afterAll()
 ```
 
 ## Danger Zone
