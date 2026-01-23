@@ -15,24 +15,46 @@ This project uses a deterministic agent build system. Agent definitions in `.cla
     └── build-agents.ts   # Build script
 ```
 
+## Folder-Based Includes
+
+The build system supports folder-based includes for automatic rule discovery.
+
+**Folder includes** (trailing `/` indicates folder):
+```yaml
+includes:
+  tech: "@/.claude/rules/tech/"       # All .md files in folder
+  patterns: "@/.claude/rules/patterns/"
+```
+
+**Using in bundles:**
+```yaml
+ruleBundles:
+  implementation:
+    - $includes.tech                   # All files from tech/
+    - $includes.patterns               # All files from patterns/
+    - $includes.project.overview       # Specific file from project/
+```
+
+**File naming convention:** kebab-case files map to camelCase keys:
+- `supabase-testing.md` → `$includes.tech.supabaseTesting`
+- `tanstack-query.md` → `$includes.tech.tanstackQuery`
+
 ## When Modifying Rules
 
-**If you add, remove, or rename a rule file in `.claude/rules/`:**
+**If you add a new rule file:**
+- Files in existing folders are auto-discovered on next build
+- Just run `npm run build:agents` to include them
 
-1. Update `_shared.yaml` includes section if the rule should be available to agents
-2. Update rule bundles if the rule should be part of a bundle
-3. Run `npm run build:agents` to regenerate agent files
-
-**Example - adding a new rule:**
+**If you add a new folder:**
 
 ```yaml
 # _shared.yaml
 includes:
-  newRule: "@/.claude/rules/new-rule.md"
+  newFolder: "@/.claude/rules/new-folder/"
 
 ruleBundles:
   implementation:
-    - $includes.newRule  # Add to relevant bundle(s)
+    - $includes.newFolder  # All rules from folder
 ```
 
 ## When Modifying Agents
