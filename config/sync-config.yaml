@@ -1,0 +1,138 @@
+# Sync Configuration
+# Defines what gets synced between template and projects
+#
+# Sections:
+#   always: Content copied to every project
+#   technologies: Tech-specific content (detected automatically)
+#   integrations: Content for technology combinations
+#
+# Detection methods:
+#   packages: Check package.json dependencies/devDependencies
+#   configs: Glob patterns for config files
+#   directories: Check for directory existence
+
+# Always copy these (not technology-dependent)
+always:
+  rules:
+    - meta/
+    - patterns/
+    - workflow/
+  skills:
+    - authoring/
+    - quality/
+    - workflow/
+    - automation/
+
+# Technology-specific rules
+technologies:
+  nextjs:
+    detect:
+      packages:
+        - next
+      configs:
+        - next.config.js
+        - next.config.ts
+        - next.config.mjs
+    rules:
+      - tech/nextjs.md
+
+  supabase:
+    detect:
+      packages:
+        - "@supabase/supabase-js"
+        - "@supabase/ssr"
+      directories:
+        - supabase/
+    rules:
+      - tech/supabase.md
+
+  tailwind:
+    detect:
+      packages:
+        - tailwindcss
+      configs:
+        - tailwind.config.js
+        - tailwind.config.ts
+        - tailwind.config.mjs
+    rules:
+      - tech/tailwind.md
+
+  shadcn:
+    detect:
+      configs:
+        - components.json
+      directories:
+        - components/ui/
+        - src/components/ui/
+    rules:
+      - tech/shadcn.md
+
+  tanstack-query:
+    detect:
+      packages:
+        - "@tanstack/react-query"
+    rules:
+      - tech/tanstack-query.md
+
+  vitest:
+    detect:
+      packages:
+        - vitest
+      configs:
+        - vitest.config.ts
+        - vitest.config.js
+        - vitest.config.mts
+    rules:
+      - tech/vitest.md
+
+  playwright:
+    detect:
+      packages:
+        - "@playwright/test"
+        - playwright
+      configs:
+        - playwright.config.ts
+        - playwright.config.js
+    rules:
+      - tech/playwright.md
+
+  typescript:
+    detect:
+      packages:
+        - typescript
+      configs:
+        - tsconfig.json
+    rules:
+      - tech/typescript.md
+
+# Integration rules - copied when ALL required technologies are detected
+integrations:
+  - name: nextjs-supabase
+    requires:
+      - nextjs
+      - supabase
+    rules:
+      - tech/nextjs-supabase.md
+
+  - name: nextjs-tanstack-query
+    requires:
+      - nextjs
+      - tanstack-query
+    rules:
+      - tech/nextjs-tanstack-query.md
+
+  - name: tailwind-shadcn
+    requires:
+      - tailwind
+      - shadcn
+    rules:
+      - tech/tailwind-shadcn.md
+
+  - name: supabase-testing
+    requires:
+      - supabase
+    requires_any:
+      - vitest
+      - playwright
+    rules:
+      - tech/supabase-testing.md
