@@ -34,35 +34,46 @@
 
 ## Skills Directory
 
+**IMPORTANT:** Skills must be directly in `.claude/skills/` - subdirectories are not supported.
+
 ```
 .claude/skills/
-├── authoring/      # Creating things (adr-writer, agent-writer, skill-writer)
-├── quality/        # Review/audit (pr-check, rules-review, spec-quality)
-├── workflow/       # Work execution (beads-cleanup, work)
-├── automation/     # Automated tasks (agent-browser)
-└── project/        # Project-specific skills (NEVER synced to template)
+├── adr-writer/           # Authoring - ADR creation
+├── agent-writer/         # Authoring - Agent definitions
+├── skill-writer/         # Authoring - Skill creation
+├── pr-check/             # Quality - Pre-PR validation
+├── quality-audit/        # Quality - Combined spec/test audit
+├── rules-review/         # Quality - Rules organization
+├── spec-quality/         # Quality - OpenSpec structure
+├── work/                 # Workflow - Task execution
+├── beads-cleanup/        # Workflow - Issue cleanup
+├── agent-browser/        # Automation - Browser testing
+└── supabase-advisors/    # Project-specific (NEVER synced)
 ```
 
 ### Skills Conventions
 
-| Directory | Content | Synced to Template |
-|-----------|---------|-------------------|
-| `authoring/` | Skills for creating artifacts | Yes |
-| `quality/` | Review, audit, quality checks | Yes |
-| `workflow/` | Work execution, session management | Yes |
-| `automation/` | Browser, external tools | Yes |
-| `project/` | Project-specific tools | **No** |
+**Naming for organization:**
+- Descriptive names indicate purpose (`adr-writer`, `pr-check`, `spec-quality`)
+- Prefix only when needed for clarity (`quality-audit` not just `audit`)
+- Project-specific skills stay in project, detected by sync tools
+
+**Syncing:**
+- Template skills sync bidirectionally between `~/.claude/template/skills/` and `.claude/skills/`
+- Project-specific skills (like `supabase-advisors`) never sync to template
+- Detection is automatic - if skill exists in template, it syncs; if not, it stays local
 
 ## Template Sync Rules
 
 **From project to template (`template-updater`):**
 - Syncs `rules/tech/`, `rules/patterns/`, `rules/workflow/`, `rules/meta/`
-- Syncs `skills/authoring/`, `skills/quality/`, `skills/workflow/`, `skills/automation/`
-- **Never syncs** `*/project/` directories
+- Syncs skills that exist in both template and project
+- **Never syncs** `rules/project/` or project-only skills
 
 **From template to project (`project-sync`):**
-- Updates all template-worthy directories
-- **Never overwrites** `*/project/` directories
+- Updates template skills that exist in project
+- Adds new template skills
+- **Never overwrites** `rules/project/` or project-only skills
 
 ## Adding New Content
 
@@ -71,5 +82,10 @@
 | Technology pattern (reusable) | `rules/tech/{tech}.md` |
 | Integration pattern | `rules/tech/{tech-a}-{tech-b}.md` |
 | Project-specific rule | `rules/project/{name}.md` |
-| Reusable skill | `skills/{category}/{skill-name}/SKILL.md` |
-| Project-specific skill | `skills/project/{skill-name}/SKILL.md` |
+| Reusable skill | `skills/{skill-name}/SKILL.md` |
+| Project-specific skill | `skills/{skill-name}/SKILL.md` (not in template) |
+
+**Skill naming guidelines:**
+- Use descriptive names that indicate purpose
+- Add prefixes only when needed for clarity (e.g., `quality-audit` not `audit`)
+- Project-only skills naturally stay separate through sync detection
