@@ -1,10 +1,8 @@
 ---
 name: work
 description: >
-  Execute beads tasks using the hybrid orchestrator pattern. Use when implementing
-  beads tasks, working through epics, or when user says "work on", "implement task",
-  "execute epic", or references a bead ID. Auto-invoke when there are ready tasks
-  to implement. Requires a task or epic ID to prevent race conditions.
+  Execute beads tasks via subagent delegation. Use for "work on <id>",
+  epic execution, or bead ID references. Requires task/epic ID.
 ---
 
 # Work Skill
