@@ -1,28 +1,21 @@
 # Shared Agent Configuration
 # This file contains reusable definitions for agent generation.
 #
-# CUSTOMIZATION: Add your project-specific skills and rules to the appropriate sections.
+# CUSTOMIZATION:
+# - Add project-specific rules to .claude/rules/project/ (auto-discovered)
+# - Modify ruleBundles to include/exclude rule folders as needed
 
 defaults:
   model: inherit
 
 # Reusable skill sets
-# Add your project-specific skills here
 skillSets:
-  # Core pattern skills - customize for your stack
-  # Example: ui-patterns, nextjs-patterns, supabase, etc.
-  patterns: []
-    # - your-pattern-skill
-    # - another-pattern-skill
-
-  # Full implementation skills (patterns + gitbutler for commits)
+  # Full implementation skills
   implementation:
     - gitbutler
-    # Add your pattern skills here too
 
   # Minimal testing skills
   testing: []
-    # - test-patterns-guide
 
 # Reusable tool sets
 toolSets:
@@ -33,56 +26,50 @@ toolSets:
     - Grep
     - Glob
 
-# File includes - modular rule files
-# These are file paths that get prepended to agent bodies
+# File includes - folder-based with auto-discovery
+# Trailing / indicates folder (auto-discovers all .md files)
+# Individual files still supported for special cases
 includes:
-  # Baseline agent instructions (always include)
-  baseline: "@/.claude/baseline-agent.md"
+  # Folders (auto-discover all .md files)
+  # kebab-case files map to camelCase: nextjs-supabase.md -> $includes.tech.nextjsSupabase
+  tech: "@/.claude/rules/tech/"
+  patterns: "@/.claude/rules/patterns/"
+  project: "@/.claude/rules/project/"
+  meta: "@/.claude/rules/meta/"
 
-  # Full CLAUDE.md (for implementers needing all project rules)
+  # Individual files (for non-folder includes)
+  baseline: "@/.claude/baseline-agent.md"
   claudeMd: "@/CLAUDE.md"
 
-  # General patterns (from template - always available)
-  documentationLookup: "@/.claude/rules/documentation-lookup.md"
-  researchPatterns: "@/.claude/rules/research-patterns.md"
-  deterministicSystems: "@/.claude/rules/deterministic-systems.md"
-
-  # Add your project-specific rule files here:
-  # Example:
-  # architecture: "@/.claude/rules/architecture.md"
-  # patterns: "@/.claude/rules/patterns.md"
-  # dangerZone: "@/.claude/rules/danger-zone.md"
-
 # Rule bundles for different agent types
-# Bundles are arrays of $includes.* references
+# Use $includes.folder for all files in folder
+# Use $includes.folder.fileName for specific file (camelCase)
 ruleBundles:
   # Full implementation rules for task-implementer
-  # Add all rules needed for writing code
+  # Customize: add $includes.project.yourRule for project-specific rules
   implementation:
-    - $includes.baseline
-    - $includes.claudeMd
-    - $includes.documentationLookup
-    - $includes.researchPatterns
-    - $includes.deterministicSystems
-    # Add more: $includes.architecture, $includes.patterns, etc.
+    - $includes.tech
+    - $includes.patterns
+    # Add project rules: $includes.project.overview, $includes.project.architecture
 
   # Rules for code reviewers (validates against these)
   review:
-    - $includes.baseline
-    # Add rules the reviewer should check against
+    - $includes.tech
+    - $includes.patterns
+    # Add: $includes.project.codeReview
 
-  # Rules for planners (architecture focus)
+  # Rules for planners (architecture focus, less implementation detail)
   planning:
-    - $includes.baseline
-    - $includes.documentationLookup
-    - $includes.researchPatterns
-    - $includes.deterministicSystems
-    # Add architecture/design rules
+    - $includes.patterns.documentationLookup
+    - $includes.patterns.researchPatterns
+    - $includes.meta.deterministicSystems
+    # Add: $includes.project.architecture
 
   # Minimal rules for testers
   testing:
-    - $includes.baseline
-    # Add testing-specific rules
+    - $includes.tech.vitest
+    - $includes.tech.playwright
+    # Add: $includes.tech.supabaseTesting if using Supabase
 
 # Color conventions for agent visual identification
 colors:
