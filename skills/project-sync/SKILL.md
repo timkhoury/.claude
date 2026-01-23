@@ -1,10 +1,8 @@
 ---
 name: project-sync
 description: >
-  Compare project Claude Code config against global template and apply updates.
-  Uses tech detection to sync only relevant rules for detected technologies.
-  Use when saying "sync project", "update claude config", "check for template updates",
-  or after updating ~/.claude/template/ to propagate changes to projects.
+  Sync project .claude/ with ~/.claude/template/. Detects technologies
+  to copy only relevant rules.
 allowed-tools: [Bash, AskUserQuestion]
 ---
 

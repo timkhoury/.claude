@@ -1,11 +1,8 @@
 ---
 name: template-updater
 description: >
-  Detect changes in project .claude/ directory and propagate template-worthy improvements
-  back to ~/.claude/template/. Use when saying "update template", "sync to template",
-  "propagate changes", or after making improvements to skills/rules that should be global.
-  Auto-invoke IMMEDIATELY after editing any file in .claude/skills/ or .claude/rules/ that
-  exists in both the project and ~/.claude/template/ - don't wait for user to ask.
+  Propagate project .claude/ improvements to ~/.claude/template/.
+  Auto-invokes after editing skills/rules that exist in both locations.
 allowed-tools: [Bash]
 ---
 
