@@ -30,11 +30,25 @@ The script detects enabled tools by directory existence:
 
 | Directory | Detected Tool | Files Synced |
 |-----------|---------------|--------------|
-| `.beads/` | Beads | `beads-workflow.md`, `beads-cleanup/`, `work.md`, `status.md` |
-| `openspec/` | OpenSpec | `openspec.md` |
-| Both | Beads + OpenSpec | `workflow-integration.md`, `wrap.md` |
+| `.beads/` | Beads | `workflow/beads-workflow.md`, `beads-cleanup/`, `work.md`, `status.md` |
+| `openspec/` | OpenSpec | `workflow/openspec.md` |
+| Both | Beads + OpenSpec | `workflow/workflow-integration.md`, `wrap.md` |
 
 **Files for disabled tools are skipped**, not copied. This matches what `project-setup` does during initial setup.
+
+## Folder Structure
+
+Template rules are organized in folders:
+
+```
+~/.claude/template/rules/
+├── workflow/     # Beads, OpenSpec, session management
+├── tech/         # Technology-specific (Next.js, Supabase, etc.)
+├── patterns/     # Cross-cutting patterns (data retention, organization)
+└── meta/         # Process rules (research, documentation lookup)
+```
+
+The sync script handles nested folders automatically. Project-specific rules should go in `.claude/rules/project/` which is NOT synced from template.
 
 ## Quick Sync
 

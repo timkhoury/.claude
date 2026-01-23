@@ -33,10 +33,10 @@ HAS_OPENSPEC=false
 [[ -d ".beads" ]] && HAS_BEADS=true
 [[ -d "openspec" ]] && HAS_OPENSPEC=true
 
-# Files that require specific tools
-BEADS_FILES="rules/beads-workflow.md|skills/beads-cleanup/|commands/work.md|commands/status.md|commands/wrap.md"
-OPENSPEC_FILES="rules/openspec.md|skills/quality/"
-BEADS_AND_OPENSPEC_FILES="rules/workflow-integration.md"
+# Files that require specific tools (nested in folders now)
+BEADS_FILES="rules/workflow/beads-workflow.md|skills/beads-cleanup/|commands/work.md|commands/status.md|commands/wrap.md"
+OPENSPEC_FILES="rules/workflow/openspec.md|skills/quality/"
+BEADS_AND_OPENSPEC_FILES="rules/workflow/workflow-integration.md"
 
 # Parse arguments
 MODE="auto"
