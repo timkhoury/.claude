@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 # Sync project .claude/ with ~/.claude/template/
-# Usage: sync-project.sh [--auto|--report|--force]
+# Usage: sync-project.sh [--help]
 #
-# Detects enabled tools by directory existence:
+# Report-only: Shows what differs between template and project.
+# Claude reads the report and decides which files to copy.
+#
+# Uses tech detection to identify relevant rules:
+#   - Always checks: meta/, patterns/, workflow/ rules
+#   - Tech-specific: Only checks rules for detected technologies
+#   - Never syncs: project/ directories (project-specific)
+#
+# Tool detection for workflow files:
 #   .beads/   → includes beads rules/skills/commands
 #   openspec/ → includes openspec rules
-#   Both      → includes workflow-integration
 
 set -e
 
 TEMPLATE_DIR="$HOME/.claude/template"
 PROJECT_DIR=".claude"
+DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -24,36 +32,56 @@ PROTECTED_PATTERNS="CLAUDE.md|agents-src/_shared.yaml"
 
 # Excluded files (skip entirely, not synced to projects)
 # - README.md: template documentation
+# - rules/project/: project-specific rules
+# - skills/project/: project-specific skills
 # Note: agents-src/*.yaml now synced (except _shared.yaml which is protected)
-EXCLUDED_PATTERNS="README.md"
+EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
 
-# Detect enabled tools
+# Detect enabled tools (for workflow files)
 HAS_BEADS=false
 HAS_OPENSPEC=false
 [[ -d ".beads" ]] && HAS_BEADS=true
 [[ -d "openspec" ]] && HAS_OPENSPEC=true
 
-# Files that require specific tools (nested in folders now)
-BEADS_FILES="rules/workflow/beads-workflow.md|skills/beads-cleanup/|commands/work.md|commands/status.md|commands/wrap.md"
+# Files that require specific tools (for workflow detection)
+BEADS_FILES="rules/workflow/beads-workflow.md|skills/workflow/beads-cleanup/|skills/workflow/work/|commands/work.md|commands/status.md|commands/wrap.md"
 OPENSPEC_FILES="rules/workflow/openspec.md|skills/quality/"
 BEADS_AND_OPENSPEC_FILES="rules/workflow/workflow-integration.md"
 
+# Get detected technologies and required rules/skills
+DETECTED_RULES=""
+DETECTED_SKILLS=""
+DETECTED_TECHS=""
+if [[ -x "$DETECT_SCRIPT" ]]; then
+  DETECTED_RULES=$("$DETECT_SCRIPT" --rules 2>/dev/null || true)
+  DETECTED_SKILLS=$("$DETECT_SCRIPT" --skills 2>/dev/null || true)
+  DETECTED_TECHS=$("$DETECT_SCRIPT" --techs 2>/dev/null || true)
+fi
+
 # Parse arguments
-MODE="auto"
 case "${1:-}" in
-  --auto)   MODE="auto" ;;
-  --report) MODE="report" ;;
-  --force)  MODE="force" ;;
   --help|-h)
-    echo "Usage: sync-project.sh [--auto|--report|--force]"
-    echo "  --auto    Apply all safe updates without prompts (default)"
-    echo "  --report  Show report only, no changes"
-    echo "  --force   Apply all updates including protected (dangerous)"
+    echo "Usage: sync-project.sh"
+    echo ""
+    echo "Report-only: Shows what differs between template and project."
+    echo "Claude reads the report and decides which files to copy."
+    echo ""
+    echo "Tech detection:"
+    echo "  Uses ~/.claude/scripts/detect-technologies.sh to identify"
+    echo "  rules for detected technologies (package.json, config files)."
     echo ""
     echo "Tool detection:"
-    echo "  .beads/   directory → syncs beads rules/skills/commands"
-    echo "  openspec/ directory → syncs openspec rules"
+    echo "  .beads/   directory → checks beads rules/skills/commands"
+    echo "  openspec/ directory → checks openspec rules"
     exit 0
+    ;;
+  "")
+    # No arguments - report mode (the only mode)
+    ;;
+  *)
+    echo "Unknown argument: $1"
+    echo "Usage: sync-project.sh [--help]"
+    exit 1
     ;;
 esac
 
@@ -74,13 +102,15 @@ count_updated=0
 count_added=0
 count_protected=0
 count_skipped=0
+count_unused=0
 
 # Temp files for reporting
 updated_files=$(mktemp)
 added_files=$(mktemp)
 protected_files=$(mktemp)
 skipped_files=$(mktemp)
-trap "rm -f $updated_files $added_files $protected_files $skipped_files" EXIT
+unused_files=$(mktemp)
+trap "rm -f $updated_files $added_files $protected_files $skipped_files $unused_files" EXIT
 
 # Check if file is protected
 is_protected() {
@@ -93,6 +123,60 @@ is_protected() {
     return 0
   fi
   return 1
+}
+
+# Check if tech rule should be synced based on detection
+should_sync_tech_rule() {
+  local file="$1"
+
+  # Only applies to tech rules
+  if [[ ! "$file" =~ ^rules/tech/ ]]; then
+    return 0  # Not a tech rule, proceed with sync
+  fi
+
+  # If no detection script or no rules detected, sync everything
+  if [[ -z "$DETECTED_RULES" ]]; then
+    return 0
+  fi
+
+  # Detection script outputs "tech/x.md", template has "rules/tech/x.md"
+  # Strip "rules/" prefix for comparison
+  local tech_path="${file#rules/}"
+
+  # Check if this rule is in the detected list
+  if echo "$DETECTED_RULES" | grep -qF "$tech_path"; then
+    return 0  # Rule needed, sync it
+  fi
+
+  return 1  # Rule not needed for detected technologies
+}
+
+# Check if tech skill should be synced based on detection
+should_sync_tech_skill() {
+  local file="$1"
+
+  # Only applies to tech skills (skills/tech/*)
+  if [[ ! "$file" =~ ^skills/tech/ ]]; then
+    return 0  # Not a tech skill, proceed with sync
+  fi
+
+  # If no detection script or no skills detected, sync everything
+  if [[ -z "$DETECTED_SKILLS" ]]; then
+    return 0
+  fi
+
+  # Detection script outputs "tech/x/", template has "skills/tech/x/"
+  # Strip "skills/" prefix for comparison
+  local skill_path="${file#skills/}"
+  # Extract the skill folder name (tech/x-skill/)
+  local skill_folder="${skill_path%/*}/"
+
+  # Check if this skill is in the detected list
+  if echo "$DETECTED_SKILLS" | grep -qF "$skill_folder"; then
+    return 0  # Skill needed, sync it
+  fi
+
+  return 1  # Skill not needed for detected technologies
 }
 
 # Check if file should be skipped based on tool detection
@@ -125,6 +209,16 @@ should_skip_for_tools() {
 
 echo -e "${BLUE}Syncing project with template...${NC}"
 echo ""
+
+# Show detected technologies
+if [[ -n "$DETECTED_TECHS" ]]; then
+  echo -e "Technologies detected:"
+  echo "$DETECTED_TECHS" | while read -r tech; do
+    [[ -n "$tech" ]] && echo -e "  ${GREEN}+${NC} $tech"
+  done
+  echo ""
+fi
+
 echo -e "Tools detected:"
 echo -e "  Beads:    $([[ "$HAS_BEADS" == "true" ]] && echo "${GREEN}yes${NC}" || echo "${YELLOW}no${NC} (.beads/ not found)")"
 echo -e "  OpenSpec: $([[ "$HAS_OPENSPEC" == "true" ]] && echo "${GREEN}yes${NC}" || echo "${YELLOW}no${NC} (openspec/ not found)")"
@@ -134,7 +228,13 @@ echo ""
 while IFS= read -r file; do
   rel_path="${file#$TEMPLATE_DIR/}"
   template_file="$file"
-  project_file="$PROJECT_DIR/$rel_path"
+
+  # Flatten categorized skills: skills/{category}/foo/ -> skills/foo/
+  flat_rel_path="$rel_path"
+  if [[ "$rel_path" =~ ^skills/(authoring|quality|workflow|automation|meta|tech)/([^/]+/.+)$ ]]; then
+    flat_rel_path="skills/${BASH_REMATCH[2]}"
+  fi
+  project_file="$PROJECT_DIR/$flat_rel_path"
 
   # Check if excluded (skip entirely)
   if echo "$rel_path" | grep -qE "^($EXCLUDED_PATTERNS)$"; then
@@ -144,6 +244,20 @@ while IFS= read -r file; do
   # Check if should skip based on tools
   if should_skip_for_tools "$rel_path"; then
     echo "$rel_path (tool not enabled)" >> "$skipped_files"
+    ((count_skipped++)) || true
+    continue
+  fi
+
+  # Check if tech rule should be synced based on detection
+  if ! should_sync_tech_rule "$rel_path"; then
+    # Tech rule not needed - skip adding to project
+    ((count_skipped++)) || true
+    continue
+  fi
+
+  # Check if tech skill should be synced based on detection
+  if ! should_sync_tech_skill "$rel_path"; then
+    # Tech skill not needed - skip adding to project
     ((count_skipped++)) || true
     continue
   fi
@@ -159,15 +273,9 @@ while IFS= read -r file; do
     continue
   fi
 
-  # File missing in project - add it
+  # File missing in project - would add
   if [[ ! -f "$project_file" ]]; then
-    if [[ "$MODE" != "report" ]]; then
-      mkdir -p "$(dirname "$project_file")"
-      cp "$template_file" "$project_file"
-      echo "$rel_path" >> "$added_files"
-    else
-      echo "$rel_path (would add)" >> "$added_files"
-    fi
+    echo "$flat_rel_path" >> "$added_files"
     ((count_added++)) || true
     continue
   fi
@@ -187,6 +295,22 @@ while IFS= read -r file; do
   fi
   ((count_updated++)) || true
 done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) 2>/dev/null | sort)
+
+# Check for unused tech rules in project (rules that exist but aren't needed)
+if [[ -n "$DETECTED_RULES" ]] && [[ -d "$PROJECT_DIR/rules/tech" ]]; then
+  while IFS= read -r project_tech_file; do
+    rel_path="${project_tech_file#$PROJECT_DIR/}"
+    # Detection script outputs "tech/x.md", project has "rules/tech/x.md"
+    # Convert for comparison
+    tech_path="${rel_path#rules/}"
+
+    # Check if this rule is in the detected list
+    if ! echo "$DETECTED_RULES" | grep -qF "$tech_path"; then
+      echo "$rel_path" >> "$unused_files"
+      ((count_unused++)) || true
+    fi
+  done < <(find "$PROJECT_DIR/rules/tech" -name "*.md" -type f 2>/dev/null | sort)
+fi
 
 # Report
 echo -e "${GREEN}=== Sync Report ===${NC}"
@@ -224,48 +348,29 @@ if [[ -s "$protected_files" ]]; then
   echo ""
 fi
 
+if [[ -s "$unused_files" ]]; then
+  echo -e "${YELLOW}Unused (tech not detected):${NC}"
+  while IFS= read -r f; do
+    echo "  - $f"
+  done < "$unused_files"
+  echo ""
+  echo -e "${YELLOW}Note: Remove unused rules manually if desired.${NC}"
+  echo ""
+fi
+
 echo -e "${BLUE}Summary:${NC}"
 echo "  Up to date: $count_up_to_date"
 echo "  Updated:    $count_updated"
 echo "  Added:      $count_added"
 echo "  Skipped:    $count_skipped (tools not enabled)"
 echo "  Protected:  $count_protected"
+echo "  Unused:     $count_unused (tech not detected)"
 echo ""
 
-if [[ "$MODE" == "report" ]]; then
-  echo -e "${YELLOW}Report mode - no changes made${NC}"
-elif [[ $count_updated -gt 0 || $count_added -gt 0 ]]; then
-  echo -e "${GREEN}Sync complete.${NC}"
+if [[ $count_updated -gt 0 || $count_added -gt 0 ]]; then
+  echo -e "${YELLOW}Report only - no changes made${NC}"
   echo ""
-  echo "Next steps:"
-  echo "  1. but status  # Review changes"
-  echo "  2. but stage <file> <branch> && but commit <branch> --only -m 'chore: sync claude config'"
-
-  # Check if agents need rebuild
-  if grep -q "agents-src/" "$updated_files" "$added_files" 2>/dev/null; then
-    echo ""
-    echo -e "${YELLOW}Agent YAMLs changed.${NC}"
-
-    # Ensure build:agents npm script exists
-    if [[ -f "package.json" ]]; then
-      if ! grep -q '"build:agents"' package.json; then
-        echo "  Adding build:agents npm script..."
-        # Install required packages first
-        npm install --save-dev yaml tsx 2>/dev/null || true
-        # Add the script
-        node -e "
-          const fs = require('fs');
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          pkg.scripts = pkg.scripts || {};
-          pkg.scripts['build:agents'] = 'npx tsx .claude/scripts/build-agents.ts';
-          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-        " 2>/dev/null && echo -e "  ${GREEN}Added build:agents script${NC}"
-      fi
-    fi
-
-    echo "  Rebuild with:"
-    echo "  npm run build:agents"
-  fi
+  echo "Claude should review the differences and copy files as needed."
 else
   echo -e "${GREEN}Everything up to date.${NC}"
 fi
