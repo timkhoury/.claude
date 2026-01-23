@@ -14,16 +14,18 @@ The sync config defines what content is always copied, and what is copied based 
 | Section | Purpose |
 |---------|---------|
 | `always` | Rules and skills copied to every project |
-| `technologies` | Tech-specific rules copied when detected |
-| `integrations` | Rules for technology combinations |
+| `technologies` | Tech-specific rules (includes integrations) |
+| `tools` | Workflow tools and integrations (beads, openspec) |
 
-## Technology Detection
+## Detection Methods
 
 | Method | What It Checks |
 |--------|----------------|
 | `packages` | package.json dependencies/devDependencies |
 | `configs` | Config file existence (next.config.js, etc.) |
 | `directories` | Directory existence (supabase/, components/ui/) |
+| `requires` | Other detected items (for integrations) |
+| `requires_any` | At least one of these (optional with `requires`) |
 
 ## Configuration Format
 
@@ -52,23 +54,48 @@ technologies:
     rules:
       - tech/nextjs.md
 
-# Integration rules (require multiple technologies)
-integrations:
-  - name: nextjs-supabase
-    requires:
-      - nextjs
-      - supabase
+  # Integration (uses requires instead of packages/configs)
+  nextjs-supabase:
+    detect:
+      requires:
+        - nextjs
+        - supabase
     rules:
       - tech/nextjs-supabase.md
 
-  - name: supabase-testing
-    requires:
-      - supabase
-    requires_any:        # At least one of these
-      - vitest
-      - playwright
+  supabase-testing:
+    detect:
+      requires:
+        - supabase
+      requires_any:
+        - vitest
+        - playwright
     rules:
       - tech/supabase-testing.md
+
+# Workflow tools
+tools:
+  beads:
+    detect:
+      directories:
+        - .beads/
+    rules:
+      - workflow/beads-workflow.md
+    skills:
+      - workflow/beads-cleanup/
+    commands:
+      - work.md
+
+  # Tool integration (uses requires)
+  beads+openspec:
+    detect:
+      requires:
+        - beads
+        - openspec
+    rules:
+      - workflow/workflow-integration.md
+    commands:
+      - wrap.md
 ```
 
 ## Adding New Technologies
@@ -89,6 +116,9 @@ integrations:
 
 # List rule paths to copy
 ~/.claude/scripts/detect-technologies.sh --rules
+
+# List skill paths to copy
+~/.claude/scripts/detect-technologies.sh --skills
 
 # JSON output for scripts
 ~/.claude/scripts/detect-technologies.sh --json

@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# Detect technologies in a project and output required rules
-# Usage: detect-technologies.sh [--json|--rules|--techs|--report]
+# Detect technologies/tools and output sync configuration
+# Usage: detect-technologies.sh [--json|--rules|--skills|--commands|--techs|--tools|--report]
 #
-# Reads tech-detection.yaml and checks:
+# Reads sync-config.yaml and checks:
 #   - package.json for dependencies
 #   - Config files for existence
 #   - Directories for existence
 #
 # Outputs:
-#   --json    Full detection results as JSON
-#   --rules   List of rule paths to copy (one per line)
-#   --techs   List of detected technology names (one per line)
-#   --report  Human-readable report (default)
+#   --json     Full detection results as JSON
+#   --rules    List of rule paths to copy (one per line)
+#   --skills   List of skill paths to copy (one per line)
+#   --commands List of command paths to copy (one per line)
+#   --techs    List of detected technology names (one per line)
+#   --tools    List of detected tool names (one per line)
+#   --report   Human-readable report (default)
 
 set -e
 
@@ -27,18 +30,24 @@ NC='\033[0m'
 # Parse arguments
 MODE="report"
 case "${1:-}" in
-  --json)   MODE="json" ;;
-  --rules)  MODE="rules" ;;
-  --techs)  MODE="techs" ;;
-  --report) MODE="report" ;;
+  --json)     MODE="json" ;;
+  --rules)    MODE="rules" ;;
+  --skills)   MODE="skills" ;;
+  --commands) MODE="commands" ;;
+  --techs)    MODE="techs" ;;
+  --tools)    MODE="tools" ;;
+  --report)   MODE="report" ;;
   --help|-h)
-    echo "Usage: detect-technologies.sh [--json|--rules|--techs|--report]"
+    echo "Usage: detect-technologies.sh [--json|--rules|--skills|--commands|--techs|--tools|--report]"
     echo ""
     echo "Outputs:"
-    echo "  --report  Human-readable report (default)"
-    echo "  --techs   List of detected technology names"
-    echo "  --rules   List of rule paths to copy"
-    echo "  --json    Full detection results as JSON"
+    echo "  --report   Human-readable report (default)"
+    echo "  --techs    List of detected technology names"
+    echo "  --tools    List of detected tool names (beads, openspec)"
+    echo "  --rules    List of rule paths to copy"
+    echo "  --skills   List of skill paths to copy"
+    echo "  --commands List of command paths to copy"
+    echo "  --json     Full detection results as JSON"
     exit 0
     ;;
 esac
@@ -96,114 +105,156 @@ declare -a ALWAYS_RULES=()
 # Parse config and detect technologies using node
 detect_with_node() {
   node --input-type=module -e "
-import { readFileSync } from 'fs';
+import { readFileSync, statSync } from 'fs';
 import { parse } from 'yaml';
 
 const config = parse(readFileSync('$CONFIG_FILE', 'utf8'));
-const detected = [];
-const rules = [];
+const detectedTechs = [];
+const detectedTools = [];
+const techRules = [];
+const toolRules = [];
+const toolSkills = [];
+const toolCommands = [];
 
-// Check each technology
-for (const [name, tech] of Object.entries(config.technologies || {})) {
-  let found = false;
+// Helper to check directory existence
+const hasDir = (dir) => { try { return statSync(dir).isDirectory(); } catch { return false; } };
+const hasFile = (file) => { try { readFileSync(file); return true; } catch { return false; } };
+const hasPackage = (pkg) => {
+  try {
+    const pkgJson = JSON.parse(readFileSync('package.json', 'utf8'));
+    return !!(pkgJson.dependencies?.[pkg] || pkgJson.devDependencies?.[pkg]);
+  } catch { return false; }
+};
+
+// Check each technology (two passes: direct detection first, then requires-based)
+const techEntries = Object.entries(config.technologies || {});
+
+// Pass 1: Direct detection (packages, configs, directories)
+for (const [name, tech] of techEntries) {
   const detect = tech.detect || {};
-
-  // Check packages
-  for (const pkg of detect.packages || []) {
-    try {
-      const pkgJson = JSON.parse(readFileSync('package.json', 'utf8'));
-      if (pkgJson.dependencies?.[pkg] || pkgJson.devDependencies?.[pkg]) {
-        found = true;
-        break;
-      }
-    } catch {}
-  }
-
-  // Check configs (simple file existence, no glob)
-  if (!found) {
-    for (const cfg of detect.configs || []) {
-      try {
-        readFileSync(cfg);
-        found = true;
-        break;
-      } catch {}
-    }
-  }
-
-  // Check directories
-  if (!found) {
-    for (const dir of detect.directories || []) {
-      try {
-        const { statSync } = await import('fs');
-        if (statSync(dir).isDirectory()) {
-          found = true;
-          break;
-        }
-      } catch {}
-    }
-  }
-
+  if (detect.requires) continue; // Skip requires-based, handled in pass 2
+  let found = (detect.packages || []).some(hasPackage) ||
+              (detect.configs || []).some(hasFile) ||
+              (detect.directories || []).some(hasDir);
   if (found) {
-    detected.push(name);
-    rules.push(...(tech.rules || []));
+    detectedTechs.push(name);
+    techRules.push(...(tech.rules || []));
   }
 }
 
-// Check integrations
-for (const integration of config.integrations || []) {
-  const requires = integration.requires || [];
-  const requiresAny = integration.requires_any || [];
-
-  const hasAll = requires.every(t => detected.includes(t));
-  const hasAny = requiresAny.length === 0 || requiresAny.some(t => detected.includes(t));
-
+// Pass 2: Requires-based detection (integrations)
+for (const [name, tech] of techEntries) {
+  const detect = tech.detect || {};
+  if (!detect.requires) continue; // Only requires-based
+  const requires = detect.requires || [];
+  const requiresAny = detect.requires_any || [];
+  const hasAll = requires.every(t => detectedTechs.includes(t));
+  const hasAny = requiresAny.length === 0 || requiresAny.some(t => detectedTechs.includes(t));
   if (hasAll && hasAny) {
-    rules.push(...(integration.rules || []));
+    detectedTechs.push(name);
+    techRules.push(...(tech.rules || []));
   }
 }
 
-// Always rules
-const always = config.always?.rules || [];
+// Check each tool (two passes: direct detection first, then requires-based)
+const toolEntries = Object.entries(config.tools || {});
+
+// Pass 1: Direct detection (directories)
+for (const [name, tool] of toolEntries) {
+  const detect = tool.detect || {};
+  if (detect.requires) continue; // Skip requires-based, handled in pass 2
+  let found = (detect.directories || []).some(hasDir);
+  if (found) {
+    detectedTools.push(name);
+    toolRules.push(...(tool.rules || []));
+    toolSkills.push(...(tool.skills || []));
+    toolCommands.push(...(tool.commands || []));
+  }
+}
+
+// Pass 2: Requires-based detection (integrations)
+for (const [name, tool] of toolEntries) {
+  const detect = tool.detect || {};
+  if (!detect.requires) continue; // Only requires-based
+  const requires = detect.requires || [];
+  const hasAll = requires.every(t => detectedTools.includes(t));
+  if (hasAll) {
+    detectedTools.push(name);
+    toolRules.push(...(tool.rules || []));
+    toolSkills.push(...(tool.skills || []));
+    toolCommands.push(...(tool.commands || []));
+  }
+}
+
+// Always rules and skills
+const alwaysRules = config.always?.rules || [];
+const alwaysSkills = config.always?.skills || [];
 
 // Output based on mode
 const mode = '$MODE';
 if (mode === 'json') {
-  console.log(JSON.stringify({ detected, rules, always }, null, 2));
+  console.log(JSON.stringify({ detectedTechs, detectedTools, techRules, toolRules, toolSkills, toolCommands, alwaysRules, alwaysSkills }, null, 2));
 } else if (mode === 'techs') {
-  detected.forEach(t => console.log(t));
+  detectedTechs.forEach(t => console.log(t));
+} else if (mode === 'tools') {
+  detectedTools.forEach(t => console.log(t));
 } else if (mode === 'rules') {
-  [...new Set([...always, ...rules])].forEach(r => console.log(r));
+  [...new Set([...alwaysRules, ...techRules, ...toolRules])].forEach(r => console.log(r));
+} else if (mode === 'skills') {
+  [...new Set([...alwaysSkills, ...toolSkills])].forEach(s => console.log(s));
+} else if (mode === 'commands') {
+  [...new Set(toolCommands)].forEach(c => console.log(c));
 } else {
   // report mode
   console.log('Detected technologies:');
-  if (detected.length === 0) {
-    console.log('  (none)');
-  } else {
-    detected.forEach(t => console.log('  + ' + t));
-  }
+  detectedTechs.length ? detectedTechs.forEach(t => console.log('  + ' + t)) : console.log('  (none)');
+  console.log('');
+  console.log('Detected tools:');
+  detectedTools.length ? detectedTools.forEach(t => console.log('  + ' + t)) : console.log('  (none)');
   console.log('');
   console.log('Rules to copy:');
   console.log('  Always:');
-  always.forEach(r => console.log('    - ' + r));
+  alwaysRules.forEach(r => console.log('    - ' + r));
   console.log('  Technology-specific:');
-  if (rules.length === 0) {
-    console.log('    (none)');
-  } else {
-    [...new Set(rules)].forEach(r => console.log('    - ' + r));
-  }
+  techRules.length ? [...new Set(techRules)].forEach(r => console.log('    - ' + r)) : console.log('    (none)');
+  console.log('  Tool-specific:');
+  toolRules.length ? [...new Set(toolRules)].forEach(r => console.log('    - ' + r)) : console.log('    (none)');
+  console.log('');
+  console.log('Skills to copy:');
+  console.log('  Always:');
+  alwaysSkills.forEach(s => console.log('    - ' + s));
+  console.log('  Tool-specific:');
+  toolSkills.length ? [...new Set(toolSkills)].forEach(s => console.log('    - ' + s)) : console.log('    (none)');
+  console.log('');
+  console.log('Commands to copy:');
+  toolCommands.length ? [...new Set(toolCommands)].forEach(c => console.log('  - ' + c)) : console.log('  (none)');
 }
 " 2>/dev/null
 }
 
 # Parse config and detect using yq + bash
 detect_with_yq() {
-  # Get always rules
+  # Get always rules and skills
   ALWAYS_RULES=($(yq -r '.always.rules[]' "$CONFIG_FILE" 2>/dev/null || true))
+  ALWAYS_SKILLS=($(yq -r '.always.skills[]' "$CONFIG_FILE" 2>/dev/null || true))
+
+  # Arrays for tool detection
+  declare -a DETECTED_TOOLS=()
+  declare -a TOOL_RULES=()
+  declare -a TOOL_SKILLS=()
+  declare -a TOOL_COMMANDS=()
 
   # Get technology names
   local techs=($(yq -r '.technologies | keys[]' "$CONFIG_FILE" 2>/dev/null))
 
+  # Pass 1: Direct detection (packages, configs, directories)
   for tech in "${techs[@]}"; do
+    # Skip requires-based (handled in pass 2)
+    local has_requires=$(yq -r ".technologies.$tech.detect.requires // empty" "$CONFIG_FILE" 2>/dev/null)
+    if [[ -n "$has_requires" ]]; then
+      continue
+    fi
+
     local found=false
 
     # Check packages
@@ -244,11 +295,14 @@ detect_with_yq() {
     fi
   done
 
-  # Check integrations
-  local num_integrations=$(yq -r '.integrations | length' "$CONFIG_FILE" 2>/dev/null || echo 0)
-  for ((i=0; i<num_integrations; i++)); do
-    local requires=($(yq -r ".integrations[$i].requires[]" "$CONFIG_FILE" 2>/dev/null || true))
-    local requires_any=($(yq -r ".integrations[$i].requires_any[]" "$CONFIG_FILE" 2>/dev/null || true))
+  # Pass 2: Requires-based detection (integrations within technologies)
+  for tech in "${techs[@]}"; do
+    local requires=($(yq -r ".technologies.$tech.detect.requires[]" "$CONFIG_FILE" 2>/dev/null || true))
+    if [[ ${#requires[@]} -eq 0 ]]; then
+      continue
+    fi
+
+    local requires_any=($(yq -r ".technologies.$tech.detect.requires_any[]" "$CONFIG_FILE" 2>/dev/null || true))
 
     local has_all=true
     for req in "${requires[@]}"; do
@@ -270,8 +324,66 @@ detect_with_yq() {
     fi
 
     if [[ "$has_all" == "true" ]] && [[ "$has_any" == "true" ]]; then
-      local rules=($(yq -r ".integrations[$i].rules[]" "$CONFIG_FILE" 2>/dev/null || true))
+      DETECTED_TECHS+=("$tech")
+      local rules=($(yq -r ".technologies.$tech.rules[]" "$CONFIG_FILE" 2>/dev/null || true))
       DETECTED_RULES+=("${rules[@]}")
+    fi
+  done
+
+  # Check tools
+  local tools=($(yq -r '.tools | keys[]' "$CONFIG_FILE" 2>/dev/null || true))
+
+  # Pass 1: Direct detection (directories)
+  for tool in "${tools[@]}"; do
+    # Skip requires-based (handled in pass 2)
+    local has_requires=$(yq -r ".tools.$tool.detect.requires // empty" "$CONFIG_FILE" 2>/dev/null)
+    if [[ -n "$has_requires" ]]; then
+      continue
+    fi
+
+    local found=false
+    local dirs=($(yq -r ".tools.$tool.detect.directories[]" "$CONFIG_FILE" 2>/dev/null || true))
+    for dir in "${dirs[@]}"; do
+      if has_directory "$dir"; then
+        found=true
+        break
+      fi
+    done
+
+    if [[ "$found" == "true" ]]; then
+      DETECTED_TOOLS+=("$tool")
+      local rules=($(yq -r ".tools.$tool.rules[]" "$CONFIG_FILE" 2>/dev/null || true))
+      local skills=($(yq -r ".tools.$tool.skills[]" "$CONFIG_FILE" 2>/dev/null || true))
+      local commands=($(yq -r ".tools.$tool.commands[]" "$CONFIG_FILE" 2>/dev/null || true))
+      TOOL_RULES+=("${rules[@]}")
+      TOOL_SKILLS+=("${skills[@]}")
+      TOOL_COMMANDS+=("${commands[@]}")
+    fi
+  done
+
+  # Pass 2: Requires-based detection (integrations within tools)
+  for tool in "${tools[@]}"; do
+    local requires=($(yq -r ".tools.$tool.detect.requires[]" "$CONFIG_FILE" 2>/dev/null || true))
+    if [[ ${#requires[@]} -eq 0 ]]; then
+      continue
+    fi
+
+    local has_all=true
+    for req in "${requires[@]}"; do
+      if [[ ! " ${DETECTED_TOOLS[*]} " =~ " $req " ]]; then
+        has_all=false
+        break
+      fi
+    done
+
+    if [[ "$has_all" == "true" ]]; then
+      DETECTED_TOOLS+=("$tool")
+      local rules=($(yq -r ".tools.$tool.rules[]" "$CONFIG_FILE" 2>/dev/null || true))
+      local skills=($(yq -r ".tools.$tool.skills[]" "$CONFIG_FILE" 2>/dev/null || true))
+      local commands=($(yq -r ".tools.$tool.commands[]" "$CONFIG_FILE" 2>/dev/null || true))
+      TOOL_RULES+=("${rules[@]}")
+      TOOL_SKILLS+=("${skills[@]}")
+      TOOL_COMMANDS+=("${commands[@]}")
     fi
   done
 
@@ -279,16 +391,30 @@ detect_with_yq() {
   case "$MODE" in
     json)
       echo "{"
-      echo "  \"detected\": [$(printf '"%s",' "${DETECTED_TECHS[@]}" | sed 's/,$//')],"
-      echo "  \"rules\": [$(printf '"%s",' "${DETECTED_RULES[@]}" | sed 's/,$//')],"
-      echo "  \"always\": [$(printf '"%s",' "${ALWAYS_RULES[@]}" | sed 's/,$//')]"
+      echo "  \"detectedTechs\": [$(printf '"%s",' "${DETECTED_TECHS[@]}" | sed 's/,$//')],"
+      echo "  \"detectedTools\": [$(printf '"%s",' "${DETECTED_TOOLS[@]}" | sed 's/,$//')],"
+      echo "  \"techRules\": [$(printf '"%s",' "${DETECTED_RULES[@]}" | sed 's/,$//')],"
+      echo "  \"toolRules\": [$(printf '"%s",' "${TOOL_RULES[@]}" | sed 's/,$//')],"
+      echo "  \"toolSkills\": [$(printf '"%s",' "${TOOL_SKILLS[@]}" | sed 's/,$//')],"
+      echo "  \"toolCommands\": [$(printf '"%s",' "${TOOL_COMMANDS[@]}" | sed 's/,$//')],"
+      echo "  \"alwaysRules\": [$(printf '"%s",' "${ALWAYS_RULES[@]}" | sed 's/,$//')],"
+      echo "  \"alwaysSkills\": [$(printf '"%s",' "${ALWAYS_SKILLS[@]}" | sed 's/,$//')]"
       echo "}"
       ;;
     techs)
       printf '%s\n' "${DETECTED_TECHS[@]}"
       ;;
+    tools)
+      printf '%s\n' "${DETECTED_TOOLS[@]}"
+      ;;
     rules)
-      printf '%s\n' "${ALWAYS_RULES[@]}" "${DETECTED_RULES[@]}" | sort -u
+      printf '%s\n' "${ALWAYS_RULES[@]}" "${DETECTED_RULES[@]}" "${TOOL_RULES[@]}" | sort -u
+      ;;
+    skills)
+      printf '%s\n' "${ALWAYS_SKILLS[@]}" "${TOOL_SKILLS[@]}" | sort -u
+      ;;
+    commands)
+      printf '%s\n' "${TOOL_COMMANDS[@]}" | sort -u
       ;;
     report)
       echo -e "${GREEN}Detected technologies:${NC}"
@@ -297,6 +423,15 @@ detect_with_yq() {
       else
         for tech in "${DETECTED_TECHS[@]}"; do
           echo -e "  ${GREEN}+${NC} $tech"
+        done
+      fi
+      echo ""
+      echo -e "${GREEN}Detected tools:${NC}"
+      if [[ ${#DETECTED_TOOLS[@]} -eq 0 ]]; then
+        echo "  (none)"
+      else
+        for tool in "${DETECTED_TOOLS[@]}"; do
+          echo -e "  ${GREEN}+${NC} $tool"
         done
       fi
       echo ""
@@ -311,6 +446,37 @@ detect_with_yq() {
       else
         printf '%s\n' "${DETECTED_RULES[@]}" | sort -u | while read -r rule; do
           echo "    - $rule"
+        done
+      fi
+      echo "  Tool-specific:"
+      if [[ ${#TOOL_RULES[@]} -eq 0 ]]; then
+        echo "    (none)"
+      else
+        printf '%s\n' "${TOOL_RULES[@]}" | sort -u | while read -r rule; do
+          echo "    - $rule"
+        done
+      fi
+      echo ""
+      echo -e "${BLUE}Skills to copy:${NC}"
+      echo "  Always:"
+      for skill in "${ALWAYS_SKILLS[@]}"; do
+        echo "    - $skill"
+      done
+      echo "  Tool-specific:"
+      if [[ ${#TOOL_SKILLS[@]} -eq 0 ]]; then
+        echo "    (none)"
+      else
+        printf '%s\n' "${TOOL_SKILLS[@]}" | sort -u | while read -r skill; do
+          echo "    - $skill"
+        done
+      fi
+      echo ""
+      echo -e "${BLUE}Commands to copy:${NC}"
+      if [[ ${#TOOL_COMMANDS[@]} -eq 0 ]]; then
+        echo "  (none)"
+      else
+        printf '%s\n' "${TOOL_COMMANDS[@]}" | sort -u | while read -r cmd; do
+          echo "  - $cmd"
         done
       fi
       ;;
