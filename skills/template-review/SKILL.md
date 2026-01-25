@@ -73,3 +73,11 @@ Summary: 2 errors, 1 warning
 - `CHECKS.md` - Detailed check descriptions
 - `/project-sync` - Sync template to projects
 - `/skills-review` - Audit skill context efficiency
+
+## After Completion
+
+Record this review:
+
+```bash
+~/.claude/skills/systems-review/review-tracker.sh record template-review
+```
