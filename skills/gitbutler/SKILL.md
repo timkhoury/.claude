@@ -10,7 +10,6 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 ## Key Practices
 
 - **Run `but status` after every action** - file IDs shift after commits
-- **Use `but absorb`** to fold small fixes into recent commits instead of "fix typo" commits
 - **Group changes logically** - feature+tests together, config separate
 
 ## Command Reference
@@ -21,7 +20,6 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 | `but show <id>` | Show commit or branch details (`-v` for verbose) |
 | `but branch new <name>` | Create new virtual branch |
 | `but stage <file-id> <branch>` | Assign file/hunk to branch |
-| `but absorb` | Amend changes into appropriate recent commits (`--dry-run` to preview) |
 | `but rub <source> <target>` | Squash commits, amend, move commits |
 | `but commit <branch> --only -m "..."` | Commit only assigned files |
 | `but reword <id> -m "message"` | Edit commit message (or rename branch) |
