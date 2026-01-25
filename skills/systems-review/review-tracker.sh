@@ -115,6 +115,12 @@ days_since() {
         now_epoch=$(date -d "$now" +%s)
     fi
 
+    # Treat parse failures as "never run"
+    if [[ "$last_epoch" == "0" ]]; then
+        echo "-1"
+        return
+    fi
+
     local diff=$(( (now_epoch - last_epoch) / 86400 ))
     echo "$diff"
 }
@@ -146,7 +152,7 @@ cmd_init() {
 # Command: status
 cmd_status() {
     local format="${1:-text}"
-    local reviews=()
+    local json_array="[]"
 
     for name in "${!CADENCES[@]}"; do
         if is_applicable "$name"; then
@@ -167,7 +173,13 @@ cmd_status() {
             fi
 
             if [[ "$format" == "json" ]]; then
-                reviews+=("{\"name\":\"$name\",\"lastRun\":\"$last_run\",\"daysSince\":\"$days\",\"cadence\":$cadence,\"overdue\":$overdue}")
+                json_array=$(echo "$json_array" | jq \
+                    --arg name "$name" \
+                    --arg lastRun "$last_run" \
+                    --arg daysSince "$days" \
+                    --argjson cadence "$cadence" \
+                    --argjson overdue "$overdue" \
+                    '. += [{"name": $name, "lastRun": $lastRun, "daysSince": $daysSince, "cadence": $cadence, "overdue": $overdue}]')
             else
                 local status_icon
                 if [[ "$overdue" == "true" ]]; then
@@ -181,9 +193,7 @@ cmd_status() {
     done
 
     if [[ "$format" == "json" ]]; then
-        local joined
-        joined=$(IFS=,; echo "${reviews[*]}")
-        echo "[${joined}]"
+        echo "$json_array"
     fi
 }
 
@@ -233,7 +243,7 @@ cmd_recommend() {
     sorted=$(printf '%s\n' "${recommendations[@]}" | sort -t'|' -k1 -rn)
 
     if [[ "$format" == "json" ]]; then
-        local json_items=()
+        local json_array="[]"
         while IFS='|' read -r priority name days cadence; do
             local reason
             if [[ "$days" == "-1" ]]; then
@@ -244,12 +254,15 @@ cmd_recommend() {
             else
                 reason="$((days - cadence)) days overdue"
             fi
-            json_items+=("{\"name\":\"$name\",\"daysSince\":\"$days\",\"cadence\":$cadence,\"reason\":\"$reason\"}")
+            json_array=$(echo "$json_array" | jq \
+                --arg name "$name" \
+                --arg daysSince "$days" \
+                --argjson cadence "$cadence" \
+                --arg reason "$reason" \
+                '. += [{"name": $name, "daysSince": $daysSince, "cadence": $cadence, "reason": $reason}]')
         done <<< "$sorted"
 
-        local joined
-        joined=$(IFS=,; echo "${json_items[*]}")
-        echo "[${joined}]"
+        echo "$json_array"
     else
         echo "Reviews due:"
         while IFS='|' read -r priority name days cadence; do
