@@ -3,7 +3,6 @@
 
 name: tester
 color: $colors.testing
-skills: $skillSets.testing
 tools: $toolSets.readOnly
 # No permissionMode - read-only agent
 
