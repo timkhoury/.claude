@@ -23,7 +23,6 @@ always:
     - quality/skills-review/
     - workflow/
     - automation/
-    - meta/
 
 # Technology-specific rules
 technologies:

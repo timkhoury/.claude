@@ -27,7 +27,28 @@ cat ~/.claude/settings.json       # Global
 cat settings.local.json           # Project-local
 ```
 
-### Step 2: Analyze Permissions
+### Step 2: Check for Stale Paths
+
+Verify script paths in global settings still exist:
+
+```bash
+grep -E '~/.claude/(scripts|skills)' ~/.claude/settings.json | \
+  sed 's/.*Bash(\(.*\):\*).*/\1/' | while read path; do
+  expanded=$(eval echo "$path")
+  if [[ -f "$expanded" ]]; then
+    echo "✓ $path"
+  else
+    echo "✗ $path (NOT FOUND)"
+  fi
+done
+```
+
+If any paths are missing:
+- Show list of stale permissions
+- Ask user to confirm removal
+- Remove from global settings
+
+### Step 3: Analyze Permissions
 
 For each permission in local settings:
 - ✅ Safe - read-only, standard dev commands
@@ -35,7 +56,7 @@ For each permission in local settings:
 - ❌ Keep local - project paths, env-specific
 - 🔄 Already global - skip
 
-### Step 3: Present Findings
+### Step 4: Present Findings
 
 ```
 ### ✅ Safe to Promote (N permissions)
@@ -52,7 +73,7 @@ For each permission in local settings:
 - npm install
 ```
 
-### Step 4: Get Confirmation
+### Step 5: Get Confirmation
 
 Use `AskUserQuestion`:
 
@@ -64,7 +85,7 @@ Use `AskUserQuestion`:
 - Multi-select with descriptions
 - Include "Skip all" option
 
-### Step 5: Apply Changes
+### Step 6: Apply Changes
 
 1. Read current global settings
 2. Merge approved permissions
@@ -98,3 +119,11 @@ Use `AskUserQuestion`:
 - After setting up a new project
 - When seeing repeated permission prompts
 - Periodically to standardize settings
+
+## After Completion
+
+Record this review:
+
+```bash
+~/.claude/skills/systems-review/review-tracker.sh record settings-updater
+```

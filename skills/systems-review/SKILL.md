@@ -16,6 +16,7 @@ Aggregate dashboard for all review skills with cadence-based recommendations.
 | template-review | Every run | Global | Template structure and sync-config integrity |
 | rules-review | 7 days | Project | Rule organization and separation of concerns |
 | skills-review | 7 days | Project | Skill context efficiency |
+| settings-updater | 7 days | Project | Permission promotion to global settings |
 | spec-review | 14 days | Project | OpenSpec implementation and test coverage |
 
 ## Workflow
@@ -96,7 +97,7 @@ After each review completes, the individual skill will automatically record its 
 | Scope | File | Reviews Tracked |
 |-------|------|-----------------|
 | Global | `~/.claude/.systems-review.json` | template-review |
-| Project | `./.systems-review.json` | rules-review, skills-review, spec-review |
+| Project | `./.systems-review.json` | rules-review, skills-review, settings-updater, spec-review |
 
 Both files are gitignored. The script automatically routes to the correct file.
 
@@ -107,4 +108,5 @@ Reviews are only shown if applicable:
 - `template-review`: Always included
 - `rules-review`: Only if `.claude/rules/` exists
 - `skills-review`: Only if `.claude/skills/` exists
+- `settings-updater`: Only if `.claude/settings.local.json` exists
 - `spec-review`: Only if `.openspec/` or `specs/` exists

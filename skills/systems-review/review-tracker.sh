@@ -24,6 +24,7 @@ declare -A CADENCES=(
     ["rules-review"]=7
     ["skills-review"]=7
     ["spec-review"]=14
+    ["settings-updater"]=7
 )
 
 # Which file each review uses
@@ -73,6 +74,10 @@ is_applicable() {
         skills-review)
             # Only if .claude/skills/ exists
             [[ -d ".claude/skills" ]]
+            ;;
+        settings-updater)
+            # Only if .claude/settings.local.json exists
+            [[ -f ".claude/settings.local.json" ]]
             ;;
         *)
             return 1
