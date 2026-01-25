@@ -18,14 +18,11 @@
 
 set -e
 
-CONFIG_FILE="$HOME/.claude/config/sync-config.yaml"
+# Source shared library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/lib/common.sh"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+CONFIG_FILE="$HOME/.claude/config/sync-config.yaml"
 
 # Parse arguments
 MODE="report"
@@ -234,12 +231,27 @@ if (mode === 'json') {
   console.log('Commands to copy:');
   toolCommands.length ? [...new Set(toolCommands)].forEach(c => console.log('  - ' + c)) : console.log('  (none)');
 }
-" 2>/dev/null
+"
+  local exit_code=$?
+  if [[ $exit_code -ne 0 ]]; then
+    warn "Node detection failed (exit code: $exit_code)"
+    return 1
+  fi
 }
 
 # Parse config and detect using yq + bash
 detect_with_yq() {
-  # Get always rules and skills
+  # Validate config structure first
+  if ! yq -e '.always' "$CONFIG_FILE" &>/dev/null; then
+    die "Invalid config: missing 'always' section in $CONFIG_FILE"
+  fi
+
+  # Get always rules and skills (empty arrays are OK, but yq errors are not)
+  local yq_error
+  if ! yq_error=$(yq -r '.always.rules[]' "$CONFIG_FILE" 2>&1); then
+    # Only fail if it's not an empty result
+    [[ "$yq_error" == *"null"* ]] || die "Failed to read always.rules: $yq_error"
+  fi
   ALWAYS_RULES=($(yq -r '.always.rules[]' "$CONFIG_FILE" 2>/dev/null || true))
   ALWAYS_SKILLS=($(yq -r '.always.skills[]' "$CONFIG_FILE" 2>/dev/null || true))
 

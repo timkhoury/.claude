@@ -9,18 +9,14 @@
 #
 # Copies template structure, optionally initializes tools, and builds agents.
 
-set -e
+set -eo pipefail
+
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 TEMPLATE_DIR="$HOME/.claude/template"
 PROJECT_DIR=".claude"
 DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
 
 # Defaults
 TOOLS="all"
@@ -139,10 +135,8 @@ fi
 
 # Check if already initialized
 if [[ -d "$PROJECT_DIR" ]]; then
-  echo -e "${YELLOW}Warning: .claude/ directory already exists${NC}"
-  echo "This will update existing files. Continue? (y/N)"
-  read -r response
-  if [[ ! "$response" =~ ^[Yy]$ ]]; then
+  warn ".claude/ directory already exists"
+  if ! confirm "This will update existing files. Continue?"; then
     echo "Aborted."
     exit 0
   fi
@@ -206,7 +200,14 @@ copy_dir() {
   fi
 
   mkdir -p "$dst"
-  cp -r "$TEMPLATE_DIR/$src/"* "$dst/" 2>/dev/null || true
+  # Check if directory has files before trying to copy
+  if compgen -G "$TEMPLATE_DIR/$src/*" > /dev/null; then
+    if ! cp -r "$TEMPLATE_DIR/$src/"* "$dst/"; then
+      warn "Failed to copy $src/ to $dst/"
+      ((files_skipped++)) || true
+      return
+    fi
+  fi
   echo -e "  ${GREEN}Copy:${NC} $src/"
   ((files_copied++)) || true
 }
@@ -243,7 +244,7 @@ copy_rule_folder() {
 
   mkdir -p "$PROJECT_DIR/rules/$folder"
   while IFS= read -r file; do
-    local rel_path="${file#$TEMPLATE_DIR/}"
+    local rel_path="${file#"$TEMPLATE_DIR"/}"
     local filename=$(basename "$file")
     cp "$file" "$PROJECT_DIR/rules/$folder/$filename"
     echo -e "  ${GREEN}Copy:${NC} $rel_path"
@@ -272,7 +273,7 @@ echo -e "  ${BLUE}Copying tech-specific rules...${NC}"
 if [[ -d "$TEMPLATE_DIR/rules/tech" ]]; then
   mkdir -p "$PROJECT_DIR/rules/tech"
   while IFS= read -r file; do
-    rel_path="${file#$TEMPLATE_DIR/}"
+    rel_path="${file#"$TEMPLATE_DIR"/}"
     if should_copy_tech_rule "$rel_path"; then
       filename=$(basename "$file")
       cp "$file" "$PROJECT_DIR/rules/tech/$filename"
@@ -468,7 +469,9 @@ if [[ "$SKIP_BUILD" != "true" ]]; then
 
     if [[ "$needs_install" == "true" ]]; then
       echo "  Installing yaml and tsx packages..."
-      npm install --save-dev yaml tsx 2>/dev/null || true
+      if ! npm install --save-dev yaml tsx; then
+        warn "Failed to install packages (run manually: npm install --save-dev yaml tsx)"
+      fi
     fi
 
     # Add build:agents npm script if missing
