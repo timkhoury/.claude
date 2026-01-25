@@ -312,8 +312,7 @@ mkdir -p "$PROJECT_DIR/commands"
 copy_file "commands/plan.md" "$PROJECT_DIR/commands/plan.md"
 copy_file "commands/check.md" "$PROJECT_DIR/commands/check.md"
 copy_file "commands/fix.md" "$PROJECT_DIR/commands/fix.md"
-copy_file "commands/review.md" "$PROJECT_DIR/commands/review.md"
-copy_file "commands/test.md" "$PROJECT_DIR/commands/test.md"
+copy_file "commands/fix-tests.md" "$PROJECT_DIR/commands/fix-tests.md"
 
 echo ""
 
@@ -321,9 +320,8 @@ echo ""
 if [[ "$ENABLE_BEADS" == "true" ]]; then
   echo -e "${BLUE}Phase 2a: Copying Beads files...${NC}"
   # beads-workflow.md should already be in rules/workflow/ from Phase 1
-  copy_dir "skills/workflow/beads-cleanup" "$PROJECT_DIR/skills/workflow/beads-cleanup"
+  copy_dir "skills/tools/beads/beads-cleanup" "$PROJECT_DIR/skills/tools/beads/beads-cleanup"
   copy_dir "skills/workflow/work" "$PROJECT_DIR/skills/workflow/work"
-  copy_file "commands/work.md" "$PROJECT_DIR/commands/work.md"
   copy_file "commands/status.md" "$PROJECT_DIR/commands/status.md"
   echo ""
 fi
@@ -332,6 +330,7 @@ if [[ "$ENABLE_OPENSPEC" == "true" ]]; then
   echo -e "${BLUE}Phase 2b: Copying OpenSpec files...${NC}"
   # openspec.md should already be in rules/workflow/ from Phase 1
   copy_dir "skills/quality/rules-review" "$PROJECT_DIR/skills/quality/rules-review"
+  copy_dir "skills/tools/openspec/spec-review" "$PROJECT_DIR/skills/tools/openspec/spec-review"
   mkdir -p "$PROJECT_DIR/commands/openspec"
   copy_file "commands/openspec/proposal.md" "$PROJECT_DIR/commands/openspec/proposal.md"
   copy_file "commands/openspec/apply.md" "$PROJECT_DIR/commands/openspec/apply.md"

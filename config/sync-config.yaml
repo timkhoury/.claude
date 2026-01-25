@@ -156,7 +156,6 @@ tools:
       - tools/beads/beads-cleanup/
       - workflow/work/
     commands:
-      - work.md
       - status.md
 
   openspec:
