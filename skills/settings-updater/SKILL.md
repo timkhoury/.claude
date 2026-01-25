@@ -18,62 +18,43 @@ Compare project-local settings with global and suggest safe permissions to promo
 
 **See `PATTERNS.md` for safety classification and category patterns.**
 
+## Usage
+
+```bash
+~/.claude/skills/settings-updater/analyze-settings.sh [--stale|--compare|--report]
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--stale` | Check for stale paths in global settings |
+| `--compare` | Compare local vs global permissions |
+| `--report` | Full report (default) |
+
+The script is **report-only** - it shows the analysis but makes no changes. Claude reads the report and applies changes based on user confirmation.
+
 ## Workflow
 
-### Step 1: Read Settings
+### Step 1: Run Analysis
 
 ```bash
-cat ~/.claude/settings.json       # Global
-cat settings.local.json           # Project-local
+~/.claude/skills/settings-updater/analyze-settings.sh
 ```
 
-### Step 2: Check for Stale Paths
-
-Verify script paths in global settings still exist:
-
-```bash
-grep -E '~/.claude/(scripts|skills)' ~/.claude/settings.json | \
-  sed 's/.*Bash(\(.*\):\*).*/\1/' | while read path; do
-  expanded=$(eval echo "$path")
-  if [[ -f "$expanded" ]]; then
-    echo "✓ $path"
-  else
-    echo "✗ $path (NOT FOUND)"
-  fi
-done
-```
-
-If any paths are missing:
-- Show list of stale permissions
-- Ask user to confirm removal
-- Remove from global settings
-
-### Step 3: Analyze Permissions
-
-For each permission in local settings:
-- ✅ Safe - read-only, standard dev commands
+The script outputs categorized permissions:
+- ✅ Safe to promote - read-only, standard dev commands
 - ⚠️ Needs confirmation - writes, deploys, destructive
-- ❌ Keep local - project paths, env-specific
-- 🔄 Already global - skip
+- ❌ Keep project-local - project paths, env-specific
+- 🔄 Already global - skip (can be removed from local)
+- 🗑️ One-off commands - accumulated cruft to clean
 
-### Step 4: Present Findings
+### Step 2: Handle Stale Paths
 
-```
-### ✅ Safe to Promote (N permissions)
-**Testing** - npm run test, npm run test:coverage
-**Building** - npm run build, npm run dev
+If any global script paths don't exist:
+- Show the stale permissions
+- Ask user to confirm removal
+- Edit `~/.claude/settings.json` to remove them
 
-### ⚠️ Needs Approval (N permissions)
-**Git Mutations** - but commit * (creates commits)
-
-### ❌ Keep Project-Local
-- ./scripts/custom.sh (hardcoded path)
-
-### 🔄 Already Global
-- npm install
-```
-
-### Step 5: Get Confirmation
+### Step 3: Get Confirmation
 
 Use `AskUserQuestion`:
 
@@ -85,13 +66,16 @@ Use `AskUserQuestion`:
 - Multi-select with descriptions
 - Include "Skip all" option
 
-### Step 6: Apply Changes
+**For one-off commands:**
+- Ask if user wants to clean them from local settings
+
+### Step 4: Apply Changes
 
 1. Read current global settings
 2. Merge approved permissions
 3. Remove duplicates
-4. Sort by category
-5. Write updated settings
+4. Write updated global settings
+5. Remove promoted/cleaned items from local settings
 6. Show summary
 
 ## Output Format
