@@ -54,24 +54,25 @@ Display a summary table:
 
 ### Step 4: Ask User Selection
 
-Use `AskUserQuestion` to let the user choose which reviews to run:
+Use `AskUserQuestion` with single-select:
 
-- Show recommended reviews as options
-- Allow "Skip" to exit without running any
-- Allow multiple selection if user wants to run several
+- Show top 3-4 recommended reviews as options (most overdue first)
+- Include "Skip" option to exit without running any
+- Single selection only - run one review at a time
 
-### Step 5: Execute Selected Reviews
+### Step 5: Execute Selected Review
 
-For each selected review, invoke using the `Skill` tool:
+Invoke the selected review using the `Skill` tool:
 
 ```
 Skill: rules-review
-Skill: skills-review
 ```
 
-### Step 6: Confirm Completion
+The individual skill will automatically record its completion via `review-tracker.sh record <name>`.
 
-After each review completes, the individual skill will automatically record its completion via `review-tracker.sh record <name>`.
+### Step 6: Offer Next Review (if applicable)
+
+If more reviews are due after completion, ask if the user wants to run another. Otherwise, show summary and exit.
 
 ## Commands
 
