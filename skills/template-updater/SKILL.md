@@ -18,15 +18,10 @@ Sync project `.claude/` improvements back to `~/.claude/template/` and audit per
 ## Usage
 
 ```bash
-~/.claude/skills/template-updater/sync-to-template.sh [--report|--auto|--force]
+~/.claude/skills/template-updater/sync-to-template.sh
 ```
 
-| Flag | Behavior |
-|------|----------|
-| (none) | Same as `--report` |
-| `--report` | Show what would change, no modifications (default) |
-| `--auto` | Apply all safe updates to template |
-| `--force` | Update everything including protected (dangerous) |
+The script is **report-only** - it shows what differs between project and template but makes no changes. Claude reads the report and decides which files to copy using Read/Write tools.
 
 ## How It Works
 
@@ -50,24 +45,28 @@ Never synced to template (contain project-specific content):
 Skipped automatically (generated or customized per-project):
 - `agents/*.md` - Generated from project-specific `_shared.yaml`
 
-## Quick Check
+## Running the Script
 
 ```bash
 ~/.claude/skills/template-updater/sync-to-template.sh
 ```
 
-This will show what's changed without modifying anything.
+The script reports:
+1. **New** - Files in project that could be added to template
+2. **Changed** - Files that differ from template
+3. **Skipped (generated)** - Per-project files (agents/*.md)
+4. **Skipped (protected)** - Project-specific files (CLAUDE.md, _project.yaml)
 
-## Apply Updates
+## After Running
+
+Review the report and copy files as needed:
 
 ```bash
-~/.claude/skills/template-updater/sync-to-template.sh --auto
+# Copy an improved skill to template
+cp .claude/skills/rules-review/SKILL.md ~/.claude/template/skills/quality/rules-review/SKILL.md
 ```
 
-This will:
-1. Find files that exist in both project and template
-2. Copy changed files from project to template
-3. Show summary
+Or use Claude's Read/Write tools to selectively copy files based on the report.
 
 ## After Sync
 
