@@ -84,7 +84,7 @@ technologies:
         - vitest.config.js
         - vitest.config.mts
     rules:
-      - tech/vitest.md
+      - tech/testing/vitest.md
 
   playwright:
     detect:
@@ -95,7 +95,7 @@ technologies:
         - playwright.config.ts
         - playwright.config.js
     rules:
-      - tech/playwright.md
+      - tech/testing/playwright.md
 
   typescript:
     detect:
@@ -139,7 +139,7 @@ technologies:
         - vitest
         - playwright
     rules:
-      - tech/supabase-testing.md
+      - tech/testing/supabase-testing.md
 
 # Workflow tools - detected by directory existence
 tools:
