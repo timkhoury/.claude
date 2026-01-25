@@ -82,24 +82,45 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 
 ## Skills Directory
 
-**IMPORTANT:** Skills must be directly in `.claude/skills/` - subdirectories are not supported.
+**Template** (categorized for organization):
+
+```
+~/.claude/template/skills/
+├── authoring/            # Content creation skills
+│   ├── adr-writer/
+│   ├── agent-writer/
+│   └── skill-writer/
+├── quality/              # Code and spec quality
+│   ├── pr-check/
+│   ├── quality-audit/
+│   ├── rules-review/
+│   ├── skills-review/
+│   ├── spec-coverage/
+│   ├── spec-quality/
+│   └── test-quality/
+├── workflow/             # Task and issue management
+│   ├── beads-cleanup/
+│   └── work/
+├── automation/           # Automated processes
+│   ├── agent-browser/
+│   └── deps-updater/
+├── meta/                 # Claude Code configuration
+│   └── settings-updater/
+└── tech/                 # Technology-specific (conditional)
+    └── supabase-advisors/
+```
+
+**Project** (flat - categories are stripped on sync):
 
 ```
 .claude/skills/
-├── adr-writer/           # Authoring - ADR creation
-├── agent-writer/         # Authoring - Agent definitions
-├── skill-writer/         # Authoring - Skill creation
-├── pr-check/             # Quality - Pre-PR validation
-├── quality-audit/        # Quality - Combined spec/test audit
-├── rules-review/         # Quality - Rules organization
-├── spec-quality/         # Quality - OpenSpec structure
-├── work/                 # Workflow - Task execution
-├── beads-cleanup/        # Workflow - Issue cleanup
-├── agent-browser/        # Automation - Browser testing
-├── content-sync/         # Project-specific - Content subtree workflow
-├── env-setup/            # Project-specific - Environment configuration
-├── troubleshoot/         # Project-specific - Common issues and fixes
-└── supabase-advisors/    # Project-specific - Supabase diagnostics
+├── adr-writer/           # From authoring/
+├── pr-check/             # From quality/
+├── work/                 # From workflow/
+├── agent-browser/        # From automation/
+├── settings-updater/     # From meta/
+├── supabase-advisors/    # From tech/ (if detected)
+└── my-project-skill/     # Project-specific (never synced)
 ```
 
 ### Skills Conventions
@@ -109,10 +130,17 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 - Prefix only when needed for clarity (`quality-audit` not just `audit`)
 - Project-specific skills stay in project, detected by sync tools
 
+**Template organization:**
+- Template uses categories: `authoring/`, `quality/`, `workflow/`, `automation/`, `meta/`, `tech/`
+- Categories are flattened when syncing to projects (e.g., `quality/rules-review/` → `rules-review/`)
+- `tech/` skills are conditional - only synced when technology is detected
+
 **Syncing:**
 - Template skills sync bidirectionally between `~/.claude/template/skills/` and `.claude/skills/`
-- Project-specific skills (like `supabase-advisors`) never sync to template
-- Detection is automatic - if skill exists in template, it syncs; if not, it stays local
+- Categories are flattened to project, unflattened when syncing back to template
+- Tech-specific skills sync only when technology is detected
+- Project-specific skills never sync to template
+- Detection is automatic based on sync-config.yaml
 
 ## Template Sync Rules
 
@@ -128,15 +156,29 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 
 ## Adding New Content
 
-| Content Type | Location |
-|--------------|----------|
-| Technology pattern (reusable) | `rules/tech/{tech}.md` |
-| Integration pattern | `rules/tech/{tech-a}-{tech-b}.md` |
-| Project-specific rule | `rules/project/{name}.md` |
-| Reusable skill | `skills/{skill-name}/SKILL.md` |
-| Project-specific skill | `skills/{skill-name}/SKILL.md` (not in template) |
+| Content Type | Template Location | Project Location |
+|--------------|-------------------|------------------|
+| Technology pattern (reusable) | `rules/tech/{tech}.md` | Same |
+| Integration pattern | `rules/tech/{tech-a}-{tech-b}.md` | Same |
+| Project-specific rule | N/A | `rules/project/{name}.md` |
+| Authoring skill | `skills/authoring/{name}/` | `skills/{name}/` |
+| Quality skill | `skills/quality/{name}/` | `skills/{name}/` |
+| Workflow skill | `skills/workflow/{name}/` | `skills/{name}/` |
+| Automation skill | `skills/automation/{name}/` | `skills/{name}/` |
+| Meta skill | `skills/meta/{name}/` | `skills/{name}/` |
+| Tech-specific skill | `skills/tech/{name}/` | `skills/{name}/` (if detected) |
+| Project-specific skill | N/A | `skills/{name}/` |
+
+**Skill category guidelines:**
+- `authoring/` - Content creation (ADRs, agents, skills, documentation)
+- `quality/` - Code review, spec validation, testing patterns
+- `workflow/` - Task management, issue tracking, process automation
+- `automation/` - Browser testing, dependency updates, background processes
+- `meta/` - Claude Code configuration and settings
+- `tech/` - Technology-specific skills (conditional sync based on detection)
 
 **Skill naming guidelines:**
 - Use descriptive names that indicate purpose
 - Add prefixes only when needed for clarity (e.g., `quality-audit` not `audit`)
+- Categories are stripped when syncing to projects
 - Project-only skills naturally stay separate through sync detection

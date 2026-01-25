@@ -288,26 +288,15 @@ while IFS= read -r file; do
     continue
   fi
 
-  # Files differ - update
-  if [[ "$MODE" != "report" ]]; then
-    cp "$template_file" "$project_file"
-    echo "$rel_path" >> "$updated_files"
-  else
-    echo "$rel_path (would update)" >> "$updated_files"
-  fi
+  # Files differ - would update
+  echo "$flat_rel_path" >> "$updated_files"
   ((count_updated++)) || true
 done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) 2>/dev/null | sort)
 
-# Copy _project.yaml if missing (starter template for project-specific rules)
+# Note _project.yaml if missing (starter template for project-specific rules)
 # This is protected so it won't be updated, but it should be created if missing
 if [[ ! -f "$PROJECT_DIR/agents-src/_project.yaml" ]] && [[ -f "$TEMPLATE_DIR/agents-src/_project.yaml" ]]; then
-  if [[ "$MODE" != "report" ]]; then
-    mkdir -p "$PROJECT_DIR/agents-src"
-    cp "$TEMPLATE_DIR/agents-src/_project.yaml" "$PROJECT_DIR/agents-src/_project.yaml"
-    echo "agents-src/_project.yaml (starter template)" >> "$added_files"
-  else
-    echo "agents-src/_project.yaml (would add starter template)" >> "$added_files"
-  fi
+  echo "agents-src/_project.yaml (starter template)" >> "$added_files"
   ((count_added++)) || true
 fi
 

@@ -128,6 +128,7 @@ const hasPackage = (pkg) => {
 
 // Check each technology (two passes: direct detection first, then requires-based)
 const techEntries = Object.entries(config.technologies || {});
+const techSkills = [];
 
 // Pass 1: Direct detection (packages, configs, directories)
 for (const [name, tech] of techEntries) {
@@ -139,6 +140,7 @@ for (const [name, tech] of techEntries) {
   if (found) {
     detectedTechs.push(name);
     techRules.push(...(tech.rules || []));
+    techSkills.push(...(tech.skills || []));
   }
 }
 
@@ -153,6 +155,7 @@ for (const [name, tech] of techEntries) {
   if (hasAll && hasAny) {
     detectedTechs.push(name);
     techRules.push(...(tech.rules || []));
+    techSkills.push(...(tech.skills || []));
   }
 }
 
@@ -193,7 +196,7 @@ const alwaysSkills = config.always?.skills || [];
 // Output based on mode
 const mode = '$MODE';
 if (mode === 'json') {
-  console.log(JSON.stringify({ detectedTechs, detectedTools, techRules, toolRules, toolSkills, toolCommands, alwaysRules, alwaysSkills }, null, 2));
+  console.log(JSON.stringify({ detectedTechs, detectedTools, techRules, techSkills, toolRules, toolSkills, toolCommands, alwaysRules, alwaysSkills }, null, 2));
 } else if (mode === 'techs') {
   detectedTechs.forEach(t => console.log(t));
 } else if (mode === 'tools') {
@@ -201,7 +204,7 @@ if (mode === 'json') {
 } else if (mode === 'rules') {
   [...new Set([...alwaysRules, ...techRules, ...toolRules])].forEach(r => console.log(r));
 } else if (mode === 'skills') {
-  [...new Set([...alwaysSkills, ...toolSkills])].forEach(s => console.log(s));
+  [...new Set([...alwaysSkills, ...techSkills, ...toolSkills])].forEach(s => console.log(s));
 } else if (mode === 'commands') {
   [...new Set(toolCommands)].forEach(c => console.log(c));
 } else {
@@ -223,6 +226,8 @@ if (mode === 'json') {
   console.log('Skills to copy:');
   console.log('  Always:');
   alwaysSkills.forEach(s => console.log('    - ' + s));
+  console.log('  Technology-specific:');
+  techSkills.length ? [...new Set(techSkills)].forEach(s => console.log('    - ' + s)) : console.log('    (none)');
   console.log('  Tool-specific:');
   toolSkills.length ? [...new Set(toolSkills)].forEach(s => console.log('    - ' + s)) : console.log('    (none)');
   console.log('');
@@ -238,8 +243,9 @@ detect_with_yq() {
   ALWAYS_RULES=($(yq -r '.always.rules[]' "$CONFIG_FILE" 2>/dev/null || true))
   ALWAYS_SKILLS=($(yq -r '.always.skills[]' "$CONFIG_FILE" 2>/dev/null || true))
 
-  # Arrays for tool detection
+  # Arrays for detection
   declare -a DETECTED_TOOLS=()
+  declare -a TECH_SKILLS=()
   declare -a TOOL_RULES=()
   declare -a TOOL_SKILLS=()
   declare -a TOOL_COMMANDS=()
@@ -291,7 +297,9 @@ detect_with_yq() {
     if [[ "$found" == "true" ]]; then
       DETECTED_TECHS+=("$tech")
       local rules=($(yq -r ".technologies.$tech.rules[]" "$CONFIG_FILE" 2>/dev/null || true))
+      local skills=($(yq -r ".technologies.$tech.skills[]" "$CONFIG_FILE" 2>/dev/null || true))
       DETECTED_RULES+=("${rules[@]}")
+      TECH_SKILLS+=("${skills[@]}")
     fi
   done
 
@@ -326,7 +334,9 @@ detect_with_yq() {
     if [[ "$has_all" == "true" ]] && [[ "$has_any" == "true" ]]; then
       DETECTED_TECHS+=("$tech")
       local rules=($(yq -r ".technologies.$tech.rules[]" "$CONFIG_FILE" 2>/dev/null || true))
+      local skills=($(yq -r ".technologies.$tech.skills[]" "$CONFIG_FILE" 2>/dev/null || true))
       DETECTED_RULES+=("${rules[@]}")
+      TECH_SKILLS+=("${skills[@]}")
     fi
   done
 
@@ -394,6 +404,7 @@ detect_with_yq() {
       echo "  \"detectedTechs\": [$(printf '"%s",' "${DETECTED_TECHS[@]}" | sed 's/,$//')],"
       echo "  \"detectedTools\": [$(printf '"%s",' "${DETECTED_TOOLS[@]}" | sed 's/,$//')],"
       echo "  \"techRules\": [$(printf '"%s",' "${DETECTED_RULES[@]}" | sed 's/,$//')],"
+      echo "  \"techSkills\": [$(printf '"%s",' "${TECH_SKILLS[@]}" | sed 's/,$//')],"
       echo "  \"toolRules\": [$(printf '"%s",' "${TOOL_RULES[@]}" | sed 's/,$//')],"
       echo "  \"toolSkills\": [$(printf '"%s",' "${TOOL_SKILLS[@]}" | sed 's/,$//')],"
       echo "  \"toolCommands\": [$(printf '"%s",' "${TOOL_COMMANDS[@]}" | sed 's/,$//')],"
@@ -411,7 +422,7 @@ detect_with_yq() {
       printf '%s\n' "${ALWAYS_RULES[@]}" "${DETECTED_RULES[@]}" "${TOOL_RULES[@]}" | sort -u
       ;;
     skills)
-      printf '%s\n' "${ALWAYS_SKILLS[@]}" "${TOOL_SKILLS[@]}" | sort -u
+      printf '%s\n' "${ALWAYS_SKILLS[@]}" "${TECH_SKILLS[@]}" "${TOOL_SKILLS[@]}" | sort -u
       ;;
     commands)
       printf '%s\n' "${TOOL_COMMANDS[@]}" | sort -u
@@ -462,6 +473,14 @@ detect_with_yq() {
       for skill in "${ALWAYS_SKILLS[@]}"; do
         echo "    - $skill"
       done
+      echo "  Technology-specific:"
+      if [[ ${#TECH_SKILLS[@]} -eq 0 ]]; then
+        echo "    (none)"
+      else
+        printf '%s\n' "${TECH_SKILLS[@]}" | sort -u | while read -r skill; do
+          echo "    - $skill"
+        done
+      fi
       echo "  Tool-specific:"
       if [[ ${#TOOL_SKILLS[@]} -eq 0 ]]; then
         echo "    (none)"
