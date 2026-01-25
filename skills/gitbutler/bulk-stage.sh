@@ -10,12 +10,8 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 DRY_RUN=false
 
@@ -51,18 +47,19 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $# -lt 2 ]]; then
-    echo -e "${RED}Error: Missing arguments${NC}"
-    echo "Usage: $(basename "$0") [--dry-run] <branch> <file1> [file2] ..."
-    exit 1
+    die "Missing arguments. Usage: $(basename "$0") [--dry-run] <branch> <file1> [file2] ..."
 fi
 
 BRANCH="$1"
 shift
 FILES=("$@")
 
-echo -e "${BLUE}Staging ${#FILES[@]} file(s) to branch: ${BRANCH}${NC}"
+# Validate GitButler is available
+validate_gitbutler
+
+info "Staging ${#FILES[@]} file(s) to branch: ${BRANCH}"
 if [[ "$DRY_RUN" == true ]]; then
-    echo -e "${YELLOW}(dry-run mode - no changes will be made)${NC}"
+    warn "(dry-run mode - no changes will be made)"
 fi
 echo ""
 
@@ -72,43 +69,29 @@ failed=0
 not_found=0
 
 for filepath in "${FILES[@]}"; do
-    # Get current file status
-    status_output=$(but status -f 2>/dev/null || true)
+    # Get current file status using shared helper
+    if ! status_output=$(get_but_status); then
+        warn "Failed to get status for $filepath"
+        ((failed++)) || true
+        continue
+    fi
 
-    # Find the file ID by matching the filepath
-    # Format: "g0 A rules/template-rules.md" -> extract "g0"
-    # The file path is at the end of each line, ID is at the start
-    file_id=""
-
-    while IFS= read -r line; do
-        # File lines look like: "┊   g0 A rules/template-rules.md"
-        # Extract: ID (g0), status (A), and path (rules/template-rules.md)
-        # The ID is 2+ alphanumeric chars, status is single letter, path is rest
-        if [[ "$line" =~ ([a-z][a-z0-9]+)[[:space:]]+([ADMR])[[:space:]]+([^[:space:]].*[^[:space:]])[[:space:]]*$ ]]; then
-            line_id="${BASH_REMATCH[1]}"
-            line_path="${BASH_REMATCH[3]}"
-
-            # Check if this line matches our target file
-            if [[ "$line_path" == "$filepath" ]]; then
-                file_id="$line_id"
-                break
-            fi
-        fi
-    done <<< "$status_output"
+    # Find the file ID using shared helper
+    file_id=$(get_file_id "$status_output" "$filepath")
 
     if [[ -z "$file_id" ]]; then
-        echo -e "${YELLOW}  skip${NC} $filepath (not found in uncommitted changes)"
+        warn "skip $filepath (not found in uncommitted changes)"
         ((not_found++)) || true
         continue
     fi
 
     if [[ "$DRY_RUN" == true ]]; then
-        echo -e "${BLUE}  would stage${NC} $filepath (id: $file_id)"
+        info "  would stage $filepath (id: $file_id)"
         ((staged++)) || true
     else
-        echo -e "${BLUE}  staging${NC} $filepath (id: $file_id)..."
-        if but stage "$file_id" "$BRANCH" 2>/dev/null; then
-            echo -e "${GREEN}    done${NC}"
+        info "  staging $filepath (id: $file_id)..."
+        if but stage "$file_id" "$BRANCH"; then
+            success "    done"
             ((staged++)) || true
         else
             echo -e "${RED}    failed${NC}"

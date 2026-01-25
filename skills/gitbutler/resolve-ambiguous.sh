@@ -11,12 +11,8 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 usage() {
     echo "Usage: $(basename "$0") <branch> <file-path> [commit-message]"
@@ -64,22 +60,20 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ $# -lt 2 ]]; then
-    echo -e "${RED}Error: Missing arguments${NC}"
-    echo "Usage: $(basename "$0") [--squash] [--dry-run] <branch> <file-path> [commit-message]"
-    exit 1
+    die "Missing arguments. Usage: $(basename "$0") [--squash] [--dry-run] <branch> <file-path> [commit-message]"
 fi
 
 BRANCH="$1"
 FILE_PATH="$2"
 COMMIT_MSG="${3:-wip: stage ambiguous file}"
 
-# Verify file exists
-if [[ ! -e "$FILE_PATH" ]]; then
-    echo -e "${RED}Error: File not found: $FILE_PATH${NC}"
-    exit 1
-fi
+# Validate GitButler is available
+validate_gitbutler
 
-echo -e "${BLUE}Resolving ambiguous file staging${NC}"
+# Verify file exists
+validate_file_exists "$FILE_PATH"
+
+info "Resolving ambiguous file staging"
 echo -e "  Branch: $BRANCH"
 echo -e "  File: $FILE_PATH"
 echo -e "  Message: $COMMIT_MSG"

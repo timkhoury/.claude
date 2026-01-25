@@ -8,13 +8,8 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 DRY_RUN=false
 AUTO=false
@@ -53,17 +48,21 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         *)
-            echo -e "${RED}Unknown option: $1${NC}"
-            exit 1
+            die "Unknown option: $1"
             ;;
     esac
 done
 
-echo -e "${BLUE}Scanning for locked files...${NC}"
+# Validate GitButler is available
+validate_gitbutler
+
+info "Scanning for locked files..."
 echo ""
 
 # Get status output
-status_output=$(but status -f 2>/dev/null || true)
+if ! status_output=$(get_but_status); then
+    die "Failed to get GitButler status"
+fi
 
 # Parse locked files
 # Locked files appear with 🔒 and show which branch/commit they're locked to
