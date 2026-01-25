@@ -224,3 +224,11 @@ If non-project includes are found, analyze whether they're intentional:
 | Adding rules template bundle lacks | Project needs extra context | Should update template bundle |
 | Duplicating what template already includes | Redundant, remove it | - |
 | Overriding for specific agent type | Project has unique needs | Should be in template if reusable |
+
+## After Completion
+
+Record this review:
+
+```bash
+~/.claude/skills/systems-review/review-tracker.sh record rules-review
+```

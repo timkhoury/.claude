@@ -105,3 +105,11 @@ description: >
 | SKILL.md >10k chars | Context waste on activation | Extract reference files |
 | Inline tables >20 rows | Context bloat | Extract to PATTERNS.md |
 | "Use this tool to..." prefix | Wasted chars | Start with action verb |
+
+## After Completion
+
+Record this review:
+
+```bash
+~/.claude/skills/systems-review/review-tracker.sh record skills-review
+```

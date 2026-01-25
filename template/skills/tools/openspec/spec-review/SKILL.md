@@ -155,3 +155,11 @@ Each analysis maintains its own progress file. To resume:
 | Auto-create beads issues | Clutters tracker without review |
 | Mark scenarios covered without evidence | False confidence |
 | Skip progress file updates | Lose resume capability |
+
+## After Completion
+
+Record this review:
+
+```bash
+~/.claude/skills/systems-review/review-tracker.sh record spec-review
+```
