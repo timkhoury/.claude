@@ -30,7 +30,7 @@ Is this rule project-specific?
 │
 ├─ YES (specific to this codebase's architecture)
 │  └─ rules/project/* ONLY
-│     Examples: database schema separation, env vars, project URLs
+│     Examples: architecture, infrastructure, testing config
 │
 └─ NO (reusable across projects)
    │
@@ -69,6 +69,17 @@ Testing-related rules live in `tech/testing/`. Naming depends on whether the tec
 
 **Why the suffix?** It distinguishes testing patterns for a technology from its general usage patterns. `supabase.md` covers clients, RLS, and queries; `supabase-testing.md` covers test cleanup and fixtures.
 
+## Rules vs Skills
+
+| Use | When |
+|-----|------|
+| **Rule** | Always-needed context (patterns, conventions, architecture) |
+| **Skill** | On-demand workflows (setup, sync, troubleshooting) |
+
+**Quick test:** Is this needed for most coding tasks? → Rule. Is this a workflow triggered occasionally? → Skill.
+
+Use `/rules-review` for detailed analysis of rule vs skill decisions.
+
 ## Skills Directory
 
 **IMPORTANT:** Skills must be directly in `.claude/skills/` - subdirectories are not supported.
@@ -85,7 +96,10 @@ Testing-related rules live in `tech/testing/`. Naming depends on whether the tec
 ├── work/                 # Workflow - Task execution
 ├── beads-cleanup/        # Workflow - Issue cleanup
 ├── agent-browser/        # Automation - Browser testing
-└── supabase-advisors/    # Project-specific (NEVER synced)
+├── content-sync/         # Project-specific - Content subtree workflow
+├── env-setup/            # Project-specific - Environment configuration
+├── troubleshoot/         # Project-specific - Common issues and fixes
+└── supabase-advisors/    # Project-specific - Supabase diagnostics
 ```
 
 ### Skills Conventions

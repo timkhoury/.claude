@@ -1,25 +1,23 @@
 # Project-Specific Agent Configuration
-# Copied to new projects, then customized locally.
-# NOT synced back to template.
 #
-# Project rules are prepended to template bundles during build.
-# Add your project-specific rules here.
+# Project rules are auto-discovered from .claude/rules/project/*.md
+# Bundle assignment is controlled by frontmatter in each rule file:
+#
+#   ---
+#   bundles: all                              # All bundles
+#   bundles: [implementation, review]         # Specific bundles
+#   ---
+#
+# Default (no frontmatter): [implementation, review, planning]
+#
+# NOT synced to template.
 
-# Example: uncomment and customize for your project
-# ruleBundles:
-#   implementation:
-#     - $includes.project.overview
-#     - $includes.project.architecture
+# Explicit overrides (optional)
+# These are prepended BEFORE auto-discovered rules.
 #
-#   review:
-#     - $includes.project.overview
-#     - $includes.project.architecture
-#     - $includes.project.codeReview
-#
-#   planning:
-#     - $includes.project.overview
-#     - $includes.project.architecture
-#
-#   testing:
-#     - $includes.project.overview
-#     - $includes.project.testing
+# Example:
+#   ruleBundles:
+#     implementation:
+#       - $includes.project.specialRule    # Prepended to implementation bundle
+#     custom:
+#       - $includes.project.overview       # Create new bundle

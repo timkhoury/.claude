@@ -25,40 +25,47 @@ The configuration is split into two files with clear ownership:
 | `_template.yaml` | Template | defaults, skillSets, toolSets, includes, colors, base ruleBundles | Yes |
 | `_project.yaml` | Project | Project-specific rules added to bundles | No |
 
+### Project Rules Auto-Discovery
+
+Project rules in `rules/project/*.md` are **automatically discovered** and assigned to bundles based on frontmatter:
+
+```markdown
+---
+bundles: all                    # All bundles (implementation, review, planning, testing)
+bundles: [review]               # Specific bundles only
+---
+# (no frontmatter)              # Default: [implementation, review, planning]
+```
+
+**Convention:**
+- Most rules need no frontmatter (default covers common case)
+- Use `bundles: all` for rules every agent needs (overview, testing)
+- Use `bundles: [specific]` for agent-specific rules (code-review checklist)
+
 ### Merge Strategy
 
-During build, project rules are **prepended** to template rules:
+Build order: explicit `_project.yaml` → auto-discovered → template rules
 
 ```yaml
-# _template.yaml (from template)
+# _project.yaml (explicit overrides - optional)
 ruleBundles:
   implementation:
-    - $includes.tech
-    - $includes.patterns
+    - $includes.project.specialRule    # First (if specified)
 
-# _project.yaml (project-specific)
-ruleBundles:
-  implementation:
-    - $includes.project.overview
-    - $includes.project.architecture
-
-# Result after merge:
-# implementation:
-#   - $includes.project.overview      # Project rules first
-#   - $includes.project.architecture
-#   - $includes.tech                   # Template rules after
-#   - $includes.patterns
+# Auto-discovered from frontmatter     # Second
+# Template rules                        # Last
 ```
 
 ### Customization Examples
 
-**Add project rules:**
+**Most projects need no `_project.yaml`** - frontmatter handles bundle assignment.
+
+**Override when needed:**
 ```yaml
-# _project.yaml
+# _project.yaml - only for edge cases
 ruleBundles:
   implementation:
-    - $includes.project.overview
-    - $includes.project.architecture
+    - $includes.project.specialRule    # Prepend specific rule
 ```
 
 **Add project-specific skillSets:**
