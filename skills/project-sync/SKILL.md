@@ -137,6 +137,11 @@ but stage <file-id> <branch>        # Stage changed files
 but commit <branch> --only -m "chore: sync claude config"
 ```
 
+**Consider running `/rules-review`** if:
+- New tech rules were synced (verify no project content leaked into tech rules)
+- Project has grown significantly since last review
+- Rules feel disorganized or overlapping
+
 ## Design Philosophy
 
 Template files follow **context-over-configuration**:

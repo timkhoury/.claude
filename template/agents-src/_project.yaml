@@ -1,0 +1,25 @@
+# Project-Specific Agent Configuration
+# Copied to new projects, then customized locally.
+# NOT synced back to template.
+#
+# Project rules are prepended to template bundles during build.
+# Add your project-specific rules here.
+
+# Example: uncomment and customize for your project
+# ruleBundles:
+#   implementation:
+#     - $includes.project.overview
+#     - $includes.project.architecture
+#
+#   review:
+#     - $includes.project.overview
+#     - $includes.project.architecture
+#     - $includes.project.codeReview
+#
+#   planning:
+#     - $includes.project.overview
+#     - $includes.project.architecture
+#
+#   testing:
+#     - $includes.project.overview
+#     - $includes.project.testing

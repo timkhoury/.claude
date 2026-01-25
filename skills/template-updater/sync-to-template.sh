@@ -23,7 +23,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Protected files (never sync to template - contain project customization)
-PROTECTED_PATTERNS="CLAUDE.md|agents-src/_shared.yaml"
+# _project.yaml is project-specific (never synced to template)
+# _template.yaml IS synced (template-controlled)
+PROTECTED_PATTERNS="CLAUDE.md|agents-src/_project.yaml"
 
 # Project-specific directories (never sync to template)
 # These contain project-specific content that shouldn't be globalized

@@ -23,6 +23,32 @@
 | `meta/` | Claude Code configuration | Yes |
 | `project/` | Project-specific content | **No** |
 
+### Deciding Where Rules Go
+
+```
+Is this rule project-specific?
+│
+├─ YES (specific to this codebase's architecture)
+│  └─ rules/project/* ONLY
+│     Examples: database schema separation, env vars, project URLs
+│
+└─ NO (reusable across projects)
+   │
+   ├─ Technology pattern?
+   │  └─ rules/tech/{tech}.md
+   │
+   ├─ Cross-cutting pattern?
+   │  └─ rules/patterns/{pattern}.md
+   │
+   ├─ Workflow process?
+   │  └─ rules/workflow/{workflow}.md
+   │
+   └─ Claude Code configuration?
+      └─ rules/meta/{topic}.md
+```
+
+**Key question:** Would this rule make sense in a different project using the same technology? If no → `project/`.
+
 ### Tech Rules
 
 **One technology per file.** Cross-technology patterns belong in integration files.
@@ -31,6 +57,17 @@
 |---------|---------|
 | Pure technology | `nextjs.md`, `supabase.md` |
 | Integration | `nextjs-supabase.md`, `tailwind-shadcn.md` |
+
+### Testing Rules (`tech/testing/`)
+
+Testing-related rules live in `tech/testing/`. Naming depends on whether the technology is a testing framework:
+
+| Technology Type | Naming | Example |
+|-----------------|--------|---------|
+| Testing framework | Use framework name | `vitest.md`, `playwright.md` |
+| Non-testing tech with testing patterns | Add `-testing` suffix | `supabase-testing.md` |
+
+**Why the suffix?** It distinguishes testing patterns for a technology from its general usage patterns. `supabase.md` covers clients, RLS, and queries; `supabase-testing.md` covers test cleanup and fixtures.
 
 ## Skills Directory
 

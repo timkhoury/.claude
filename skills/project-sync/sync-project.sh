@@ -28,13 +28,15 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Protected files (never auto-update, but shown in report)
-PROTECTED_PATTERNS="CLAUDE.md|agents-src/_shared.yaml"
+# _project.yaml is project-specific (never synced to template)
+# _template.yaml IS synced (template-controlled)
+PROTECTED_PATTERNS="CLAUDE.md|agents-src/_project.yaml"
 
 # Excluded files (skip entirely, not synced to projects)
 # - README.md: template documentation
 # - rules/project/: project-specific rules
 # - skills/project/: project-specific skills
-# Note: agents-src/*.yaml now synced (except _shared.yaml which is protected)
+# Note: agents-src/_template.yaml synced, _project.yaml protected
 EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
 
 # Detect enabled tools (for workflow files)
@@ -295,6 +297,19 @@ while IFS= read -r file; do
   fi
   ((count_updated++)) || true
 done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) 2>/dev/null | sort)
+
+# Copy _project.yaml if missing (starter template for project-specific rules)
+# This is protected so it won't be updated, but it should be created if missing
+if [[ ! -f "$PROJECT_DIR/agents-src/_project.yaml" ]] && [[ -f "$TEMPLATE_DIR/agents-src/_project.yaml" ]]; then
+  if [[ "$MODE" != "report" ]]; then
+    mkdir -p "$PROJECT_DIR/agents-src"
+    cp "$TEMPLATE_DIR/agents-src/_project.yaml" "$PROJECT_DIR/agents-src/_project.yaml"
+    echo "agents-src/_project.yaml (starter template)" >> "$added_files"
+  else
+    echo "agents-src/_project.yaml (would add starter template)" >> "$added_files"
+  fi
+  ((count_added++)) || true
+fi
 
 # Check for unused tech rules in project (rules that exist but aren't needed)
 if [[ -n "$DETECTED_RULES" ]] && [[ -d "$PROJECT_DIR/rules/tech" ]]; then

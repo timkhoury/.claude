@@ -88,3 +88,62 @@ For each file with issues, report:
 | Cookie/middleware patterns | Auth/database libs | Extract to `nextjs-{lib}.md` |
 | Component library specifics | CSS framework rules | Extract to `{css}-{component}.md` |
 | Test setup with real DB | Database rules | Extract to `{db}-testing.md` |
+
+## Project Rules Review
+
+Ensure project-specific content lives in `rules/project/` and follows naming conventions.
+
+### Check for Misplaced Project Content
+
+```bash
+# List all rule folders
+ls -la .claude/rules/
+
+# Check each non-project folder for project-specific content
+grep -l "this project\|this codebase\|our app" .claude/rules/tech/*.md
+grep -l "this project\|this codebase\|our app" .claude/rules/patterns/*.md
+```
+
+**Project-specific content belongs in `rules/project/`, not in tech/patterns/meta.**
+
+### Standard Project Rule Files
+
+| File | Purpose | Content |
+|------|---------|---------|
+| `overview.md` | Quick reference | Tech stack, commands, file organization |
+| `architecture.md` | System design | Routes, data flow, integrations |
+| `testing.md` | Test setup | Fixtures, utilities, test user management |
+| `environment.md` | Setup | Env vars, credentials, external services |
+| `troubleshooting.md` | Common issues | Debugging tips, known gotchas |
+| `code-review.md` | Review checklist | Project-specific review criteria |
+
+Not all projects need every file - create based on complexity.
+
+### Signs of Misplaced Content
+
+| Found In | Red Flag | Move To |
+|----------|----------|---------|
+| `tech/*.md` | References to "our database schema" | `project/architecture.md` |
+| `patterns/*.md` | "In this project we..." | `project/overview.md` |
+| `meta/*.md` | Project URLs, credentials | `project/environment.md` |
+
+## Agent Configuration Review
+
+Also check `.claude/agents-src/` for proper separation between template and project config.
+
+### `_project.yaml` Convention
+
+`_project.yaml` should primarily use `$includes.project.*` references. Template rules belong in `_template.yaml`.
+
+```bash
+# Check for non-project includes in _project.yaml
+grep -E '\$includes\.(tech|patterns|meta|testing)\.' .claude/agents-src/_project.yaml
+```
+
+If non-project includes are found, analyze whether they're intentional:
+
+| Pattern | Likely Intentional | Likely Mistake |
+|---------|-------------------|----------------|
+| Adding rules template bundle lacks | Project needs extra context | Should update template bundle |
+| Duplicating what template already includes | Redundant, remove it | - |
+| Overriding for specific agent type | Project has unique needs | Should be in template if reusable |

@@ -1,21 +1,17 @@
-# Shared Agent Configuration
+# Template Agent Configuration
 # This file contains reusable definitions for agent generation.
+# Syncs from ~/.claude/template/ - template-controlled.
 #
-# CUSTOMIZATION:
-# - Add project-specific rules to .claude/rules/project/ (auto-discovered)
-# - Modify ruleBundles to include/exclude rule folders as needed
+# Project-specific rules go in _project.yaml (not synced to template).
+# Project rules are prepended to template bundles during build.
 
 defaults:
   model: inherit
 
 # Reusable skill sets
 skillSets:
-  # Full implementation skills
   implementation:
     - gitbutler
-
-  # Minimal testing skills
-  testing: []
 
 # Reusable tool sets
 toolSets:
@@ -28,11 +24,11 @@ toolSets:
 
 # File includes - folder-based with auto-discovery
 # Trailing / indicates folder (auto-discovers all .md files)
-# Individual files still supported for special cases
+# kebab-case files map to camelCase: nextjs-supabase.md -> $includes.tech.nextjsSupabase
 includes:
   # Folders (auto-discover all .md files)
-  # kebab-case files map to camelCase: nextjs-supabase.md -> $includes.tech.nextjsSupabase
   tech: "@/.claude/rules/tech/"
+  testing: "@/.claude/rules/tech/testing/"
   patterns: "@/.claude/rules/patterns/"
   project: "@/.claude/rules/project/"
   meta: "@/.claude/rules/meta/"
@@ -42,34 +38,28 @@ includes:
   claudeMd: "@/CLAUDE.md"
 
 # Rule bundles for different agent types
-# Use $includes.folder for all files in folder
-# Use $includes.folder.fileName for specific file (camelCase)
+# Template bundles contain only tech, patterns, meta rules.
+# Project-specific rules ($includes.project.*) go in _project.yaml.
 ruleBundles:
   # Full implementation rules for task-implementer
-  # Customize: add $includes.project.yourRule for project-specific rules
   implementation:
     - $includes.tech
     - $includes.patterns
-    # Add project rules: $includes.project.overview, $includes.project.architecture
 
   # Rules for code reviewers (validates against these)
   review:
     - $includes.tech
     - $includes.patterns
-    # Add: $includes.project.codeReview
 
-  # Rules for planners (architecture focus, less implementation detail)
+  # Rules for planners (need full context to make architectural decisions)
   planning:
-    - $includes.patterns.documentationLookup
-    - $includes.patterns.researchPatterns
-    - $includes.meta.deterministicSystems
-    # Add: $includes.project.architecture
+    - $includes.tech
+    - $includes.patterns
 
   # Minimal rules for testers
   testing:
-    - $includes.tech.vitest
-    - $includes.tech.playwright
-    # Add: $includes.tech.supabaseTesting if using Supabase
+    - $includes.patterns.testing
+    - $includes.testing
 
 # Color conventions for agent visual identification
 colors:

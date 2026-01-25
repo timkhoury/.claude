@@ -7,12 +7,66 @@ This project uses a deterministic agent build system. Agent definitions in `.cla
 ```
 .claude/
 ├── agents-src/           # Source definitions (edit these)
-│   ├── _shared.yaml      # Shared includes, bundles, skill sets
+│   ├── _template.yaml    # Template-controlled (syncs from ~/.claude/template/)
+│   ├── _project.yaml     # Project-specific (never syncs)
 │   └── *.yaml            # Individual agent definitions
 ├── agents/               # Generated output (do not edit)
 │   └── *.md              # Built from agents-src/
 └── scripts/
     └── build-agents.ts   # Build script
+```
+
+## Template vs Project Configuration
+
+The configuration is split into two files with clear ownership:
+
+| File | Ownership | Contains | Syncs |
+|------|-----------|----------|-------|
+| `_template.yaml` | Template | defaults, skillSets, toolSets, includes, colors, base ruleBundles | Yes |
+| `_project.yaml` | Project | Project-specific rules added to bundles | No |
+
+### Merge Strategy
+
+During build, project rules are **prepended** to template rules:
+
+```yaml
+# _template.yaml (from template)
+ruleBundles:
+  implementation:
+    - $includes.tech
+    - $includes.patterns
+
+# _project.yaml (project-specific)
+ruleBundles:
+  implementation:
+    - $includes.project.overview
+    - $includes.project.architecture
+
+# Result after merge:
+# implementation:
+#   - $includes.project.overview      # Project rules first
+#   - $includes.project.architecture
+#   - $includes.tech                   # Template rules after
+#   - $includes.patterns
+```
+
+### Customization Examples
+
+**Add project rules:**
+```yaml
+# _project.yaml
+ruleBundles:
+  implementation:
+    - $includes.project.overview
+    - $includes.project.architecture
+```
+
+**Add project-specific skillSets:**
+```yaml
+# _project.yaml
+skillSets:
+  customTools:
+    - my-custom-skill
 ```
 
 ## Folder-Based Includes
@@ -36,9 +90,9 @@ ruleBundles:
 ```
 
 **File naming convention:** kebab-case files map to camelCase keys:
-- `supabase-testing.md` → `$includes.tech.supabaseTesting`
-- `tanstack-query.md` → `$includes.tech.tanstackQuery`
-- `nextjs-tanstack-query.md` → `$includes.tech.nextjsTanstackQuery`
+- `supabase-testing.md` -> `$includes.tech.supabaseTesting`
+- `tanstack-query.md` -> `$includes.tech.tanstackQuery`
+- `nextjs-tanstack-query.md` -> `$includes.tech.nextjsTanstackQuery`
 
 ## When Modifying Rules
 
@@ -49,7 +103,7 @@ ruleBundles:
 **If you add a new folder:**
 
 ```yaml
-# _shared.yaml
+# _template.yaml (if template-level)
 includes:
   newFolder: "@/.claude/rules/new-folder/"
 
@@ -83,9 +137,17 @@ npm run build:agents    # Regenerate all agents from YAML
 | `planning` | Architecture-focused rules | planner-researcher |
 | `testing` | Minimal testing rules | tester |
 
+## Sync Behavior
+
+| Action | `_template.yaml` | `_project.yaml` |
+|--------|------------------|-----------------|
+| `/project-sync` | Updated from template | Protected (copied if missing) |
+| `/template-updater` | Synced to template | Never synced |
+| `/project-setup` | Copied from template | Copied as starter |
+
 ## Keeping Bundles Current
 
 When rules change significantly:
 - Review which bundles should include/exclude the rule
+- Template rules go in `_template.yaml`, project rules in `_project.yaml`
 - Consider if subagents need the rule baked in or can rely on main context
-- Template rules (from `~/.claude/template/`) sync automatically but still need bundle updates

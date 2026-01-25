@@ -257,6 +257,7 @@ mkdir -p "$PROJECT_DIR"
 # Always copy these
 copy_file "CLAUDE.md" "./CLAUDE.md"
 copy_file "baseline-agent.md" "$PROJECT_DIR/baseline-agent.md"
+# agents-src includes _template.yaml (template-controlled) and _project.yaml (starter template)
 copy_dir "agents-src" "$PROJECT_DIR/agents-src"
 copy_dir "scripts" "$PROJECT_DIR/scripts"
 
