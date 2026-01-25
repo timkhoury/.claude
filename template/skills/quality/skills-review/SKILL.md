@@ -111,5 +111,5 @@ description: >
 Record this review:
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh record skills-review
+.claude/scripts/review-tracker.sh record skills-review
 ```

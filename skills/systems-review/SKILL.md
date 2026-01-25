@@ -16,7 +16,7 @@ Aggregate dashboard for all review skills with cadence-based recommendations.
 | template-review | 7 days | Global | Template structure and sync-config integrity |
 | rules-review | 7 days | Project | Rule organization and separation of concerns |
 | skills-review | 7 days | Project | Skill context efficiency |
-| settings-updater | 7 days | Project | Permission promotion to global settings |
+| permissions-review | 7 days | Project | Permission promotion to global settings |
 | spec-review | 14 days | Project | OpenSpec implementation and test coverage |
 
 ## Workflow
@@ -24,7 +24,7 @@ Aggregate dashboard for all review skills with cadence-based recommendations.
 ### Step 1: Check Status
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh status
+~/.claude/template/scripts/review-tracker.sh status
 ```
 
 Shows all applicable reviews with days since last run and overdue status.
@@ -32,7 +32,7 @@ Shows all applicable reviews with days since last run and overdue status.
 ### Step 2: Get Recommendations
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh recommend
+~/.claude/template/scripts/review-tracker.sh recommend
 ```
 
 Lists reviews that are due, sorted by priority (never-run first, then most overdue).
@@ -78,19 +78,19 @@ If more reviews are due after completion, ask if the user wants to run another. 
 
 ```bash
 # Show status of all reviews
-~/.claude/skills/systems-review/review-tracker.sh status
+~/.claude/template/scripts/review-tracker.sh status
 
 # JSON output for parsing
-~/.claude/skills/systems-review/review-tracker.sh status json
+~/.claude/template/scripts/review-tracker.sh status json
 
 # Get recommendations (sorted by priority)
-~/.claude/skills/systems-review/review-tracker.sh recommend
+~/.claude/template/scripts/review-tracker.sh recommend
 
 # Record a review completion (called by individual skills)
-~/.claude/skills/systems-review/review-tracker.sh record <name>
+~/.claude/template/scripts/review-tracker.sh record <name>
 
 # Initialize history files
-~/.claude/skills/systems-review/review-tracker.sh init
+~/.claude/template/scripts/review-tracker.sh init
 ```
 
 ## History Files
@@ -98,7 +98,7 @@ If more reviews are due after completion, ask if the user wants to run another. 
 | Scope | File | Reviews Tracked |
 |-------|------|-----------------|
 | Global | `~/.claude/.systems-review.json` | template-review |
-| Project | `./.systems-review.json` | rules-review, skills-review, settings-updater, spec-review |
+| Project | `./.systems-review.json` | rules-review, skills-review, permissions-review, spec-review |
 
 Both files are gitignored. The script automatically routes to the correct file.
 
@@ -109,5 +109,5 @@ Reviews are only shown if applicable:
 - `template-review`: Always included
 - `rules-review`: Only if `.claude/rules/` exists
 - `skills-review`: Only if `.claude/skills/` exists
-- `settings-updater`: Only if `.claude/settings.local.json` exists
+- `permissions-review`: Only if `.claude/settings.local.json` exists
 - `spec-review`: Only if `.openspec/` or `specs/` exists

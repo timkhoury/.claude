@@ -103,8 +103,6 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 ├── automation/           # Automated processes
 │   ├── agent-browser/
 │   └── deps-updater/
-├── meta/                 # Claude Code configuration
-│   └── settings-updater/
 └── tech/                 # Technology-specific (conditional)
     └── supabase-advisors/
 ```
@@ -117,7 +115,6 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 ├── pr-check/             # From quality/
 ├── work/                 # From workflow/
 ├── agent-browser/        # From automation/
-├── settings-updater/     # From meta/
 ├── supabase-advisors/    # From tech/ (if detected)
 └── my-project-skill/     # Project-specific (never synced)
 ```
@@ -130,7 +127,7 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 - Project-specific skills stay in project, detected by sync tools
 
 **Template organization:**
-- Template uses categories: `authoring/`, `quality/`, `workflow/`, `automation/`, `meta/`, `tech/`
+- Template uses categories: `authoring/`, `quality/`, `workflow/`, `automation/`, `tech/`
 - Categories are flattened when syncing to projects (e.g., `quality/rules-review/` → `rules-review/`)
 - `tech/` skills are conditional - only synced when technology is detected
 
@@ -164,7 +161,6 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 | Quality skill | `skills/quality/{name}/` | `skills/{name}/` |
 | Workflow skill | `skills/workflow/{name}/` | `skills/{name}/` |
 | Automation skill | `skills/automation/{name}/` | `skills/{name}/` |
-| Meta skill | `skills/meta/{name}/` | `skills/{name}/` |
 | Tech-specific skill | `skills/tech/{name}/` | `skills/{name}/` (if detected) |
 | Project-specific skill | N/A | `skills/{name}/` |
 
@@ -173,7 +169,6 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 - `quality/` - Code review, spec validation, testing patterns
 - `workflow/` - Task management, issue tracking, process automation
 - `automation/` - Browser testing, dependency updates, background processes
-- `meta/` - Claude Code configuration and settings
 - `tech/` - Technology-specific skills (conditional sync based on detection)
 
 **Skill naming guidelines:**
@@ -181,3 +176,16 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 - Add prefixes when needed for clarity (e.g., `deps-updater` not just `updater`)
 - Categories are stripped when syncing to projects
 - Project-only skills naturally stay separate through sync detection
+
+## Global vs Template Skill Isolation
+
+**Template skills must never reference global skills.**
+
+| Location | Copied to Projects | Can Reference |
+|----------|-------------------|---------------|
+| `~/.claude/template/skills/` | Yes | Template skills/scripts only |
+| `~/.claude/skills/` | No | Global or template skills |
+
+**Why:** Template skills are synced to project `.claude/skills/` directories. When collaborators or other machines access the project, global skills (in `~/.claude/skills/`) won't exist.
+
+**Shared scripts:** If both global and template skills need a script, put it in `~/.claude/template/scripts/` so it syncs to projects.

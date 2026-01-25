@@ -1,11 +1,11 @@
 ---
-name: settings-updater
+name: permissions-review
 description: >
   Analyze project settings.local.json and suggest permissions to promote to global.
   Use when reviewing settings or standardizing permissions across projects.
 ---
 
-# Settings Updater
+# Permissions Review
 
 Compare project-local settings with global and suggest safe permissions to promote.
 
@@ -21,7 +21,7 @@ Compare project-local settings with global and suggest safe permissions to promo
 ## Usage
 
 ```bash
-~/.claude/skills/settings-updater/analyze-settings.sh [--stale|--compare|--report]
+~/.claude/skills/permissions-review/analyze-settings.sh [--stale|--compare|--report]
 ```
 
 | Flag | Purpose |
@@ -37,7 +37,7 @@ The script is **report-only** - it shows the analysis but makes no changes. Clau
 ### Step 1: Run Analysis
 
 ```bash
-~/.claude/skills/settings-updater/analyze-settings.sh
+~/.claude/skills/permissions-review/analyze-settings.sh
 ```
 
 The script outputs categorized permissions:
@@ -109,5 +109,5 @@ Use `AskUserQuestion`:
 Record this review:
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh record settings-updater
+~/.claude/template/scripts/review-tracker.sh record permissions-review
 ```
