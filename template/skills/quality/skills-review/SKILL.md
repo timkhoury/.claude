@@ -81,14 +81,12 @@ description: >
   Auto-invokes after editing skills/rules in both locations.
 ```
 
-**Use orchestrator pattern** for related skills:
+**Use consolidated pattern** for related skills:
 ```markdown
 ## Workflow
-### Step 1: Run spec-coverage
-Use the Skill tool: skill: "spec-coverage"
-
-### Step 2: Run test-quality
-Use the Skill tool: skill: "test-quality"
+/spec-review              # All analyses
+/spec-review coverage     # Implementation coverage only
+/spec-review tests        # Test coverage only
 ```
 
 ## Skill Locations

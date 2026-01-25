@@ -94,12 +94,9 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 │   └── skill-writer/
 ├── quality/              # Code and spec quality
 │   ├── pr-check/
-│   ├── quality-audit/
 │   ├── rules-review/
 │   ├── skills-review/
-│   ├── spec-coverage/
-│   ├── spec-quality/
-│   └── test-quality/
+│   └── spec-review/
 ├── workflow/             # Task and issue management
 │   ├── beads-cleanup/
 │   └── work/
@@ -128,8 +125,8 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 ### Skills Conventions
 
 **Naming for organization:**
-- Descriptive names indicate purpose (`adr-writer`, `pr-check`, `spec-quality`)
-- Prefix only when needed for clarity (`quality-audit` not just `audit`)
+- Descriptive names indicate purpose (`adr-writer`, `pr-check`, `spec-review`)
+- Prefix when needed for clarity (`deps-updater` not just `updater`)
 - Project-specific skills stay in project, detected by sync tools
 
 **Template organization:**
@@ -181,6 +178,6 @@ Use `/rules-review` for detailed analysis of rule vs skill decisions.
 
 **Skill naming guidelines:**
 - Use descriptive names that indicate purpose
-- Add prefixes only when needed for clarity (e.g., `quality-audit` not `audit`)
+- Add prefixes when needed for clarity (e.g., `deps-updater` not just `updater`)
 - Categories are stripped when syncing to projects
 - Project-only skills naturally stay separate through sync detection
