@@ -161,5 +161,5 @@ Each analysis maintains its own progress file. To resume:
 Record this review:
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh record spec-review
+.claude/scripts/review-tracker.sh record spec-review
 ```

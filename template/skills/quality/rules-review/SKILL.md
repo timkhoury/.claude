@@ -230,5 +230,5 @@ If non-project includes are found, analyze whether they're intentional:
 Record this review:
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh record rules-review
+.claude/scripts/review-tracker.sh record rules-review
 ```
