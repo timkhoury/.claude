@@ -26,8 +26,6 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 | `but push <branch>` | Push branch to remote (`--dry-run` to preview) |
 | `but pull` | Update branches from remote |
 | `but pull --check` | Check merge status without updating |
-| `but oplog` | View operation history |
-| `but restore <snapshot-id>` | Restore to specific snapshot |
 
 ## Staging Files
 
@@ -59,9 +57,7 @@ Scripts in `~/.claude/skills/gitbutler/`. All support `--help` and `--dry-run`.
 |--------|---------|
 | `bulk-stage.sh` | Stage multiple files with automatic ID refresh |
 | `resolve-ambiguous.sh` | Handle ID ambiguity using git add workaround |
-| `stage-locked.sh` | Detect and stage locked files to correct branches |
 | `branch-health.sh` | Branch status overview (unpushed, remote sync) |
-| `commit-groups.sh` | Suggest logical commit groupings |
 
 ## Branch Naming
 
@@ -120,12 +116,7 @@ When `but status` shows a file locked to another branch:
 
 ## Recovery
 
-```bash
-but oplog                   # See operation history
-but restore <snapshot-id>   # Restore to specific point
-```
-
-Avoid `but undo` - can lose uncommitted work.
+If you need to undo operations or restore from history, use the GitButler desktop app. The oplog and restore commands can cause issues - avoid using them from CLI.
 
 ## PR Creation
 

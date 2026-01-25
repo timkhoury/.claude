@@ -147,18 +147,29 @@ get_file_id() {
   local filepath="$2"
   local file_id=""
 
+  # Normalize path: remove leading ./ if present
+  filepath="${filepath#./}"
+
   while IFS= read -r line; do
-    # Match file lines: "   g0 A path/to/file" or "   g0 M path/to/file"
-    # Pattern: ID (2+ alphanumeric starting with letter), status (single letter), path
-    if [[ "$line" =~ ([a-z][a-z0-9]+)[[:space:]]+([ADMR])[[:space:]]+(.+)$ ]]; then
+    # Match file lines: "┊   g0 A path/to/file" or "┊   g0 M path/to/file 🔒 commit"
+    # Pattern: ID (2+ alphanumeric), status (single letter ADMRCU), path
+    # Skip prefix characters (box-drawing, spaces) with .*
+    if [[ "$line" =~ [[:space:]]([[:alnum:]]{2,})[[:space:]]+([ADMRCU])[[:space:]]+(.+)$ ]]; then
       local line_id="${BASH_REMATCH[1]}"
       local line_path="${BASH_REMATCH[3]}"
+      # Strip lock indicator and commit hash if present (e.g., " 🔒 a2b66f8")
+      line_path="${line_path%% 🔒*}"
       # Trim trailing whitespace from path
       line_path="${line_path%"${line_path##*[![:space:]]}"}"
+      # Normalize path from status output too
+      line_path="${line_path#./}"
 
       if [[ "$line_path" == "$filepath" ]]; then
-        file_id="$line_id"
-        break
+        # Validate ID is at least 2 characters
+        if [[ ${#line_id} -ge 2 ]]; then
+          file_id="$line_id"
+          break
+        fi
       fi
     fi
   done <<< "$status_output"
@@ -178,7 +189,7 @@ parse_but_files() {
   local -n statuses_ref="$3"
 
   while IFS= read -r line; do
-    if [[ "$line" =~ ([a-z][a-z0-9]+)[[:space:]]+([ADMR])[[:space:]]+(.+)$ ]]; then
+    if [[ "$line" =~ ^[[:space:]]*([[:alnum:]]{2,})[[:space:]]+([ADMRCU])[[:space:]]+(.+)$ ]]; then
       local file_id="${BASH_REMATCH[1]}"
       local file_status="${BASH_REMATCH[2]}"
       local file_path="${BASH_REMATCH[3]}"
