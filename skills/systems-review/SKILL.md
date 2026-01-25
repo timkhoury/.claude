@@ -13,9 +13,10 @@ Aggregate dashboard for all review skills with cadence-based recommendations.
 
 | Review | Cadence | Scope | Purpose |
 |--------|---------|-------|---------|
-| template-review | Every run | Global | Template structure and sync-config integrity |
+| template-review | 7 days | Global | Template structure and sync-config integrity |
 | rules-review | 7 days | Project | Rule organization and separation of concerns |
 | skills-review | 7 days | Project | Skill context efficiency |
+| settings-updater | 7 days | Project | Permission promotion to global settings |
 | spec-review | 14 days | Project | OpenSpec implementation and test coverage |
 
 ## Workflow
@@ -45,7 +46,7 @@ Display a summary table:
 
 | Review | Last Run | Status |
 |--------|----------|--------|
-| template-review | never | Due (run every session) |
+| template-review | 10 days | Due (3 days overdue) |
 | rules-review | 10 days | Due (3 days overdue) |
 | skills-review | 5 days | OK (2 days remaining) |
 | spec-review | 20 days | Due (6 days overdue) |
@@ -53,24 +54,25 @@ Display a summary table:
 
 ### Step 4: Ask User Selection
 
-Use `AskUserQuestion` to let the user choose which reviews to run:
+Use `AskUserQuestion` with single-select:
 
-- Show recommended reviews as options
-- Allow "Skip" to exit without running any
-- Allow multiple selection if user wants to run several
+- Show top 3-4 recommended reviews as options (most overdue first)
+- Include "Skip" option to exit without running any
+- Single selection only - run one review at a time
 
-### Step 5: Execute Selected Reviews
+### Step 5: Execute Selected Review
 
-For each selected review, invoke using the `Skill` tool:
+Invoke the selected review using the `Skill` tool:
 
 ```
 Skill: rules-review
-Skill: skills-review
 ```
 
-### Step 6: Confirm Completion
+The individual skill will automatically record its completion via `review-tracker.sh record <name>`.
 
-After each review completes, the individual skill will automatically record its completion via `review-tracker.sh record <name>`.
+### Step 6: Offer Next Review (if applicable)
+
+If more reviews are due after completion, ask if the user wants to run another. Otherwise, show summary and exit.
 
 ## Commands
 
@@ -96,7 +98,7 @@ After each review completes, the individual skill will automatically record its 
 | Scope | File | Reviews Tracked |
 |-------|------|-----------------|
 | Global | `~/.claude/.systems-review.json` | template-review |
-| Project | `./.systems-review.json` | rules-review, skills-review, spec-review |
+| Project | `./.systems-review.json` | rules-review, skills-review, settings-updater, spec-review |
 
 Both files are gitignored. The script automatically routes to the correct file.
 
@@ -107,4 +109,5 @@ Reviews are only shown if applicable:
 - `template-review`: Always included
 - `rules-review`: Only if `.claude/rules/` exists
 - `skills-review`: Only if `.claude/skills/` exists
+- `settings-updater`: Only if `.claude/settings.local.json` exists
 - `spec-review`: Only if `.openspec/` or `specs/` exists

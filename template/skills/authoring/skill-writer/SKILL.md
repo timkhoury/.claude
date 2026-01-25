@@ -216,6 +216,56 @@ Progress is tracked at `path/to/PROGRESS.md`.
 3. Continue from last checkpoint
 ```
 
+## Shell Scripts vs Inline Bash
+
+**Prefer deterministic scripts over inline bash commands.**
+
+| Aspect | Script | Inline Bash |
+|--------|--------|-------------|
+| Permissions | Grant once, runs always | Needs approval each time |
+| Testing | Can test independently | Manual verification |
+| Reuse | Easy to invoke | Copy-paste prone |
+| Debugging | Clear, traceable | Scattered in conversation |
+
+### When to Extract to Script
+
+Extract to a colocated script when:
+- File copying, moving, or comparing
+- Complex conditional logic based on file system state
+- Operations that should be testable independently
+- Pattern matching on file paths
+- Operations that will run repeatedly
+
+### Script Colocation
+
+Scripts live alongside the skill that uses them:
+
+```
+.claude/skills/my-skill/
+├── SKILL.md
+├── my-operation.sh    # Colocated script
+└── PATTERNS.md        # Optional reference
+```
+
+**Only put scripts in `.claude/scripts/`** if shared across multiple skills.
+
+### Script Design Principles
+
+1. **Safe defaults** - `--report` mode by default, require explicit flags for changes
+2. **Self-documenting** - Include `--help` with examples
+3. **Idempotent** - Running twice produces the same result
+4. **Colored output** - Use ANSI colors for clear feedback
+
+### Keep in Skill When
+
+Keep logic in SKILL.md (not a script) when:
+- Gathering user input (AskUserQuestion)
+- Making decisions requiring codebase understanding
+- Operations needing AI judgment (code review, refactoring)
+- Orchestrating multiple steps with user feedback
+
+See `rules/meta/deterministic-systems.md` for detailed patterns.
+
 ## Tool Restrictions
 
 Use `allowed-tools` for read-only or security-sensitive skills:
@@ -247,6 +297,7 @@ allowed-tools: [Read, Glob, Grep, Bash]
 - [ ] References external docs where appropriate
 - [ ] Tool restrictions if needed (`allowed-tools`)
 - [ ] Progress tracking if long-running task
+- [ ] Complex bash logic extracted to colocated scripts
 
 ## Maintenance
 
