@@ -21,8 +21,8 @@ CONFIG_FILE="$HOME/.claude/config/sync-config.yaml"
 
 # Skill categories in template (skills/{category}/skill-name/)
 # These are derived from sync-config.yaml always.skills entries
-SKILL_CATEGORIES="authoring|quality|workflow|automation|meta|tech"
-SKILL_CATEGORIES_ARRAY=(authoring quality workflow automation meta tech)
+SKILL_CATEGORIES="authoring|quality|workflow|automation|meta|tech|tools"
+SKILL_CATEGORIES_ARRAY=(authoring quality workflow automation meta tech tools)
 
 # Protected files (never sync to template - contain project customization)
 # _project.yaml is project-specific (never synced to template)
@@ -122,7 +122,15 @@ while IFS= read -r template_file; do
 
   # For categorized skills in template, also check flattened version in project
   # e.g., template has skills/quality/rules-review/ but project has skills/rules-review/
-  if [[ "$rel_path" =~ ^skills/($SKILL_CATEGORIES)/([^/]+)/(.+)$ ]]; then
+  # Also handle tools: skills/tools/beads/beads-cleanup/ -> skills/beads-cleanup/
+  if [[ "$rel_path" =~ ^skills/tools/[^/]+/([^/]+)/(.+)$ ]]; then
+    skill_name="${BASH_REMATCH[1]}"
+    file_name="${BASH_REMATCH[2]}"
+    flat_project_file="$PROJECT_DIR/skills/$skill_name/$file_name"
+    if [[ -f "$flat_project_file" ]]; then
+      project_file="$flat_project_file"
+    fi
+  elif [[ "$rel_path" =~ ^skills/($SKILL_CATEGORIES)/([^/]+)/(.+)$ ]]; then
     skill_name="${BASH_REMATCH[2]}"
     file_name="${BASH_REMATCH[3]}"
     flat_project_file="$PROJECT_DIR/skills/$skill_name/$file_name"
@@ -177,6 +185,7 @@ while IFS= read -r project_file; do
 
   # For skills, check if a flattened version matches a categorized skill in template
   # e.g., project has skills/rules-review/ but template has skills/quality/rules-review/
+  # Also check tools: project skills/beads-cleanup/ -> template skills/tools/beads/beads-cleanup/
   if [[ "$rel_path" =~ ^skills/([^/]+)/ ]]; then
     skill_name="${BASH_REMATCH[1]}"
     # Skip if already a category directory
@@ -190,6 +199,16 @@ while IFS= read -r project_file; do
           continue 2
         fi
       done
+      # Also check tools subdirectories (skills/tools/{tool}/{skill}/)
+      if [[ -d "$TEMPLATE_DIR/skills/tools" ]]; then
+        while IFS= read -r tool_dir; do
+          tools_template_file="$tool_dir/$skill_name/${rel_path##*/}"
+          if [[ -f "$tools_template_file" ]]; then
+            # This skill came from tools in template, don't add as new
+            continue 2
+          fi
+        done < <(find "$TEMPLATE_DIR/skills/tools" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
+      fi
     fi
   fi
 
