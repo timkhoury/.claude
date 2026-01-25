@@ -6,10 +6,19 @@
  *
  * Features:
  * - Variable substitution ($skillSets.patterns, $colors.review, etc.)
- * - Shared configuration from _shared.yaml
+ * - Split configuration: _template.yaml (shared) + _project.yaml (project-specific)
  * - Folder-based includes with auto-discovery
  * - Structured examples converted to proper format
  * - Validation of required fields
+ *
+ * Configuration Files:
+ *   _template.yaml - Template-controlled (syncs from ~/.claude/template/)
+ *   _project.yaml  - Project-specific (never syncs, customized locally)
+ *
+ * Merge Strategy:
+ *   - ruleBundles: project rules prepended to template rules
+ *   - skillSets/toolSets: project extends template (object spread)
+ *   - Other fields: template values used (project doesn't override)
  *
  * Folder Includes:
  *   includes:
@@ -31,7 +40,8 @@ import * as yaml from 'yaml';
 // Paths
 const AGENTS_SRC_DIR = path.join(process.cwd(), '.claude', 'agents-src');
 const AGENTS_OUT_DIR = path.join(process.cwd(), '.claude', 'agents');
-const SHARED_CONFIG_PATH = path.join(AGENTS_SRC_DIR, '_shared.yaml');
+const TEMPLATE_CONFIG_PATH = path.join(AGENTS_SRC_DIR, '_template.yaml');
+const PROJECT_CONFIG_PATH = path.join(AGENTS_SRC_DIR, '_project.yaml');
 const PROJECT_ROOT = process.cwd();
 
 // Types
@@ -66,6 +76,63 @@ interface AgentExample {
 // Helper: Convert kebab-case to camelCase
 function kebabToCamel(str: string): string {
   return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+// Helper: Parse YAML frontmatter from markdown file
+function parseFrontmatter(content: string): Record<string, unknown> {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  try {
+    return yaml.parse(match[1]) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+// Default bundles for project rules (convention-based)
+const DEFAULT_PROJECT_BUNDLES = ['implementation', 'review', 'planning'];
+const ALL_BUNDLES = ['implementation', 'review', 'planning', 'testing'];
+
+// Discover project rules and their bundle assignments from frontmatter
+function discoverProjectRuleBundles(projectFolderPath: string): Record<string, string[]> {
+  const bundleAssignments: Record<string, string[]> = {};
+  const resolvedPath = resolveIncludePath(projectFolderPath);
+
+  if (!fs.existsSync(resolvedPath)) {
+    return bundleAssignments;
+  }
+
+  const entries = fs.readdirSync(resolvedPath);
+  for (const entry of entries) {
+    if (!entry.endsWith('.md')) continue;
+
+    const filePath = path.join(resolvedPath, entry);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const frontmatter = parseFrontmatter(content);
+
+    // Determine bundles: frontmatter > default
+    let bundles: string[];
+    if (frontmatter.bundles === 'all') {
+      bundles = ALL_BUNDLES;
+    } else if (Array.isArray(frontmatter.bundles)) {
+      bundles = frontmatter.bundles as string[];
+    } else {
+      bundles = DEFAULT_PROJECT_BUNDLES;
+    }
+
+    const basename = entry.slice(0, -3); // Remove .md
+    const camelKey = kebabToCamel(basename);
+    const includePath = `$includes.project.${camelKey}`;
+
+    for (const bundle of bundles) {
+      if (!bundleAssignments[bundle]) {
+        bundleAssignments[bundle] = [];
+      }
+      bundleAssignments[bundle].push(includePath);
+    }
+  }
+
+  return bundleAssignments;
 }
 
 // Helper: Resolve @/ path to actual filesystem path
@@ -143,15 +210,82 @@ interface AgentDefinition {
   body: string;
 }
 
-// Load shared configuration
-function loadSharedConfig(): SharedConfig {
-  if (!fs.existsSync(SHARED_CONFIG_PATH)) {
-    console.error(`Error: Shared config not found at ${SHARED_CONFIG_PATH}`);
+// Load template configuration (required)
+function loadTemplateConfig(): SharedConfig {
+  if (!fs.existsSync(TEMPLATE_CONFIG_PATH)) {
+    console.error(`Error: Template config not found at ${TEMPLATE_CONFIG_PATH}`);
     process.exit(1);
   }
 
-  const content = fs.readFileSync(SHARED_CONFIG_PATH, 'utf-8');
+  const content = fs.readFileSync(TEMPLATE_CONFIG_PATH, 'utf-8');
   return yaml.parse(content) as SharedConfig;
+}
+
+// Load project configuration (optional)
+function loadProjectConfig(): Partial<SharedConfig> {
+  if (!fs.existsSync(PROJECT_CONFIG_PATH)) {
+    return {};
+  }
+
+  const content = fs.readFileSync(PROJECT_CONFIG_PATH, 'utf-8');
+  const parsed = yaml.parse(content);
+  return (parsed ?? {}) as Partial<SharedConfig>;
+}
+
+// Merge template and project configs
+// - ruleBundles: auto-discovered project rules + explicit project rules + template rules
+// - skillSets/toolSets: project extends template
+// - Other fields: template values used
+function mergeConfigs(template: SharedConfig, project: Partial<SharedConfig>): SharedConfig {
+  const merged: SharedConfig = { ...template };
+
+  // Auto-discover project rules from frontmatter
+  const projectFolderPath = template.includes?.project;
+  const autoDiscoveredBundles = projectFolderPath
+    ? discoverProjectRuleBundles(projectFolderPath)
+    : {};
+
+  // Start with template bundles
+  merged.ruleBundles = { ...template.ruleBundles };
+
+  // Prepend auto-discovered project rules
+  for (const [bundle, rules] of Object.entries(autoDiscoveredBundles)) {
+    if (merged.ruleBundles[bundle]) {
+      merged.ruleBundles[bundle] = [...rules, ...merged.ruleBundles[bundle]];
+    } else {
+      merged.ruleBundles[bundle] = rules;
+    }
+  }
+
+  // Then prepend explicit project rules (these go before auto-discovered)
+  if (project.ruleBundles) {
+    for (const [bundle, rules] of Object.entries(project.ruleBundles)) {
+      if (merged.ruleBundles[bundle]) {
+        merged.ruleBundles[bundle] = [...rules, ...merged.ruleBundles[bundle]];
+      } else {
+        merged.ruleBundles[bundle] = rules;
+      }
+    }
+  }
+
+  // Merge skillSets: project extends template
+  if (project.skillSets) {
+    merged.skillSets = { ...template.skillSets, ...project.skillSets };
+  }
+
+  // Merge toolSets: project extends template
+  if (project.toolSets) {
+    merged.toolSets = { ...template.toolSets, ...project.toolSets };
+  }
+
+  return merged;
+}
+
+// Load and merge configurations
+function loadConfigs(): SharedConfig {
+  const template = loadTemplateConfig();
+  const project = loadProjectConfig();
+  return mergeConfigs(template, project);
 }
 
 // Resolve variable references like $skillSets.patterns or $colors.review
@@ -392,9 +526,10 @@ function build(validateOnly = false): void {
       : 'Building agents from YAML definitions...\n',
   );
 
-  // Load shared config
-  const shared = loadSharedConfig();
-  console.log('✓ Loaded shared configuration');
+  // Load and merge configs
+  const shared = loadConfigs();
+  const hasProjectConfig = fs.existsSync(PROJECT_CONFIG_PATH);
+  console.log(`✓ Loaded configuration (template${hasProjectConfig ? ' + project' : ''})`);
 
   // Process includes to discover folder contents
   const resolvedIncludes = processIncludes(shared.includes);
