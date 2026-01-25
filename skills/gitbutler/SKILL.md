@@ -10,7 +10,6 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 ## Key Practices
 
 - **Run `but status` after every action** - file IDs shift after commits
-- **Use `but absorb`** to fold small fixes into recent commits instead of "fix typo" commits
 - **Group changes logically** - feature+tests together, config separate
 
 ## Command Reference
@@ -21,15 +20,12 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 | `but show <id>` | Show commit or branch details (`-v` for verbose) |
 | `but branch new <name>` | Create new virtual branch |
 | `but stage <file-id> <branch>` | Assign file/hunk to branch |
-| `but absorb` | Amend changes into appropriate recent commits (`--dry-run` to preview) |
 | `but rub <source> <target>` | Squash commits, amend, move commits |
 | `but commit <branch> --only -m "..."` | Commit only assigned files |
 | `but reword <id> -m "message"` | Edit commit message (or rename branch) |
 | `but push <branch>` | Push branch to remote (`--dry-run` to preview) |
 | `but pull` | Update branches from remote |
 | `but pull --check` | Check merge status without updating |
-| `but oplog` | View operation history |
-| `but restore <snapshot-id>` | Restore to specific snapshot |
 
 ## Staging Files
 
@@ -61,9 +57,7 @@ Scripts in `~/.claude/skills/gitbutler/`. All support `--help` and `--dry-run`.
 |--------|---------|
 | `bulk-stage.sh` | Stage multiple files with automatic ID refresh |
 | `resolve-ambiguous.sh` | Handle ID ambiguity using git add workaround |
-| `stage-locked.sh` | Detect and stage locked files to correct branches |
 | `branch-health.sh` | Branch status overview (unpushed, remote sync) |
-| `commit-groups.sh` | Suggest logical commit groupings |
 
 ## Branch Naming
 
@@ -122,12 +116,7 @@ When `but status` shows a file locked to another branch:
 
 ## Recovery
 
-```bash
-but oplog                   # See operation history
-but restore <snapshot-id>   # Restore to specific point
-```
-
-Avoid `but undo` - can lose uncommitted work.
+If you need to undo operations or restore from history, use the GitButler desktop app. The oplog and restore commands can cause issues - avoid using them from CLI.
 
 ## PR Creation
 

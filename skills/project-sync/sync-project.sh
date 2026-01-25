@@ -14,18 +14,14 @@
 #   .beads/   → includes beads rules/skills/commands
 #   openspec/ → includes openspec rules
 
-set -e
+set -eo pipefail
+
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 TEMPLATE_DIR="$HOME/.claude/template"
 PROJECT_DIR=".claude"
 DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
 
 # Protected files (never auto-update, but shown in report)
 # _project.yaml is project-specific (never synced to template)
@@ -112,6 +108,7 @@ added_files=$(mktemp)
 protected_files=$(mktemp)
 skipped_files=$(mktemp)
 unused_files=$(mktemp)
+# shellcheck disable=SC2064 # Variables are intentionally expanded at trap definition time
 trap "rm -f $updated_files $added_files $protected_files $skipped_files $unused_files" EXIT
 
 # Check if file is protected
@@ -228,7 +225,7 @@ echo ""
 
 # Find all template files
 while IFS= read -r file; do
-  rel_path="${file#$TEMPLATE_DIR/}"
+  rel_path="${file#"$TEMPLATE_DIR"/}"
   template_file="$file"
 
   # Flatten categorized skills: skills/{category}/foo/ -> skills/foo/
@@ -291,7 +288,7 @@ while IFS= read -r file; do
   # Files differ - would update
   echo "$flat_rel_path" >> "$updated_files"
   ((count_updated++)) || true
-done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) 2>/dev/null | sort)
+done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) | sort)
 
 # Note _project.yaml if missing (starter template for project-specific rules)
 # This is protected so it won't be updated, but it should be created if missing
@@ -303,7 +300,7 @@ fi
 # Check for unused tech rules in project (rules that exist but aren't needed)
 if [[ -n "$DETECTED_RULES" ]] && [[ -d "$PROJECT_DIR/rules/tech" ]]; then
   while IFS= read -r project_tech_file; do
-    rel_path="${project_tech_file#$PROJECT_DIR/}"
+    rel_path="${project_tech_file#"$PROJECT_DIR"/}"
     # Detection script outputs "tech/x.md", project has "rules/tech/x.md"
     # Convert for comparison
     tech_path="${rel_path#rules/}"
@@ -313,7 +310,7 @@ if [[ -n "$DETECTED_RULES" ]] && [[ -d "$PROJECT_DIR/rules/tech" ]]; then
       echo "$rel_path" >> "$unused_files"
       ((count_unused++)) || true
     fi
-  done < <(find "$PROJECT_DIR/rules/tech" -name "*.md" -type f 2>/dev/null | sort)
+  done < <(find "$PROJECT_DIR/rules/tech" -name "*.md" -type f | sort)
 fi
 
 # Report

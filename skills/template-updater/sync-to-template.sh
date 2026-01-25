@@ -10,17 +10,19 @@
 # - Shows NEW files from template-worthy directories
 # - Skips project-specific directories (rules/project/)
 
-set -e
+set -eo pipefail
+
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 TEMPLATE_DIR="$HOME/.claude/template"
 PROJECT_DIR=".claude"
+CONFIG_FILE="$HOME/.claude/config/sync-config.yaml"
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Skill categories in template (skills/{category}/skill-name/)
+# These are derived from sync-config.yaml always.skills entries
+SKILL_CATEGORIES="authoring|quality|workflow|automation|meta|tech"
+SKILL_CATEGORIES_ARRAY=(authoring quality workflow automation meta tech)
 
 # Protected files (never sync to template - contain project customization)
 # _project.yaml is project-specific (never synced to template)
@@ -83,6 +85,7 @@ changed_files=$(mktemp)
 new_files=$(mktemp)
 protected_files=$(mktemp)
 generated_files=$(mktemp)
+# shellcheck disable=SC2064 # Variables are intentionally expanded at trap definition time
 trap "rm -f $changed_files $new_files $protected_files $generated_files" EXIT
 
 # Check if file is protected
@@ -114,12 +117,12 @@ echo ""
 
 # Find template files and compare with project versions
 while IFS= read -r template_file; do
-  rel_path="${template_file#$TEMPLATE_DIR/}"
+  rel_path="${template_file#"$TEMPLATE_DIR"/}"
   project_file="$PROJECT_DIR/$rel_path"
 
   # For categorized skills in template, also check flattened version in project
   # e.g., template has skills/quality/rules-review/ but project has skills/rules-review/
-  if [[ "$rel_path" =~ ^skills/(authoring|quality|workflow|automation|meta|tech)/([^/]+)/(.+)$ ]]; then
+  if [[ "$rel_path" =~ ^skills/($SKILL_CATEGORIES)/([^/]+)/(.+)$ ]]; then
     skill_name="${BASH_REMATCH[2]}"
     file_name="${BASH_REMATCH[3]}"
     flat_project_file="$PROJECT_DIR/skills/$skill_name/$file_name"
@@ -160,11 +163,11 @@ while IFS= read -r template_file; do
   # Files differ - this is a candidate for sync
   echo "$rel_path" >> "$changed_files"
   ((count_would_update++)) || true
-done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) 2>/dev/null | sort)
+done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) | sort)
 
 # Find NEW files in template-worthy directories (not yet in template)
 while IFS= read -r project_file; do
-  rel_path="${project_file#$PROJECT_DIR/}"
+  rel_path="${project_file#"$PROJECT_DIR"/}"
   template_file="$TEMPLATE_DIR/$rel_path"
 
   # Skip if already in template
@@ -177,9 +180,10 @@ while IFS= read -r project_file; do
   if [[ "$rel_path" =~ ^skills/([^/]+)/ ]]; then
     skill_name="${BASH_REMATCH[1]}"
     # Skip if already a category directory
-    if [[ "$skill_name" != "authoring" && "$skill_name" != "quality" && "$skill_name" != "workflow" && "$skill_name" != "automation" && "$skill_name" != "meta" && "$skill_name" != "tech" && "$skill_name" != "project" ]]; then
+    # Skip if skill_name is a category directory or project-specific
+    if [[ ! "$skill_name" =~ ^($SKILL_CATEGORIES|project)$ ]]; then
       # Check all categories for this skill
-      for category in authoring quality workflow automation meta tech; do
+      for category in "${SKILL_CATEGORIES_ARRAY[@]}"; do
         category_template_file="$TEMPLATE_DIR/skills/$category/$skill_name/${rel_path##*/}"
         if [[ -f "$category_template_file" ]]; then
           # This skill came from a category in template, don't add as new
@@ -212,7 +216,7 @@ while IFS= read -r project_file; do
   # This is a new template-worthy file
   echo "$rel_path" >> "$new_files"
   ((count_new++)) || true
-done < <(find "$PROJECT_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" -o -name "*.sh" \) 2>/dev/null | sort)
+done < <(find "$PROJECT_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" -o -name "*.sh" \) | sort)
 
 # Report
 echo -e "${GREEN}=== Template Sync Report ===${NC}"

@@ -5,18 +5,13 @@
 # Identifies permissions in .claude/settings.local.json that appear generic
 # enough to move to ~/.claude/settings.json
 
-set -e
+set -eo pipefail
+
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 GLOBAL_SETTINGS="$HOME/.claude/settings.json"
 LOCAL_SETTINGS=".claude/settings.local.json"
-
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
 
 # Parse arguments
 MODE="report"
@@ -193,46 +188,35 @@ while IFS= read -r perm; do
   unknown+=("$perm")
 done <<< "$local_perms"
 
+# Helper for JSON array output
+output_json_array() {
+  local name="$1"
+  shift
+  local items=("$@")
+  local first=true
+
+  echo "  \"$name\": ["
+  for item in "${items[@]}"; do
+    [[ "$first" == "true" ]] || echo ","
+    printf '    "%s"' "$(json_escape "$item")"
+    first=false
+  done
+  echo ""
+  echo -n "  ]"
+}
+
 # Output results
 if [[ "$MODE" == "json" ]]; then
-  # JSON output
+  # JSON output with proper escaping
   echo "{"
-  echo '  "candidates": ['
-  first=true
-  for c in "${candidates[@]}"; do
-    [[ "$first" == "true" ]] || echo ","
-    printf '    "%s"' "$c"
-    first=false
-  done
+  output_json_array "candidates" "${candidates[@]}"
+  echo ","
+  output_json_array "project_specific" "${project_specific[@]}"
+  echo ","
+  output_json_array "already_global" "${already_global[@]}"
+  echo ","
+  output_json_array "needs_review" "${unknown[@]}"
   echo ""
-  echo "  ],"
-  echo '  "project_specific": ['
-  first=true
-  for p in "${project_specific[@]}"; do
-    [[ "$first" == "true" ]] || echo ","
-    printf '    "%s"' "$p"
-    first=false
-  done
-  echo ""
-  echo "  ],"
-  echo '  "already_global": ['
-  first=true
-  for a in "${already_global[@]}"; do
-    [[ "$first" == "true" ]] || echo ","
-    printf '    "%s"' "$a"
-    first=false
-  done
-  echo ""
-  echo "  ],"
-  echo '  "needs_review": ['
-  first=true
-  for u in "${unknown[@]}"; do
-    [[ "$first" == "true" ]] || echo ","
-    printf '    "%s"' "$u"
-    first=false
-  done
-  echo ""
-  echo "  ]"
   echo "}"
 else
   # Human-readable report

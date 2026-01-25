@@ -11,14 +11,8 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-DIM='\033[2m'
-NC='\033[0m'
+# Source shared library
+source "$HOME/.claude/scripts/lib/common.sh"
 
 JSON_OUTPUT=false
 
@@ -44,15 +38,19 @@ while [[ $# -gt 0 ]]; do
             usage
             ;;
         *)
-            echo -e "${RED}Unknown option: $1${NC}"
-            exit 1
+            die "Unknown option: $1"
             ;;
     esac
 done
 
+# Validate GitButler is available
+validate_gitbutler
+
 # Get status outputs
-status_output=$(but status -v 2>/dev/null || true)
-pull_check=$(but pull --check 2>/dev/null || true)
+if ! status_output=$(but status -v 2>&1); then
+    die "Failed to get GitButler status: $status_output"
+fi
+pull_check=$(but pull --check 2>/dev/null || echo "")
 
 # Parse branches and their state
 declare -A branches           # branch_name -> commit_count
