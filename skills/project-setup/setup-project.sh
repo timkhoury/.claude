@@ -2,12 +2,18 @@
 # Initialize Claude Code configuration for a new project
 # Usage: setup-project.sh [options]
 #
+# Uses tech detection to copy only relevant rules:
+#   - Always copies: meta/, patterns/, workflow/ rules
+#   - Tech-specific: Only copies rules for detected technologies
+#   - Creates: project/ directories (empty, for project-specific content)
+#
 # Copies template structure, optionally initializes tools, and builds agents.
 
 set -e
 
 TEMPLATE_DIR="$HOME/.claude/template"
 PROJECT_DIR=".claude"
+DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -58,14 +64,18 @@ while [[ $# -gt 0 ]]; do
       echo "Options:"
       echo "  --tools=TOOLS        Tools to enable: all, beads+openspec, beads, openspec, none"
       echo "                       (default: all = beads+openspec)"
-      echo "  --framework=NAME     Framework: nextjs, react, node, other (optional)"
+      echo "  --framework=NAME     Framework hint (deprecated - uses auto-detection)"
       echo "  --scaffold-rules     Create scaffolded rule files (architecture.md, etc.)"
       echo "  --project-name=NAME  Project name for beads prefix (default: directory name)"
       echo "  --skip-init          Skip tool initialization (bd init, openspec init)"
       echo "  --skip-build         Skip agent building step"
       echo ""
+      echo "Tech detection:"
+      echo "  Automatically detects technologies from package.json, config files,"
+      echo "  and directories, then copies only relevant tech rules."
+      echo ""
       echo "Examples:"
-      echo "  setup-project.sh --tools=all --framework=nextjs --scaffold-rules"
+      echo "  setup-project.sh --tools=all --scaffold-rules"
       echo "  setup-project.sh --tools=beads --project-name=myapp"
       echo "  setup-project.sh --tools=none  # Just copy base template"
       exit 0
@@ -111,6 +121,16 @@ case "$TOOLS" in
     ;;
 esac
 
+# Get detected technologies, rules, and skills
+DETECTED_RULES=""
+DETECTED_TECHS=""
+DETECTED_SKILLS=""
+if [[ -x "$DETECT_SCRIPT" ]]; then
+  DETECTED_RULES=$("$DETECT_SCRIPT" --rules 2>/dev/null || true)
+  DETECTED_TECHS=$("$DETECT_SCRIPT" --techs 2>/dev/null || true)
+  DETECTED_SKILLS=$("$DETECT_SCRIPT" --skills 2>/dev/null || true)
+fi
+
 # Check prerequisites
 if [[ ! -d "$TEMPLATE_DIR" ]]; then
   echo -e "${RED}Error: Template not found at $TEMPLATE_DIR${NC}"
@@ -132,8 +152,16 @@ echo -e "${BLUE}Setting up Claude Code configuration...${NC}"
 echo ""
 echo "Project: $PROJECT_NAME"
 echo "Tools:   $TOOLS"
-[[ -n "$FRAMEWORK" ]] && echo "Framework: $FRAMEWORK"
 echo ""
+
+# Show detected technologies
+if [[ -n "$DETECTED_TECHS" ]]; then
+  echo -e "Technologies detected:"
+  echo "$DETECTED_TECHS" | while read -r tech; do
+    [[ -n "$tech" ]] && echo -e "  ${GREEN}+${NC} $tech"
+  done
+  echo ""
+fi
 
 # Initialize git if needed (idempotent - safe on existing repos)
 if [[ ! -d ".git" ]]; then
@@ -183,6 +211,46 @@ copy_dir() {
   ((files_copied++)) || true
 }
 
+# Helper: check if tech rule should be copied based on detection
+should_copy_tech_rule() {
+  local file="$1"
+
+  # If no detection or no rules detected, copy everything
+  if [[ -z "$DETECTED_RULES" ]]; then
+    return 0
+  fi
+
+  # Detection script outputs "tech/x.md", template has "rules/tech/x.md"
+  # Strip "rules/" prefix for comparison
+  local tech_path="${file#rules/}"
+
+  # Check if this rule is in the detected list
+  if echo "$DETECTED_RULES" | grep -qF "$tech_path"; then
+    return 0  # Rule needed, copy it
+  fi
+
+  return 1  # Rule not needed for detected technologies
+}
+
+# Helper: copy all files in a rule folder from template
+copy_rule_folder() {
+  local folder="$1"
+
+  if [[ ! -d "$TEMPLATE_DIR/rules/$folder" ]]; then
+    echo -e "  ${YELLOW}Skip:${NC} rules/$folder/ (not in template)"
+    return
+  fi
+
+  mkdir -p "$PROJECT_DIR/rules/$folder"
+  while IFS= read -r file; do
+    local rel_path="${file#$TEMPLATE_DIR/}"
+    local filename=$(basename "$file")
+    cp "$file" "$PROJECT_DIR/rules/$folder/$filename"
+    echo -e "  ${GREEN}Copy:${NC} $rel_path"
+    ((files_copied++)) || true
+  done < <(find "$TEMPLATE_DIR/rules/$folder" -maxdepth 1 -name "*.md" -type f 2>/dev/null | sort)
+}
+
 echo -e "${BLUE}Phase 1: Copying base template...${NC}"
 mkdir -p "$PROJECT_DIR"
 
@@ -192,19 +260,50 @@ copy_file "baseline-agent.md" "$PROJECT_DIR/baseline-agent.md"
 copy_dir "agents-src" "$PROJECT_DIR/agents-src"
 copy_dir "scripts" "$PROJECT_DIR/scripts"
 
-# Always copy these rules
-copy_file "rules/landing-the-plane.md" "$PROJECT_DIR/rules/landing-the-plane.md"
-copy_file "rules/deterministic-systems.md" "$PROJECT_DIR/rules/deterministic-systems.md"
-copy_file "rules/research-patterns.md" "$PROJECT_DIR/rules/research-patterns.md"
-copy_file "rules/documentation-lookup.md" "$PROJECT_DIR/rules/documentation-lookup.md"
-copy_file "rules/agents-system.md" "$PROJECT_DIR/rules/agents-system.md"
+# Always copy these rule folders (from sync-config.yaml "always" section)
+echo -e "  ${BLUE}Copying always-included rules...${NC}"
+copy_rule_folder "meta"
+copy_rule_folder "patterns"
+copy_rule_folder "workflow"
 
-# Always copy these skills
-copy_dir "skills/pr-check" "$PROJECT_DIR/skills/pr-check"
-copy_dir "skills/deps-update" "$PROJECT_DIR/skills/deps-update"
-copy_dir "skills/adr-writer" "$PROJECT_DIR/skills/adr-writer"
-copy_dir "skills/skill-writer" "$PROJECT_DIR/skills/skill-writer"
-copy_dir "skills/agent-writer" "$PROJECT_DIR/skills/agent-writer"
+# Copy tech-specific rules based on detection
+echo -e "  ${BLUE}Copying tech-specific rules...${NC}"
+if [[ -d "$TEMPLATE_DIR/rules/tech" ]]; then
+  mkdir -p "$PROJECT_DIR/rules/tech"
+  while IFS= read -r file; do
+    rel_path="${file#$TEMPLATE_DIR/}"
+    if should_copy_tech_rule "$rel_path"; then
+      filename=$(basename "$file")
+      cp "$file" "$PROJECT_DIR/rules/tech/$filename"
+      echo -e "  ${GREEN}Copy:${NC} $rel_path"
+      ((files_copied++)) || true
+    else
+      echo -e "  ${BLUE}Skip:${NC} $rel_path (tech not detected)"
+      ((files_skipped++)) || true
+    fi
+  done < <(find "$TEMPLATE_DIR/rules/tech" -name "*.md" -type f 2>/dev/null | sort)
+fi
+
+# Create empty project/ directories
+echo -e "  ${BLUE}Creating project-specific directories...${NC}"
+mkdir -p "$PROJECT_DIR/rules/project"
+mkdir -p "$PROJECT_DIR/skills/project"
+echo -e "  ${GREEN}Create:${NC} rules/project/ (empty)"
+echo -e "  ${GREEN}Create:${NC} skills/project/ (empty)"
+
+# Copy skills based on detection (from sync-config.yaml "always.skills" section)
+echo -e "  ${BLUE}Copying always-included skills...${NC}"
+echo "$DETECTED_SKILLS" | while read -r skill_folder; do
+  [[ -z "$skill_folder" ]] && continue
+  # skill_folder is like "authoring/", copy all subdirectories
+  if [[ -d "$TEMPLATE_DIR/skills/$skill_folder" ]]; then
+    for skill_dir in "$TEMPLATE_DIR/skills/$skill_folder"*/; do
+      [[ -d "$skill_dir" ]] || continue
+      skill_name=$(basename "$skill_dir")
+      copy_dir "skills/${skill_folder}${skill_name}" "$PROJECT_DIR/skills/${skill_folder}${skill_name}"
+    done
+  fi
+done
 
 # Always copy these commands
 mkdir -p "$PROJECT_DIR/commands"
@@ -219,8 +318,9 @@ echo ""
 # Tool-specific files
 if [[ "$ENABLE_BEADS" == "true" ]]; then
   echo -e "${BLUE}Phase 2a: Copying Beads files...${NC}"
-  copy_file "rules/beads-workflow.md" "$PROJECT_DIR/rules/beads-workflow.md"
-  copy_dir "skills/beads-cleanup" "$PROJECT_DIR/skills/beads-cleanup"
+  # beads-workflow.md should already be in rules/workflow/ from Phase 1
+  copy_dir "skills/workflow/beads-cleanup" "$PROJECT_DIR/skills/workflow/beads-cleanup"
+  copy_dir "skills/workflow/work" "$PROJECT_DIR/skills/workflow/work"
   copy_file "commands/work.md" "$PROJECT_DIR/commands/work.md"
   copy_file "commands/status.md" "$PROJECT_DIR/commands/status.md"
   echo ""
@@ -228,8 +328,8 @@ fi
 
 if [[ "$ENABLE_OPENSPEC" == "true" ]]; then
   echo -e "${BLUE}Phase 2b: Copying OpenSpec files...${NC}"
-  copy_file "rules/openspec.md" "$PROJECT_DIR/rules/openspec.md"
-  copy_dir "skills/quality" "$PROJECT_DIR/skills/quality"
+  # openspec.md should already be in rules/workflow/ from Phase 1
+  copy_dir "skills/quality/rules-review" "$PROJECT_DIR/skills/quality/rules-review"
   mkdir -p "$PROJECT_DIR/commands/openspec"
   copy_file "commands/openspec/proposal.md" "$PROJECT_DIR/commands/openspec/proposal.md"
   copy_file "commands/openspec/apply.md" "$PROJECT_DIR/commands/openspec/apply.md"
@@ -239,38 +339,17 @@ fi
 
 if [[ "$ENABLE_BEADS" == "true" ]] && [[ "$ENABLE_OPENSPEC" == "true" ]]; then
   echo -e "${BLUE}Phase 2c: Copying Beads+OpenSpec integration files...${NC}"
-  copy_file "rules/workflow-integration.md" "$PROJECT_DIR/rules/workflow-integration.md"
+  # workflow-integration.md should already be in rules/workflow/ from Phase 1
   copy_file "commands/wrap.md" "$PROJECT_DIR/commands/wrap.md"
-  echo ""
-fi
-
-# Framework-specific setup
-if [[ -n "$FRAMEWORK" ]]; then
-  echo -e "${BLUE}Phase 3: Framework-specific setup ($FRAMEWORK)...${NC}"
-  case "$FRAMEWORK" in
-    nextjs)
-      # Could copy nextjs-specific skills/rules if they exist in template
-      echo "  Framework noted in CLAUDE.md (customize manually)"
-      ;;
-    react)
-      echo "  Framework noted in CLAUDE.md (customize manually)"
-      ;;
-    node)
-      echo "  Framework noted in CLAUDE.md (customize manually)"
-      ;;
-    *)
-      echo "  No framework-specific files"
-      ;;
-  esac
   echo ""
 fi
 
 # Scaffold rules
 if [[ "$SCAFFOLD_RULES" == "true" ]]; then
-  echo -e "${BLUE}Phase 4: Creating scaffolded rule files...${NC}"
+  echo -e "${BLUE}Phase 3: Creating scaffolded rule files...${NC}"
 
-  if [[ ! -f "$PROJECT_DIR/rules/architecture.md" ]]; then
-    cat > "$PROJECT_DIR/rules/architecture.md" << 'EOF'
+  if [[ ! -f "$PROJECT_DIR/rules/project/architecture.md" ]]; then
+    cat > "$PROJECT_DIR/rules/project/architecture.md" << 'EOF'
 # Architecture
 
 ## Overview
@@ -285,13 +364,13 @@ if [[ "$SCAFFOLD_RULES" == "true" ]]; then
 
 <!-- How data moves through the system -->
 EOF
-    echo -e "  ${GREEN}Create:${NC} rules/architecture.md"
+    echo -e "  ${GREEN}Create:${NC} rules/project/architecture.md"
   else
-    echo -e "  ${YELLOW}Skip:${NC} rules/architecture.md (exists)"
+    echo -e "  ${YELLOW}Skip:${NC} rules/project/architecture.md (exists)"
   fi
 
-  if [[ ! -f "$PROJECT_DIR/rules/project-overview.md" ]]; then
-    cat > "$PROJECT_DIR/rules/project-overview.md" << 'EOF'
+  if [[ ! -f "$PROJECT_DIR/rules/project/overview.md" ]]; then
+    cat > "$PROJECT_DIR/rules/project/overview.md" << 'EOF'
 # Project Overview
 
 <!-- Brief description of the project -->
@@ -313,39 +392,39 @@ npm run test         # Run tests
 
 <!-- Project-specific naming rules -->
 EOF
-    echo -e "  ${GREEN}Create:${NC} rules/project-overview.md"
+    echo -e "  ${GREEN}Create:${NC} rules/project/overview.md"
   else
-    echo -e "  ${YELLOW}Skip:${NC} rules/project-overview.md (exists)"
+    echo -e "  ${YELLOW}Skip:${NC} rules/project/overview.md (exists)"
   fi
 
-  if [[ ! -f "$PROJECT_DIR/rules/danger-zone.md" ]]; then
-    cat > "$PROJECT_DIR/rules/danger-zone.md" << 'EOF'
-# Danger Zone
+  if [[ ! -f "$PROJECT_DIR/rules/project/troubleshooting.md" ]]; then
+    cat > "$PROJECT_DIR/rules/project/troubleshooting.md" << 'EOF'
+# Troubleshooting
 
-> These actions cause problems. Never do them.
+> Common issues and their solutions.
 
-## Commands
+## Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| <!-- Add project-specific issues --> | |
+
+## Danger Zone
 
 | Never | Consequence |
 |-------|-------------|
 | <!-- Add project-specific "never do" rules --> | |
-
-## Code Patterns
-
-| Never | Consequence |
-|-------|-------------|
-| <!-- Add anti-patterns to avoid --> | |
 EOF
-    echo -e "  ${GREEN}Create:${NC} rules/danger-zone.md"
+    echo -e "  ${GREEN}Create:${NC} rules/project/troubleshooting.md"
   else
-    echo -e "  ${YELLOW}Skip:${NC} rules/danger-zone.md (exists)"
+    echo -e "  ${YELLOW}Skip:${NC} rules/project/troubleshooting.md (exists)"
   fi
   echo ""
 fi
 
 # Tool initialization
 if [[ "$SKIP_INIT" != "true" ]]; then
-  echo -e "${BLUE}Phase 5: Tool initialization...${NC}"
+  echo -e "${BLUE}Phase 4: Tool initialization...${NC}"
 
   if [[ "$ENABLE_BEADS" == "true" ]]; then
     if [[ -d ".beads" ]]; then
@@ -374,7 +453,7 @@ fi
 
 # Build agents
 if [[ "$SKIP_BUILD" != "true" ]]; then
-  echo -e "${BLUE}Phase 6: Building agents...${NC}"
+  echo -e "${BLUE}Phase 5: Building agents...${NC}"
 
   if [[ -f "$PROJECT_DIR/scripts/build-agents.ts" ]]; then
     # Check for required packages

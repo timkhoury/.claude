@@ -1,0 +1,181 @@
+# Sync Configuration
+# Defines what gets synced between template and projects
+#
+# Sections:
+#   always: Content copied to every project
+#   technologies: Tech-specific content (detected automatically)
+#   tools: Workflow tools (beads, openspec)
+#
+# Detection methods:
+#   packages: Check package.json dependencies/devDependencies
+#   configs: Glob patterns for config files
+#   directories: Check for directory existence
+#   requires: Depend on other detected items (for integrations)
+
+# Always copy these (not technology-dependent)
+always:
+  rules:
+    - meta/
+    - patterns/
+    - workflow/
+  skills:
+    - authoring/
+    - quality/
+    - workflow/
+    - automation/
+
+# Technology-specific rules
+technologies:
+  nextjs:
+    detect:
+      packages:
+        - next
+      configs:
+        - next.config.js
+        - next.config.ts
+        - next.config.mjs
+    rules:
+      - tech/nextjs.md
+
+  supabase:
+    detect:
+      packages:
+        - "@supabase/supabase-js"
+        - "@supabase/ssr"
+      directories:
+        - supabase/
+    rules:
+      - tech/supabase.md
+
+  tailwind:
+    detect:
+      packages:
+        - tailwindcss
+      configs:
+        - tailwind.config.js
+        - tailwind.config.ts
+        - tailwind.config.mjs
+    rules:
+      - tech/tailwind.md
+
+  shadcn:
+    detect:
+      configs:
+        - components.json
+      directories:
+        - components/ui/
+        - src/components/ui/
+    rules:
+      - tech/shadcn.md
+
+  tanstack-query:
+    detect:
+      packages:
+        - "@tanstack/react-query"
+    rules:
+      - tech/tanstack-query.md
+
+  vitest:
+    detect:
+      packages:
+        - vitest
+      configs:
+        - vitest.config.ts
+        - vitest.config.js
+        - vitest.config.mts
+    rules:
+      - tech/testing/vitest.md
+
+  playwright:
+    detect:
+      packages:
+        - "@playwright/test"
+        - playwright
+      configs:
+        - playwright.config.ts
+        - playwright.config.js
+    rules:
+      - tech/testing/playwright.md
+
+  typescript:
+    detect:
+      packages:
+        - typescript
+      configs:
+        - tsconfig.json
+    rules:
+      - tech/typescript.md
+
+  # Technology integrations (use requires instead of packages/configs)
+  nextjs-supabase:
+    detect:
+      requires:
+        - nextjs
+        - supabase
+    rules:
+      - tech/nextjs-supabase.md
+
+  nextjs-tanstack-query:
+    detect:
+      requires:
+        - nextjs
+        - tanstack-query
+    rules:
+      - tech/nextjs-tanstack-query.md
+
+  tailwind-shadcn:
+    detect:
+      requires:
+        - tailwind
+        - shadcn
+    rules:
+      - tech/tailwind-shadcn.md
+
+  supabase-testing:
+    detect:
+      requires:
+        - supabase
+      requires_any:
+        - vitest
+        - playwright
+    rules:
+      - tech/testing/supabase-testing.md
+
+# Workflow tools - detected by directory existence
+tools:
+  beads:
+    detect:
+      directories:
+        - .beads/
+    rules:
+      - workflow/beads-workflow.md
+    skills:
+      - workflow/beads-cleanup/
+      - workflow/work/
+    commands:
+      - work.md
+      - status.md
+
+  openspec:
+    detect:
+      directories:
+        - openspec/
+    rules:
+      - workflow/openspec.md
+    skills:
+      - quality/rules-review/
+    commands:
+      - openspec/proposal.md
+      - openspec/apply.md
+      - openspec/archive.md
+
+  # Tool integration (use requires instead of directories)
+  beads+openspec:
+    detect:
+      requires:
+        - beads
+        - openspec
+    rules:
+      - workflow/workflow-integration.md
+    commands:
+      - wrap.md
