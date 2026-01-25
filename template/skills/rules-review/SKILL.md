@@ -1,10 +1,10 @@
 ---
 name: rules-review
 description: >
-  Review Claude Code rules for proper organization and separation of concerns.
-  Use when auditing rules, checking for cross-technology contamination, or
-  ensuring rules follow the single-technology principle. Helps maintain clean
-  rule boundaries.
+  Review Claude Code rules for organization, separation of concerns, and
+  rule-vs-skill decisions. Use when auditing rules, checking for cross-technology
+  contamination, evaluating if rules should be skills, or ensuring proper
+  boundaries. Covers tech rules, project rules, and agent configuration.
 ---
 
 # Rules Review
@@ -112,12 +112,13 @@ grep -l "this project\|this codebase\|our app" .claude/rules/patterns/*.md
 |------|---------|---------|
 | `overview.md` | Quick reference | Tech stack, commands, file organization |
 | `architecture.md` | System design | Routes, data flow, integrations |
+| `infrastructure.md` | Database/services | Schema separation, client configuration |
 | `testing.md` | Test setup | Fixtures, utilities, test user management |
-| `environment.md` | Setup | Env vars, credentials, external services |
-| `troubleshooting.md` | Common issues | Debugging tips, known gotchas |
 | `code-review.md` | Review checklist | Project-specific review criteria |
 
 Not all projects need every file - create based on complexity.
+
+**Note:** Setup instructions (`environment.md`) and troubleshooting guides are better as skills since they're on-demand workflows, not always-needed context.
 
 ### Signs of Misplaced Content
 
@@ -126,6 +127,82 @@ Not all projects need every file - create based on complexity.
 | `tech/*.md` | References to "our database schema" | `project/architecture.md` |
 | `patterns/*.md` | "In this project we..." | `project/overview.md` |
 | `meta/*.md` | Project URLs, credentials | `project/environment.md` |
+
+## Rules vs Skills Analysis
+
+Evaluate whether each rule should remain a rule or become a skill.
+
+### Decision Criteria
+
+| Factor | Rule (Always Loaded) | Skill (On-Demand) |
+|--------|---------------------|-------------------|
+| **Frequency** | Needed for most tasks | Needed occasionally |
+| **Content type** | Patterns, conventions, constraints | Workflows, step-by-step processes |
+| **Context** | Shapes how code is written | Guides specific operations |
+| **Size** | Any size if always relevant | Large files waste context if rarely used |
+
+### Questions to Ask
+
+For each rule file, ask:
+
+1. **Is this needed for typical coding tasks?** If no → candidate for skill
+2. **Is this a workflow with steps?** If yes → should be a skill
+3. **Does it reference external tools/commands primarily?** If yes → likely a skill
+4. **Would an agent need this for most implementations?** If no → candidate for skill
+
+### Common Patterns
+
+| Pattern | Likely Should Be | Example |
+|---------|------------------|---------|
+| Setup instructions | Skill | Environment setup, project onboarding |
+| Git subtree/submodule workflows | Skill | Content syncing, dependency management |
+| Troubleshooting guides | Rule (small) or Skill (large) | Common issues reference |
+| External service workflows | Skill | Deployment, CI/CD, migrations |
+| Code conventions | Rule | Naming, structure, patterns |
+| Architecture decisions | Rule | Data flow, component organization |
+
+### Review Process
+
+```bash
+# List project rules with line counts
+wc -l .claude/rules/project/*.md | sort -n
+```
+
+For each file, evaluate:
+
+```markdown
+## `filename.md`
+
+**Lines:** X
+**Purpose:** [brief description]
+
+**Frequency analysis:**
+- Needed for typical coding? Yes/No
+- Workflow-based content? Yes/No
+- External tool focus? Yes/No
+
+**Verdict:** RULE / SKILL / SPLIT
+
+**If SKILL:** Suggested skill name: `/skill-name`
+```
+
+### Converting Rules to Skills
+
+When a rule should become a skill, use `/skill-writer` to create it properly:
+
+```
+/skill-writer
+```
+
+The skill-writer will:
+1. Create the skill folder and SKILL.md with proper frontmatter
+2. Structure the content as a workflow
+3. Handle naming conventions
+
+After skill creation:
+1. Remove the old rule file
+2. Update any references (CLAUDE.md, agent bundles)
+3. Rebuild agents if needed
 
 ## Agent Configuration Review
 
