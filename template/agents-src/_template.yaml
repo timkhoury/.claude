@@ -1,0 +1,71 @@
+# Template Agent Configuration
+# This file contains reusable definitions for agent generation.
+# Syncs from ~/.claude/template/ - template-controlled.
+#
+# Project-specific rules go in _project.yaml (not synced to template).
+# Project rules are prepended to template bundles during build.
+
+defaults:
+  model: inherit
+
+# Reusable skill sets
+skillSets:
+  implementation:
+    - gitbutler
+
+# Reusable tool sets
+toolSets:
+  # Read-only tools for validators/reviewers
+  readOnly:
+    - Read
+    - Bash
+    - Grep
+    - Glob
+
+# File includes - folder-based with auto-discovery
+# Trailing / indicates folder (auto-discovers all .md files)
+# kebab-case files map to camelCase: nextjs-supabase.md -> $includes.tech.nextjsSupabase
+includes:
+  # Folders (auto-discover all .md files)
+  tech: "@/.claude/rules/tech/"
+  testing: "@/.claude/rules/tech/testing/"
+  patterns: "@/.claude/rules/patterns/"
+  project: "@/.claude/rules/project/"
+  meta: "@/.claude/rules/meta/"
+
+  # Individual files (for non-folder includes)
+  baseline: "@/.claude/baseline-agent.md"
+  claudeMd: "@/CLAUDE.md"
+
+# Rule bundles for different agent types
+# Template bundles contain only tech, patterns, meta rules.
+# Project-specific rules ($includes.project.*) go in _project.yaml.
+ruleBundles:
+  # Full implementation rules for task-implementer
+  implementation:
+    - $includes.tech
+    - $includes.patterns
+
+  # Rules for code reviewers (validates against these)
+  review:
+    - $includes.tech
+    - $includes.patterns
+
+  # Rules for planners (need full context to make architectural decisions)
+  planning:
+    - $includes.tech
+    - $includes.patterns
+
+  # Minimal rules for testers
+  testing:
+    - $includes.patterns.testing
+    - $includes.testing
+
+# Color conventions for agent visual identification
+colors:
+  implementation: green
+  planning: cyan
+  review: blue
+  testing: yellow
+  security: red
+  creative: magenta

@@ -1,10 +1,8 @@
 ---
 name: project-setup
 description: >
-  Initialize Claude Code configuration for a new project. Copies template structure,
-  installs and configures tools (GitButler, Beads, OpenSpec), creates scaffolded
-  rule files, and parameterizes templates. Use when setting up a new project,
-  saying "setup project", "initialize claude", or "configure claude code".
+  Initialize Claude Code config for new projects. Copies template,
+  configures tools (GitButler, Beads, OpenSpec), scaffolds rules.
 ---
 
 # Project Setup

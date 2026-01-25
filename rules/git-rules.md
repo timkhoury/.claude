@@ -2,6 +2,10 @@
 
 > NEVER use `git commit` or `git push` directly. Use GitButler (`but`) commands.
 
+## Prerequisite
+
+**Always invoke the `gitbutler` skill before using `but` commands.** The skill loads GitButler-specific context and ensures correct command usage.
+
 ## Mandatory Commands
 
 | Instead of | Use |
@@ -12,12 +16,9 @@
 
 ## Critical Rules
 
-1. **Invoke gitbutler skill** before any git/commit operations for full workflow guidance
-2. **Run `but status` after every action** - file IDs shift after commits
-3. **Use `--only` flag** when committing: `but commit <branch> --only -m "..."`
-4. **Single-line commit messages** - no body, no footers, no Co-Authored-By
-5. **NEVER push after committing** - only push when explicitly requested or at session end
-6. **Use `git mv` for file moves** - preserves history (this is the one `git` command allowed)
+1. **Single-line commit messages** - no body, no footers, no Co-Authored-By
+2. **NEVER push after committing** - only push when explicitly requested or at session end
+3. **Use `git mv` for file moves** - preserves history (this is the one `git` command allowed)
 
 ## Commit Message Format
 
@@ -28,7 +29,7 @@
 
 | Never Do | Use Instead |
 |----------|-------------|
-| `git commit` | `but commit <branch> --only -m "..."` |
-| `git push` | `but push <branch>` |
-| `but commit` without `--only` | Always include `--only` flag |
-| Push after every commit | Batch commits, push at session end |
+| `but undo` | `but restore <snapshot-id>` - undo can lose work |
+| `but reword <id>` without `-m` | Always use `-m "message"` - avoids interactive editor |
+| `but pr new` | `gh pr create` - avoids interactive editor |
+| Chain `but stage` with `&&` | Use `bulk-stage.sh` - IDs shift after each stage |

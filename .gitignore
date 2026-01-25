@@ -12,6 +12,7 @@ projects/
 session-env/
 shell-snapshots/
 statsig/
+tasks/
 todos/
 
 cache/

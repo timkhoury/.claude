@@ -6,9 +6,28 @@
  *
  * Features:
  * - Variable substitution ($skillSets.patterns, $colors.review, etc.)
- * - Shared configuration from _shared.yaml
+ * - Split configuration: _template.yaml (shared) + _project.yaml (project-specific)
+ * - Folder-based includes with auto-discovery
  * - Structured examples converted to proper format
  * - Validation of required fields
+ *
+ * Configuration Files:
+ *   _template.yaml - Template-controlled (syncs from ~/.claude/template/)
+ *   _project.yaml  - Project-specific (never syncs, customized locally)
+ *
+ * Merge Strategy:
+ *   - ruleBundles: project rules prepended to template rules
+ *   - skillSets/toolSets: project extends template (object spread)
+ *   - Other fields: template values used (project doesn't override)
+ *
+ * Folder Includes:
+ *   includes:
+ *     tech: "@/.claude/rules/tech/"    # Trailing / = folder
+ *
+ *   ruleBundles:
+ *     implementation:
+ *       - $includes.tech              # All files from folder
+ *       - $includes.tech.vitest       # Specific file from folder
  *
  * Usage:
  *   npx tsx .claude/scripts/build-agents.ts
@@ -21,9 +40,16 @@ import * as yaml from 'yaml';
 // Paths
 const AGENTS_SRC_DIR = path.join(process.cwd(), '.claude', 'agents-src');
 const AGENTS_OUT_DIR = path.join(process.cwd(), '.claude', 'agents');
-const SHARED_CONFIG_PATH = path.join(AGENTS_SRC_DIR, '_shared.yaml');
+const TEMPLATE_CONFIG_PATH = path.join(AGENTS_SRC_DIR, '_template.yaml');
+const PROJECT_CONFIG_PATH = path.join(AGENTS_SRC_DIR, '_project.yaml');
+const PROJECT_ROOT = process.cwd();
 
 // Types
+interface FolderInclude {
+  basePath: string;
+  files: Map<string, string>; // camelCase key -> full path
+}
+
 interface SharedConfig {
   defaults: {
     model: string;
@@ -35,11 +61,136 @@ interface SharedConfig {
   colors: Record<string, string>;
 }
 
+interface ResolvedIncludes {
+  files: Record<string, string>; // Individual file includes
+  folders: Record<string, FolderInclude>; // Folder includes with discovered files
+}
+
 interface AgentExample {
   context: string;
   user: string;
   assistant: string;
   commentary: string;
+}
+
+// Helper: Convert kebab-case to camelCase
+function kebabToCamel(str: string): string {
+  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+}
+
+// Helper: Parse YAML frontmatter from markdown file
+function parseFrontmatter(content: string): Record<string, unknown> {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  try {
+    return yaml.parse(match[1]) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+// Default bundles for project rules (convention-based)
+const DEFAULT_PROJECT_BUNDLES = ['implementation', 'review', 'planning'];
+const ALL_BUNDLES = ['implementation', 'review', 'planning', 'testing'];
+
+// Discover project rules and their bundle assignments from frontmatter
+function discoverProjectRuleBundles(projectFolderPath: string): Record<string, string[]> {
+  const bundleAssignments: Record<string, string[]> = {};
+  const resolvedPath = resolveIncludePath(projectFolderPath);
+
+  if (!fs.existsSync(resolvedPath)) {
+    return bundleAssignments;
+  }
+
+  const entries = fs.readdirSync(resolvedPath);
+  for (const entry of entries) {
+    if (!entry.endsWith('.md')) continue;
+
+    const filePath = path.join(resolvedPath, entry);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const frontmatter = parseFrontmatter(content);
+
+    // Determine bundles: frontmatter > default
+    let bundles: string[];
+    if (frontmatter.bundles === 'all') {
+      bundles = ALL_BUNDLES;
+    } else if (Array.isArray(frontmatter.bundles)) {
+      bundles = frontmatter.bundles as string[];
+    } else {
+      bundles = DEFAULT_PROJECT_BUNDLES;
+    }
+
+    const basename = entry.slice(0, -3); // Remove .md
+    const camelKey = kebabToCamel(basename);
+    const includePath = `$includes.project.${camelKey}`;
+
+    for (const bundle of bundles) {
+      if (!bundleAssignments[bundle]) {
+        bundleAssignments[bundle] = [];
+      }
+      bundleAssignments[bundle].push(includePath);
+    }
+  }
+
+  return bundleAssignments;
+}
+
+// Helper: Resolve @/ path to actual filesystem path
+function resolveIncludePath(includePath: string): string {
+  if (includePath.startsWith('@/')) {
+    return path.join(PROJECT_ROOT, includePath.slice(2));
+  }
+  return includePath;
+}
+
+// Helper: Check if include path is a folder (ends with /)
+function isFolderInclude(includePath: string): boolean {
+  return includePath.endsWith('/');
+}
+
+// Helper: Discover all .md files in a folder
+function discoverFolderFiles(folderPath: string): Map<string, string> {
+  const files = new Map<string, string>();
+  const resolvedPath = resolveIncludePath(folderPath);
+
+  if (!fs.existsSync(resolvedPath)) {
+    console.warn(`Warning: Folder not found: ${resolvedPath}`);
+    return files;
+  }
+
+  const entries = fs.readdirSync(resolvedPath);
+  for (const entry of entries) {
+    if (entry.endsWith('.md')) {
+      const basename = entry.slice(0, -3); // Remove .md extension
+      const camelKey = kebabToCamel(basename);
+      // Store the original @/ path format for the include
+      const fullPath = folderPath + entry;
+      files.set(camelKey, fullPath);
+    }
+  }
+
+  return files;
+}
+
+// Process includes to separate files and folders
+function processIncludes(includes: Record<string, string>): ResolvedIncludes {
+  const result: ResolvedIncludes = {
+    files: {},
+    folders: {},
+  };
+
+  for (const [key, value] of Object.entries(includes)) {
+    if (isFolderInclude(value)) {
+      result.folders[key] = {
+        basePath: value,
+        files: discoverFolderFiles(value),
+      };
+    } else {
+      result.files[key] = value;
+    }
+  }
+
+  return result;
 }
 
 interface AgentDescription {
@@ -59,22 +210,124 @@ interface AgentDefinition {
   body: string;
 }
 
-// Load shared configuration
-function loadSharedConfig(): SharedConfig {
-  if (!fs.existsSync(SHARED_CONFIG_PATH)) {
-    console.error(`Error: Shared config not found at ${SHARED_CONFIG_PATH}`);
+// Load template configuration (required)
+function loadTemplateConfig(): SharedConfig {
+  if (!fs.existsSync(TEMPLATE_CONFIG_PATH)) {
+    console.error(`Error: Template config not found at ${TEMPLATE_CONFIG_PATH}`);
     process.exit(1);
   }
 
-  const content = fs.readFileSync(SHARED_CONFIG_PATH, 'utf-8');
+  const content = fs.readFileSync(TEMPLATE_CONFIG_PATH, 'utf-8');
   return yaml.parse(content) as SharedConfig;
 }
 
+// Load project configuration (optional)
+function loadProjectConfig(): Partial<SharedConfig> {
+  if (!fs.existsSync(PROJECT_CONFIG_PATH)) {
+    return {};
+  }
+
+  const content = fs.readFileSync(PROJECT_CONFIG_PATH, 'utf-8');
+  const parsed = yaml.parse(content);
+  return (parsed ?? {}) as Partial<SharedConfig>;
+}
+
+// Merge template and project configs
+// - ruleBundles: auto-discovered project rules + explicit project rules + template rules
+// - skillSets/toolSets: project extends template
+// - Other fields: template values used
+function mergeConfigs(template: SharedConfig, project: Partial<SharedConfig>): SharedConfig {
+  const merged: SharedConfig = { ...template };
+
+  // Auto-discover project rules from frontmatter
+  const projectFolderPath = template.includes?.project;
+  const autoDiscoveredBundles = projectFolderPath
+    ? discoverProjectRuleBundles(projectFolderPath)
+    : {};
+
+  // Start with template bundles
+  merged.ruleBundles = { ...template.ruleBundles };
+
+  // Prepend auto-discovered project rules
+  for (const [bundle, rules] of Object.entries(autoDiscoveredBundles)) {
+    if (merged.ruleBundles[bundle]) {
+      merged.ruleBundles[bundle] = [...rules, ...merged.ruleBundles[bundle]];
+    } else {
+      merged.ruleBundles[bundle] = rules;
+    }
+  }
+
+  // Then prepend explicit project rules (these go before auto-discovered)
+  if (project.ruleBundles) {
+    for (const [bundle, rules] of Object.entries(project.ruleBundles)) {
+      if (merged.ruleBundles[bundle]) {
+        merged.ruleBundles[bundle] = [...rules, ...merged.ruleBundles[bundle]];
+      } else {
+        merged.ruleBundles[bundle] = rules;
+      }
+    }
+  }
+
+  // Merge skillSets: project extends template
+  if (project.skillSets) {
+    merged.skillSets = { ...template.skillSets, ...project.skillSets };
+  }
+
+  // Merge toolSets: project extends template
+  if (project.toolSets) {
+    merged.toolSets = { ...template.toolSets, ...project.toolSets };
+  }
+
+  return merged;
+}
+
+// Load and merge configurations
+function loadConfigs(): SharedConfig {
+  const template = loadTemplateConfig();
+  const project = loadProjectConfig();
+  return mergeConfigs(template, project);
+}
+
 // Resolve variable references like $skillSets.patterns or $colors.review
-function resolveVariable(value: string, shared: SharedConfig): string | string[] | undefined {
+// Also handles folder includes: $includes.tech (all) or $includes.tech.vitest (specific)
+function resolveVariable(
+  value: string,
+  shared: SharedConfig,
+  resolvedIncludes: ResolvedIncludes,
+): string | string[] | undefined {
   if (!value.startsWith('$')) return value;
 
   const parts = value.slice(1).split('.');
+
+  // Handle includes specially for folder support
+  if (parts[0] === 'includes') {
+    if (parts.length === 2) {
+      const key = parts[1];
+      // Check if it's a folder include
+      if (resolvedIncludes.folders[key]) {
+        // Return all files from the folder
+        return Array.from(resolvedIncludes.folders[key].files.values());
+      }
+      // Otherwise it's an individual file include
+      return resolvedIncludes.files[key];
+    } else if (parts.length === 3) {
+      // $includes.folder.file syntax
+      const [, folderKey, fileKey] = parts;
+      const folder = resolvedIncludes.folders[folderKey];
+      if (folder) {
+        const filePath = folder.files.get(fileKey);
+        if (!filePath) {
+          console.warn(
+            `Warning: File "${fileKey}" not found in folder "${folderKey}". Available: ${Array.from(folder.files.keys()).join(', ')}`,
+          );
+        }
+        return filePath;
+      }
+      console.warn(`Warning: Folder "${folderKey}" not found in includes`);
+      return value;
+    }
+  }
+
   if (parts.length !== 2) {
     console.warn(`Warning: Invalid variable reference: ${value}`);
     return value;
@@ -87,8 +340,6 @@ function resolveVariable(value: string, shared: SharedConfig): string | string[]
       return shared.skillSets[key];
     case 'toolSets':
       return shared.toolSets[key];
-    case 'includes':
-      return shared.includes[key];
     case 'ruleBundles':
       return shared.ruleBundles[key];
     case 'colors':
@@ -100,22 +351,26 @@ function resolveVariable(value: string, shared: SharedConfig): string | string[]
 }
 
 // Resolve all variables in agent definition
-function resolveAgentVariables(agent: AgentDefinition, shared: SharedConfig): AgentDefinition {
+function resolveAgentVariables(
+  agent: AgentDefinition,
+  shared: SharedConfig,
+  resolvedIncludes: ResolvedIncludes,
+): AgentDefinition {
   const resolved = { ...agent };
 
   // Resolve color
   if (typeof resolved.color === 'string' && resolved.color.startsWith('$')) {
-    resolved.color = resolveVariable(resolved.color, shared) as string;
+    resolved.color = resolveVariable(resolved.color, shared, resolvedIncludes) as string;
   }
 
   // Resolve skills
   if (typeof resolved.skills === 'string' && resolved.skills.startsWith('$')) {
-    resolved.skills = resolveVariable(resolved.skills, shared) as string[];
+    resolved.skills = resolveVariable(resolved.skills, shared, resolvedIncludes) as string[];
   }
 
   // Resolve tools
   if (typeof resolved.tools === 'string' && resolved.tools.startsWith('$')) {
-    resolved.tools = resolveVariable(resolved.tools, shared) as string[];
+    resolved.tools = resolveVariable(resolved.tools, shared, resolvedIncludes) as string[];
   }
 
   // Resolve includes
@@ -125,29 +380,36 @@ function resolveAgentVariables(agent: AgentDefinition, shared: SharedConfig): Ag
     const includesArray: string[] =
       typeof resolved.includes === 'string' ? [resolved.includes] : resolved.includes;
 
-    // Resolve variables, flattening ruleBundles that return arrays
-    const resolvedIncludes: string[] = [];
+    // Resolve variables, flattening ruleBundles and folder includes that return arrays
+    const finalIncludes: string[] = [];
     for (const inc of includesArray) {
       if (inc.startsWith('$')) {
-        const resolvedValue = resolveVariable(inc, shared);
+        const resolvedValue = resolveVariable(inc, shared, resolvedIncludes);
         if (Array.isArray(resolvedValue)) {
-          // ruleBundles return arrays of $includes.* references that need further resolution
+          // Could be a ruleBundle (array of $includes.*) or folder include (array of paths)
           for (const nestedInc of resolvedValue) {
             if (typeof nestedInc === 'string' && nestedInc.startsWith('$')) {
-              const finalValue = resolveVariable(nestedInc, shared);
-              resolvedIncludes.push(finalValue as string);
+              // ruleBundle entry - resolve further
+              const finalValue = resolveVariable(nestedInc, shared, resolvedIncludes);
+              if (Array.isArray(finalValue)) {
+                // Folder include expanded to multiple files
+                finalIncludes.push(...finalValue);
+              } else if (finalValue) {
+                finalIncludes.push(finalValue as string);
+              }
             } else {
-              resolvedIncludes.push(nestedInc as string);
+              // Already a path (from folder include)
+              finalIncludes.push(nestedInc as string);
             }
           }
-        } else {
-          resolvedIncludes.push(resolvedValue as string);
+        } else if (resolvedValue) {
+          finalIncludes.push(resolvedValue as string);
         }
       } else {
-        resolvedIncludes.push(inc);
+        finalIncludes.push(inc);
       }
     }
-    resolved.includes = resolvedIncludes;
+    resolved.includes = finalIncludes;
   }
 
   // Apply defaults
@@ -264,9 +526,22 @@ function build(validateOnly = false): void {
       : 'Building agents from YAML definitions...\n',
   );
 
-  // Load shared config
-  const shared = loadSharedConfig();
-  console.log('✓ Loaded shared configuration');
+  // Load and merge configs
+  const shared = loadConfigs();
+  const hasProjectConfig = fs.existsSync(PROJECT_CONFIG_PATH);
+  console.log(`✓ Loaded configuration (template${hasProjectConfig ? ' + project' : ''})`);
+
+  // Process includes to discover folder contents
+  const resolvedIncludes = processIncludes(shared.includes);
+  const folderCount = Object.keys(resolvedIncludes.folders).length;
+  const fileCount = Object.keys(resolvedIncludes.files).length;
+  let totalFilesInFolders = 0;
+  for (const folder of Object.values(resolvedIncludes.folders)) {
+    totalFilesInFolders += folder.files.size;
+  }
+  console.log(
+    `✓ Processed includes: ${fileCount} files, ${folderCount} folders (${totalFilesInFolders} files discovered)`,
+  );
 
   // Find all agent YAML files
   const files = fs.readdirSync(AGENTS_SRC_DIR).filter((f) => {
@@ -303,7 +578,7 @@ function build(validateOnly = false): void {
       }
 
       // Resolve variables
-      const resolved = resolveAgentVariables(agent, shared);
+      const resolved = resolveAgentVariables(agent, shared, resolvedIncludes);
 
       // Generate markdown
       const markdown = generateAgentMarkdown(resolved);

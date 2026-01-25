@@ -1,10 +1,9 @@
 ---
 name: project-sync
 description: >
-  Compare project Claude Code config against global template and apply updates.
-  Use when saying "sync project", "update claude config", "check for template updates",
-  or after updating ~/.claude/template/ to propagate changes to projects.
-allowed-tools: [Bash]
+  Sync project .claude/ with ~/.claude/template/. Detects technologies
+  to copy only relevant rules.
+allowed-tools: [Bash, AskUserQuestion]
 ---
 
 # Project Sync
@@ -14,42 +13,105 @@ Sync project `.claude/` with `~/.claude/template/` using the deterministic sync 
 ## Usage
 
 ```bash
-~/.claude/skills/project-sync/sync-project.sh [--auto|--report|--force]
+~/.claude/skills/project-sync/sync-project.sh
 ```
 
-| Flag | Behavior |
-|------|----------|
-| (none) | Same as `--auto` |
-| `--auto` | Apply all safe updates, skip protected files |
-| `--report` | Show what would change, no modifications |
-| `--force` | Update everything including protected (dangerous) |
+The script is **report-only** - it shows what differs between template and project but makes no changes. Claude reads the report and decides which files to copy using Read/Write tools.
+
+## Technology Detection
+
+The script uses `~/.claude/scripts/detect-technologies.sh` to determine which tech rules to sync:
+
+| Detection Method | Examples |
+|-----------------|----------|
+| package.json dependencies | `next`, `@supabase/supabase-js`, `tailwindcss` |
+| Config files | `next.config.js`, `vitest.config.ts`, `playwright.config.ts` |
+| Directories | `supabase/`, `components/ui/` |
+
+**Only rules for detected technologies are synced.** When a technology is removed from a project, its rules become "unused".
 
 ## Tool Detection
 
-The script detects enabled tools by directory existence:
+The script also detects workflow tools by directory existence:
 
 | Directory | Detected Tool | Files Synced |
 |-----------|---------------|--------------|
-| `.beads/` | Beads | `beads-workflow.md`, `beads-cleanup/`, `work.md`, `status.md` |
-| `openspec/` | OpenSpec | `openspec.md` |
-| Both | Beads + OpenSpec | `workflow-integration.md`, `wrap.md` |
+| `.beads/` | Beads | `workflow/beads-workflow.md`, `beads-cleanup/`, `work.md`, `status.md` |
+| `openspec/` | OpenSpec | `workflow/openspec.md` |
+| Both | Beads + OpenSpec | `workflow/workflow-integration.md`, `wrap.md` |
 
-**Files for disabled tools are skipped**, not copied. This matches what `project-setup` does during initial setup.
+**Files for disabled tools are skipped**, not copied.
 
-## Quick Sync
+## Folder Structure
+
+Template rules are organized in folders:
+
+```
+~/.claude/template/rules/
+├── workflow/     # Beads, OpenSpec, session management
+├── tech/         # Technology-specific (Next.js, Supabase, etc.)
+├── patterns/     # Cross-cutting patterns (data retention, organization)
+└── meta/         # Process rules (research, documentation lookup)
+```
+
+The sync script handles nested folders automatically. Project-specific rules should go in `.claude/rules/project/` which is NOT synced from template.
+
+## Pruning Unused Rules
+
+When technologies are removed from a project, the sync script identifies orphaned rules in the "Unused" section:
+
+```
+Unused (tech not detected):
+  - rules/tech/vue.md
+  - rules/tech/angular.md
+
+Note: Remove unused rules manually if desired.
+```
+
+**The script does not auto-remove files.** When you see unused rules:
+
+1. Review the list - confirm the technology is truly no longer used
+2. If removing, use AskUserQuestion to confirm with the user:
+
+```
+Which unused rules should be removed?
+- [ ] rules/tech/vue.md (vue not detected)
+- [ ] rules/tech/angular.md (angular not detected)
+- [ ] Keep all
+```
+
+3. Remove confirmed files: `rm .claude/rules/tech/vue.md`
+
+**Rules in `rules/project/` are never flagged as unused** - they're project-specific and not tied to technology detection.
+
+## Running the Script
 
 ```bash
 ~/.claude/skills/project-sync/sync-project.sh
 ```
 
-This will:
-1. Detect enabled tools (beads, openspec)
-2. Compare relevant template files with project
-3. Update outdated files
-4. Add missing files
-5. Skip tool-specific files if tool not enabled
-6. Skip protected files (CLAUDE.md, _shared.yaml)
-7. Show summary
+The script reports:
+1. Detected technologies (package.json, config files, directories)
+2. Detected tools (beads, openspec)
+3. **Updated** - Files that differ from template
+4. **Added** - Files missing from project
+5. **Skipped** - Files for undetected technologies/tools
+6. **Protected** - Files that need manual review (CLAUDE.md, _project.yaml)
+7. **Unused** - Rules in project for technologies no longer detected
+
+## After Running
+
+Review the report and copy files as needed:
+
+```bash
+# Read a file that needs updating
+cat ~/.claude/template/rules/tech/nextjs.md
+
+# Copy it to project
+cp ~/.claude/template/rules/tech/nextjs.md .claude/rules/tech/nextjs.md
+```
+
+Or use Claude's Read/Write tools to selectively copy files based on the report.
 
 ## Protected Files
 
@@ -74,6 +136,11 @@ npm run build:agents                # If agent YAMLs changed (script auto-adds n
 but stage <file-id> <branch>        # Stage changed files
 but commit <branch> --only -m "chore: sync claude config"
 ```
+
+**Consider running `/rules-review`** if:
+- New tech rules were synced (verify no project content leaked into tech rules)
+- Project has grown significantly since last review
+- Rules feel disorganized or overlapping
 
 ## Design Philosophy
 

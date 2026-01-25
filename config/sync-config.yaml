@@ -23,6 +23,7 @@ always:
     - quality/
     - workflow/
     - automation/
+    - meta/
 
 # Technology-specific rules
 technologies:
@@ -46,6 +47,8 @@ technologies:
         - supabase/
     rules:
       - tech/supabase.md
+    skills:
+      - tech/supabase-advisors/
 
   tailwind:
     detect:
