@@ -13,7 +13,7 @@ Aggregate dashboard for all review skills with cadence-based recommendations.
 
 | Review | Cadence | Scope | Purpose |
 |--------|---------|-------|---------|
-| template-review | Every run | Global | Template structure and sync-config integrity |
+| template-review | 7 days | Global | Template structure and sync-config integrity |
 | rules-review | 7 days | Project | Rule organization and separation of concerns |
 | skills-review | 7 days | Project | Skill context efficiency |
 | settings-updater | 7 days | Project | Permission promotion to global settings |
@@ -46,7 +46,7 @@ Display a summary table:
 
 | Review | Last Run | Status |
 |--------|----------|--------|
-| template-review | never | Due (run every session) |
+| template-review | 10 days | Due (3 days overdue) |
 | rules-review | 10 days | Due (3 days overdue) |
 | skills-review | 5 days | OK (2 days remaining) |
 | spec-review | 20 days | Due (6 days overdue) |

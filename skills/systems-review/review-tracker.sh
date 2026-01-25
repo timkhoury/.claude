@@ -20,7 +20,7 @@ PROJECT_FILE="./.systems-review.json"
 
 # Cadences in days
 declare -A CADENCES=(
-    ["template-review"]=0     # Every run
+    ["template-review"]=7
     ["rules-review"]=7
     ["skills-review"]=7
     ["spec-review"]=14
