@@ -69,6 +69,8 @@ Testing-related rules live in `tech/testing/`. Naming depends on whether the tec
 
 **Why the suffix?** It distinguishes testing patterns for a technology from its general usage patterns. `supabase.md` covers clients, RLS, and queries; `supabase-testing.md` covers test cleanup and fixtures.
 
+**Agent configuration:** The `tech/testing/` folder is configured as a separate include (`$includes.testing`) in `_template.yaml`, not auto-discovered under `$includes.tech`. This allows the `testing` bundle to include only testing-related rules while other bundles get the full `tech/` folder.
+
 ## Rules vs Skills
 
 | Use | When |

@@ -79,12 +79,13 @@ function kebabToCamel(str: string): string {
 }
 
 // Helper: Parse YAML frontmatter from markdown file
-function parseFrontmatter(content: string): Record<string, unknown> {
+function parseFrontmatter(content: string, filePath?: string): Record<string, unknown> {
   const match = content.match(/^---\n([\s\S]*?)\n---/);
   if (!match) return {};
   try {
     return yaml.parse(match[1]) as Record<string, unknown>;
-  } catch {
+  } catch (e) {
+    console.warn(`Warning: Failed to parse frontmatter${filePath ? ` in ${filePath}` : ''}`);
     return {};
   }
 }
@@ -108,7 +109,7 @@ function discoverProjectRuleBundles(projectFolderPath: string): Record<string, s
 
     const filePath = path.join(resolvedPath, entry);
     const content = fs.readFileSync(filePath, 'utf-8');
-    const frontmatter = parseFrontmatter(content);
+    const frontmatter = parseFrontmatter(content, filePath);
 
     // Determine bundles: frontmatter > default
     let bundles: string[];
