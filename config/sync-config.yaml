@@ -20,7 +20,7 @@ always:
     - workflow/
   skills:
     - authoring/
-    - quality/
+    - quality/skills-review/
     - workflow/
     - automation/
     - meta/
@@ -153,10 +153,9 @@ tools:
     rules:
       - workflow/beads-workflow.md
     skills:
-      - workflow/beads-cleanup/
+      - tools/beads/beads-cleanup/
       - workflow/work/
     commands:
-      - work.md
       - status.md
 
   openspec:
@@ -167,6 +166,7 @@ tools:
       - workflow/openspec.md
     skills:
       - quality/rules-review/
+      - tools/openspec/spec-review/
     commands:
       - openspec/proposal.md
       - openspec/apply.md

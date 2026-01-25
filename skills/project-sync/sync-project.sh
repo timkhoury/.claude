@@ -229,8 +229,12 @@ while IFS= read -r file; do
   template_file="$file"
 
   # Flatten categorized skills: skills/{category}/foo/ -> skills/foo/
+  # Also flatten tools: skills/tools/{tool}/foo/ -> skills/foo/
   flat_rel_path="$rel_path"
-  if [[ "$rel_path" =~ ^skills/(authoring|quality|workflow|automation|meta|tech)/([^/]+/.+)$ ]]; then
+  if [[ "$rel_path" =~ ^skills/tools/[^/]+/([^/]+/.+)$ ]]; then
+    # skills/tools/beads/beads-cleanup/SKILL.md -> skills/beads-cleanup/SKILL.md
+    flat_rel_path="skills/${BASH_REMATCH[1]}"
+  elif [[ "$rel_path" =~ ^skills/(authoring|quality|workflow|automation|meta|tech)/([^/]+/.+)$ ]]; then
     flat_rel_path="skills/${BASH_REMATCH[2]}"
   fi
   project_file="$PROJECT_DIR/$flat_rel_path"
