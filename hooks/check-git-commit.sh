@@ -12,7 +12,7 @@ command=$(echo "$input" | jq -r '.tool_input.command // empty')
 
 # Check if command contains "git commit"
 if [[ "$command" =~ git[[:space:]]+commit ]]; then
-  echo "Use 'but commit <branch> --only -m \"message\"' instead of 'git commit'. GitButler manages commits for this project."
+  echo "Use 'but commit <branch> --only -m \"message\"' instead of 'git commit'. GitButler manages commits for this project." >&2
   exit 2
 fi
 
