@@ -16,23 +16,14 @@
 
 set -eo pipefail
 
-# Source shared library
+# Source shared libraries
 source "$HOME/.claude/scripts/lib/common.sh"
+source "$HOME/.claude/scripts/lib/sync-common.sh"
 
-TEMPLATE_DIR="$HOME/.claude/template"
-PROJECT_DIR=".claude"
+# Script-specific paths
 DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
 
-# Protected files (never auto-update, but shown in report)
-# _project.yaml is project-specific (never synced to template)
-# _template.yaml IS synced (template-controlled)
-PROTECTED_PATTERNS="CLAUDE.md|agents-src/_project.yaml"
-
 # Excluded files (skip entirely, not synced to projects)
-# - README.md: template documentation
-# - rules/project/: project-specific rules
-# - skills/project/: project-specific skills
-# Note: agents-src/_template.yaml synced, _project.yaml protected
 EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
 
 # Detect enabled tools (for workflow files)
@@ -108,13 +99,13 @@ added_files=$(mktemp)
 protected_files=$(mktemp)
 skipped_files=$(mktemp)
 unused_files=$(mktemp)
-# shellcheck disable=SC2064 # Variables are intentionally expanded at trap definition time
+# shellcheck disable=SC2064
 trap "rm -f $updated_files $added_files $protected_files $skipped_files $unused_files" EXIT
 
-# Check if file is protected
-is_protected() {
+# Extended is_protected check (adds PROJECT-SPECIFIC marker check)
+is_protected_extended() {
   local file="$1"
-  if echo "$file" | grep -qE "^($PROTECTED_PATTERNS)$"; then
+  if is_protected "$file"; then
     return 0
   fi
   # Also check for PROJECT-SPECIFIC marker
@@ -139,7 +130,6 @@ should_sync_tech_rule() {
   fi
 
   # Detection script outputs "tech/x.md", template has "rules/tech/x.md"
-  # Strip "rules/" prefix for comparison
   local tech_path="${file#rules/}"
 
   # Check if this rule is in the detected list
@@ -165,9 +155,7 @@ should_sync_tech_skill() {
   fi
 
   # Detection script outputs "tech/x/", template has "skills/tech/x/"
-  # Strip "skills/" prefix for comparison
   local skill_path="${file#skills/}"
-  # Extract the skill folder name (tech/x-skill/)
   local skill_folder="${skill_path%/*}/"
 
   # Check if this skill is in the detected list
@@ -228,15 +216,8 @@ while IFS= read -r file; do
   rel_path="${file#"$TEMPLATE_DIR"/}"
   template_file="$file"
 
-  # Flatten categorized skills: skills/{category}/foo/ -> skills/foo/
-  # Also flatten tools: skills/tools/{tool}/foo/ -> skills/foo/
-  flat_rel_path="$rel_path"
-  if [[ "$rel_path" =~ ^skills/tools/[^/]+/([^/]+/.+)$ ]]; then
-    # skills/tools/beads/beads-cleanup/SKILL.md -> skills/beads-cleanup/SKILL.md
-    flat_rel_path="skills/${BASH_REMATCH[1]}"
-  elif [[ "$rel_path" =~ ^skills/(authoring|quality|workflow|automation|meta|tech)/([^/]+/.+)$ ]]; then
-    flat_rel_path="skills/${BASH_REMATCH[2]}"
-  fi
+  # Flatten skill path for project
+  flat_rel_path=$(flatten_skill_path "$rel_path")
   project_file="$PROJECT_DIR/$flat_rel_path"
 
   # Check if excluded (skip entirely)
@@ -253,20 +234,18 @@ while IFS= read -r file; do
 
   # Check if tech rule should be synced based on detection
   if ! should_sync_tech_rule "$rel_path"; then
-    # Tech rule not needed - skip adding to project
     ((count_skipped++)) || true
     continue
   fi
 
   # Check if tech skill should be synced based on detection
   if ! should_sync_tech_skill "$rel_path"; then
-    # Tech skill not needed - skip adding to project
     ((count_skipped++)) || true
     continue
   fi
 
   # Check if protected
-  if is_protected "$rel_path"; then
+  if is_protected_extended "$rel_path"; then
     if [[ -f "$project_file" ]]; then
       if ! diff -q "$template_file" "$project_file" >/dev/null 2>&1; then
         echo "$rel_path" >> "$protected_files"
@@ -292,10 +271,9 @@ while IFS= read -r file; do
   # Files differ - would update
   echo "$flat_rel_path" >> "$updated_files"
   ((count_updated++)) || true
-done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" -o -name "*.sh" \) | sort)
+done < <(find_syncable_files "$TEMPLATE_DIR")
 
 # Note _project.yaml if missing (starter template for project-specific rules)
-# This is protected so it won't be updated, but it should be created if missing
 if [[ ! -f "$PROJECT_DIR/agents-src/_project.yaml" ]] && [[ -f "$TEMPLATE_DIR/agents-src/_project.yaml" ]]; then
   echo "agents-src/_project.yaml (starter template)" >> "$added_files"
   ((count_added++)) || true
@@ -305,8 +283,6 @@ fi
 if [[ -n "$DETECTED_RULES" ]] && [[ -d "$PROJECT_DIR/rules/tech" ]]; then
   while IFS= read -r project_tech_file; do
     rel_path="${project_tech_file#"$PROJECT_DIR"/}"
-    # Detection script outputs "tech/x.md", project has "rules/tech/x.md"
-    # Convert for comparison
     tech_path="${rel_path#rules/}"
 
     # Check if this rule is in the detected list
