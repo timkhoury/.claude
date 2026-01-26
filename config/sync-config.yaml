@@ -20,7 +20,7 @@ always:
     - workflow/
   skills:
     - authoring/
-    - quality/skills-review/
+    - quality/
     - workflow/
     - automation/
 
@@ -164,7 +164,6 @@ tools:
     rules:
       - workflow/openspec.md
     skills:
-      - quality/rules-review/
       - tools/openspec/spec-review/
     commands:
       - openspec/proposal.md

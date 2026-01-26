@@ -171,7 +171,7 @@ while IFS= read -r template_file; do
   # Files differ - this is a candidate for sync
   echo "$rel_path" >> "$changed_files"
   ((count_would_update++)) || true
-done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) | sort)
+done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" -o -name "*.sh" \) | sort)
 
 # Find NEW files in template-worthy directories (not yet in template)
 while IFS= read -r project_file; do

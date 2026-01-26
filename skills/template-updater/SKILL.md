@@ -54,14 +54,27 @@ The script reports:
 
 ## After Running
 
-Review the report and copy files as needed:
+### 1. Sync Changed Files
+
+Copy all files listed as "Changed" to the template.
+
+### 2. Sync Additional Skill Files
+
+For skills that exist in the template, **sync ALL files in the skill directory**, not just SKILL.md. This includes reference files like `PATTERNS.md`, `REFERENCE.md`, `CHECKLIST.md`, and helper scripts.
+
+**How to identify template skills:** Check if the skill directory exists in `~/.claude/template/skills/`. If it does, sync all files from the project skill directory.
+
+**Project-specific skills** (don't sync): Skills like `content-sync/`, `env-setup/`, `troubleshoot/` that only exist in the project and handle project-specific concerns.
+
+### 3. Copy Files
 
 ```bash
-# Copy an improved skill to template
-cp .claude/skills/rules-review/SKILL.md ~/.claude/template/skills/quality/rules-review/SKILL.md
+# Copy all files in a skill directory
+cp .claude/skills/rules-review/*.md ~/.claude/template/skills/quality/rules-review/
+cp .claude/skills/rules-review/*.sh ~/.claude/template/skills/quality/rules-review/
 ```
 
-Or use Claude's Read/Write tools to selectively copy files based on the report.
+Or use Claude's Read/Write tools to copy files based on the report.
 
 ## After Sync
 
