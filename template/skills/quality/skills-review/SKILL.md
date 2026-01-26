@@ -106,6 +106,23 @@ description: >
 | Inline tables >20 rows | Context bloat | Extract to PATTERNS.md |
 | "Use this tool to..." prefix | Wasted chars | Start with action verb |
 
+## Description Quality Checks
+
+Good descriptions follow the WHAT + WHEN pattern for discoverability.
+
+| Check | Requirement | Why |
+|-------|-------------|-----|
+| Length | 20-100 tokens | Too short = vague; too long = noise |
+| Trigger scenarios | Contains "Use when..." | Claude needs activation cues |
+| Action verb | Starts with third-person verb | POV consistency in system prompt |
+| Keywords | Includes user-facing terms | Natural language discovery |
+
+**Red flags** (review manually after running `analyze-skills.sh`):
+- Description < 20 words (too vague for reliable activation)
+- No "Use when" or trigger phrases (Claude can't select correctly)
+- First-person language ("I will help you...")
+- Generic terms without domain specifics ("Helper for stuff")
+
 ## After Completion
 
 Record this review:

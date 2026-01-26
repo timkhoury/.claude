@@ -34,19 +34,31 @@ Standards for creating and maintaining Claude Code skills.
 
 ### 3. Description is Critical
 
-The `description` field determines when Claude auto-activates the skill. Be specific about triggers and use cases.
+The `description` field determines when Claude auto-activates the skill. Claude uses it to select from 100+ available skills.
+
+| Practice | Why |
+|----------|-----|
+| Write in third person | Injected into system prompt; POV consistency aids discovery |
+| Include WHAT + WHEN | Claude needs function AND trigger scenarios to select correctly |
+| Use keywords users would say | Enables discovery from natural language |
+| Keep concise (~100 tokens) | Progressive disclosure; full content loads on activation |
+
+**Pattern:**
+```
+[What it does]. Use when [trigger 1], [trigger 2], or [trigger 3].
+```
 
 **Good:**
 ```yaml
 description: >
-  Quick reference for UI patterns, semantic color tokens, and component library.
-  Use when choosing components, selecting colors, ensuring accessibility, or
-  implementing responsive layouts.
+  Creates architecture decision records following project conventions.
+  Use when documenting technical decisions, recording architectural choices,
+  or when user says "create ADR" or "document decision".
 ```
 
 **Bad:**
 ```yaml
-description: Helper for UI stuff.
+description: ADR helper.  # Too vague, no triggers
 ```
 
 ### 4. Token Efficiency
@@ -83,6 +95,48 @@ allowed-tools: [Read, Glob, Grep]  # Optional: restrict tools
 See `docs/RELATED.md` for detailed documentation.
 ```
 
+## Skills Directory Structure
+
+**Template** (categorized for organization):
+
+```
+~/.claude/template/skills/
+├── authoring/      # Content creation (ADRs, agents, skills, rules)
+├── quality/        # Code review, spec validation, testing patterns
+├── workflow/       # Task management, issue tracking, process automation
+├── automation/     # Browser testing, dependency updates, background processes
+└── tech/           # Technology-specific (conditional sync based on detection)
+```
+
+**Project** (flat - categories stripped on sync):
+
+```
+.claude/skills/
+├── adr-writer/           # From authoring/
+├── pr-check/             # From quality/
+├── work/                 # From workflow/
+├── supabase-advisors/    # From tech/ (if detected)
+└── my-project-skill/     # Project-specific (never synced)
+```
+
+### Template vs Global Isolation
+
+**Template skills must never reference global skills.**
+
+| Location | Syncs to Projects | Can Reference |
+|----------|-------------------|---------------|
+| `~/.claude/template/skills/` | Yes | Template skills/scripts only |
+| `~/.claude/skills/` | No | Global or template skills |
+
+**Why:** Template skills sync to project `.claude/skills/`. Collaborators won't have your global skills.
+
+### Naming Conventions
+
+- Descriptive names indicate purpose (`adr-writer`, `pr-check`, `spec-review`)
+- Prefix when needed for clarity (`deps-updater` not just `updater`)
+- Categories flattened on sync to projects
+- Tech-specific skills sync only when technology detected
+
 ## YAML Frontmatter
 
 ### Required Fields
@@ -101,27 +155,15 @@ See `docs/RELATED.md` for detailed documentation.
 
 **Note:** Skills do NOT use `color` fields (those are for agents).
 
-## Description Best Practices
+## Description Checklist
 
-Include these elements:
+Before finalizing a description, verify:
 
-1. **What it does** - Concise function description
-2. **When to use** - Specific trigger conditions
-3. **Topics covered** - Scope and boundaries
-
-**Formula:**
-```
-[What the skill provides]. Use when [trigger 1], [trigger 2], or [trigger 3].
-Covers [topic 1], [topic 2], and [topic 3].
-```
-
-**Example:**
-```yaml
-description: >
-  Review functional requirements against actual code implementation.
-  Use when auditing specs for accuracy, finding spec drift, or validating
-  requirement compliance. Tracks progress for pause/resume.
-```
+- [ ] Starts with action verb (third person)
+- [ ] Includes "Use when" trigger scenarios
+- [ ] Contains keywords users would say
+- [ ] Under ~100 tokens (concise)
+- [ ] No "Use this tool to..." prefix (wasted chars)
 
 ## Content Patterns
 
