@@ -1,8 +1,9 @@
 ---
 name: sync
 description: >
-  Bidirectional sync between project and template.
+  Synchronize project and template configurations bidirectionally.
   Runs template-updater then project-sync in correct order.
+  Use when syncing changes between project .claude/ and ~/.claude/template/.
 allowed-tools: [Bash, Read, Write, AskUserQuestion]
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: claude-md-editor
-description: Use when editing or modifying CLAUDE.md, project documentation files, or when user asks about documentation best practices. Auto-activates for documentation maintenance tasks.
+description: Edit and maintain CLAUDE.md and project documentation files. Use when modifying documentation, asking about best practices, or performing documentation maintenance tasks.
 ---
 
 # CLAUDE.md Writing Guidelines

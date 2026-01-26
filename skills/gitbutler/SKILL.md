@@ -1,6 +1,6 @@
 ---
 name: gitbutler
-description: Invoke BEFORE any git/but commands - branches, commits, pushes, status, PR creation. Don't use but/git commands without this skill.
+description: Manage git operations through GitButler virtual branches. Use when working with branches, commits, pushes, status checks, or PR creation. Invoke before any git/but commands.
 ---
 
 # GitButler Workflow

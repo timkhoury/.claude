@@ -292,7 +292,7 @@ while IFS= read -r file; do
   # Files differ - would update
   echo "$flat_rel_path" >> "$updated_files"
   ((count_updated++)) || true
-done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) | sort)
+done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" -o -name "*.sh" \) | sort)
 
 # Note _project.yaml if missing (starter template for project-specific rules)
 # This is protected so it won't be updated, but it should be created if missing
