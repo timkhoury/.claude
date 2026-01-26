@@ -8,36 +8,51 @@ description: >
 
 # Review Skill
 
-Reviews branch changes against main, producing PR-style feedback.
+Reviews GitButler branch changes, producing PR-style feedback.
 
 ## Syntax
 
 ```
-/review              # All workspace changes vs main
-/review <branch>     # Specific GitButler branch vs main
+/review              # Auto-detect branch from context or first with commits
+/review <branch>     # Specific GitButler branch
 ```
 
 ## Workflow
 
-### Step 1: Get the Diff
+### Step 1: Determine Which Branch to Review
 
-Determine the scope of changes to review:
+**Always use GitButler commands, never `git diff` or `gh pr diff`.**
 
-| Argument | Diff Command |
-|----------|--------------|
-| None | `git diff main...HEAD` (all workspace changes) |
-| `<branch>` | `but diff <branch>` (specific GitButler branch) |
+| Argument | Action |
+|----------|--------|
+| `<branch>` | Use `but diff <branch>` directly |
+| None | Infer branch (see below) |
 
-### Step 2: Invoke Code-Reviewer Agent
+**Branch inference when no argument provided:**
 
-Pass the diff scope to the code-reviewer agent:
+1. **Check session context** - Look at files you've modified this session. Match them against branches via `but status` to identify the relevant branch.
 
+2. **Fall back to branch discovery** - If no context clues:
+   ```bash
+   but branch list
+   ```
+   Find the first branch with actual commits (not just changes) and review that one.
+
+3. **Report what you're reviewing** - Always tell the user which branch you selected and why.
+
+### Step 2: Get the Diff and Invoke Code-Reviewer Agent
+
+Get the diff using GitButler, then pass to the code-reviewer agent:
+
+```bash
+but diff <branch>
 ```
+
 Invoke the code-reviewer agent with:
-- Scope: [branch name or "all workspace changes"]
+- Scope: [branch name]
+- Diff: [output from `but diff`]
 - Files: [list from diff --stat]
-- Context: Branch diff vs main for PR review
-```
+- Context: Branch diff for PR review
 
 ### Step 3: Display Review
 
