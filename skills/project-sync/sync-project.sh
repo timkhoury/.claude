@@ -87,20 +87,17 @@ fi
 
 # Track counts
 count_up_to_date=0
-count_updated=0
+count_changed=0
 count_added=0
 count_protected=0
 count_skipped=0
 count_unused=0
 
-# Temp files for reporting
-updated_files=$(mktemp)
-added_files=$(mktemp)
-protected_files=$(mktemp)
-skipped_files=$(mktemp)
+# Temp files for reporting (from sync-common.sh: changed_files, added_files, protected_files, skipped_files)
+setup_sync_temp_files
 unused_files=$(mktemp)
 # shellcheck disable=SC2064
-trap "rm -f $updated_files $added_files $protected_files $skipped_files $unused_files" EXIT
+trap "rm -f $changed_files $added_files $protected_files $skipped_files $unused_files" EXIT
 
 # Extended is_protected check (adds PROJECT-SPECIFIC marker check)
 is_protected_extended() {
@@ -269,8 +266,8 @@ while IFS= read -r file; do
   fi
 
   # Files differ - would update
-  echo "$flat_rel_path" >> "$updated_files"
-  ((count_updated++)) || true
+  echo "$flat_rel_path" >> "$changed_files"
+  ((count_changed++)) || true
 done < <(find_syncable_files "$TEMPLATE_DIR")
 
 # Note _project.yaml if missing (starter template for project-specific rules)
@@ -297,11 +294,11 @@ fi
 echo -e "${GREEN}=== Sync Report ===${NC}"
 echo ""
 
-if [[ -s "$updated_files" ]]; then
-  echo -e "${YELLOW}Updated ($count_updated):${NC}"
+if [[ -s "$changed_files" ]]; then
+  echo -e "${YELLOW}Changed ($count_changed):${NC}"
   while IFS= read -r f; do
     echo "  - $f"
-  done < "$updated_files"
+  done < "$changed_files"
   echo ""
 fi
 
@@ -341,14 +338,14 @@ fi
 
 echo -e "${BLUE}Summary:${NC}"
 echo "  Up to date: $count_up_to_date"
-echo "  Updated:    $count_updated"
+echo "  Changed:    $count_changed"
 echo "  Added:      $count_added"
 echo "  Skipped:    $count_skipped (tools not enabled)"
 echo "  Protected:  $count_protected"
 echo "  Unused:     $count_unused (tech not detected)"
 echo ""
 
-if [[ $count_updated -gt 0 || $count_added -gt 0 ]]; then
+if [[ $count_changed -gt 0 || $count_added -gt 0 ]]; then
   echo -e "${YELLOW}Report only - no changes made${NC}"
   echo ""
   echo "Claude should review the differences and copy files as needed."
