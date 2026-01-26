@@ -47,6 +47,26 @@ export function PageClient({ initialData }) {
 }
 ```
 
+## Cache Invalidation with router.refresh()
+
+When external events (webhooks, polling, other tabs) change server data, you must invalidate BOTH caches:
+
+```typescript
+// After detecting data changed (e.g., webhook processed, polling success)
+const router = useRouter();
+const queryClient = useQueryClient();
+
+// 1. Invalidate Tanstack Query cache - makes queries refetch
+queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+
+// 2. Refresh server component data - updates initialData props
+router.refresh();
+```
+
+**Why both?**
+- `router.refresh()` alone: Server props update, but TQ cache stays stale until `staleTime` expires
+- `invalidateQueries()` alone: TQ refetches, but server-rendered content stays stale
+
 ## Anti-Patterns
 
 ### Don't: useQuery for static data
@@ -68,3 +88,4 @@ export default async function Page() {
 | Use Query when Server Component suffices | Extra complexity, larger bundle |
 | Skip `initialData` when SSR data available | Unnecessary loading states |
 | Forget hydration boundaries | Hydration mismatches |
+| `router.refresh()` without `invalidateQueries()` | Tanstack Query shows stale data |
