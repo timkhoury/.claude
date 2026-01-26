@@ -18,23 +18,9 @@ Comprehensive OpenSpec analysis covering implementation coverage, test coverage,
 /spec-review structure    # Spec organization only
 ```
 
-## Output Files
+## Output
 
-All output goes to `.spec-review/`:
-
-```
-.spec-review/
-├── coverage/specs/*.json    # Per-spec implementation results
-├── coverage/progress.json   # Resume state
-├── coverage/results.json    # Aggregated coverage
-├── tests/specs/*.json       # Per-spec test results
-├── tests/progress.json      # Resume state
-├── tests/results.json       # Aggregated test coverage
-├── structure/results.json   # Structure analysis
-└── combined.json            # All analyses (when running all)
-```
-
-Reports: `SPEC_COVERAGE_REPORT.md`, `TEST_QUALITY_REPORT.md`, `SPEC_QUALITY_REPORT.md`
+All output goes to `.spec-review/` with `{analysis}/results.json` and progress files for resume. Reports: `SPEC_COVERAGE_REPORT.md`, `TEST_QUALITY_REPORT.md`, `SPEC_QUALITY_REPORT.md`
 
 ## Quick Start
 
