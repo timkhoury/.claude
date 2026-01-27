@@ -96,6 +96,33 @@ trim() {
   printf '%s' "$var"
 }
 
+# Extract a boolean field from YAML frontmatter
+extract_bool_field() {
+  local file="$1"
+  local field="$2"
+  local in_frontmatter=false
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "---" ]]; then
+      if $in_frontmatter; then
+        break
+      else
+        in_frontmatter=true
+        continue
+      fi
+    fi
+
+    if ! $in_frontmatter; then
+      continue
+    fi
+
+    if [[ "$line" =~ ^${field}:[[:space:]]*(true|yes)$ ]]; then
+      echo "true"
+      return
+    fi
+  done < "$file"
+}
+
 # Extract description from YAML frontmatter
 extract_description() {
   local file="$1"
@@ -283,6 +310,7 @@ main() {
   local all_results=()
   local issues_count=0
   local healthy_count=0
+  local protected_skills=()
 
   # Collect analyses from all paths
   for skills_path in "${SKILLS_PATHS[@]}"; do
@@ -292,6 +320,16 @@ main() {
 
     for skill_dir in "$skills_path"/*/; do
       if [[ -f "$skill_dir/SKILL.md" ]]; then
+        # Check if protected
+        local skill_name
+        skill_name=$(basename "$skill_dir")
+        local is_protected
+        is_protected=$(extract_bool_field "$skill_dir/SKILL.md" "protected")
+        if [[ "$is_protected" == "true" ]]; then
+          protected_skills+=("$skill_name")
+          continue
+        fi
+
         result=$(analyze_description "$skill_dir")
         if [[ -n "$result" ]]; then
           # Add source path to result
@@ -428,6 +466,9 @@ EOF
         count=$(echo -n "${source_results[$source]}" | grep -c '^' || true)
         echo "  $source ($count skills)"
       done
+      if (( ${#protected_skills[@]} > 0 )); then
+        echo -e "${DIM}Skipped (protected): ${protected_skills[*]}${NC}"
+      fi
       echo ""
 
       echo -e "${BOLD}Quality Criteria:${NC}"
