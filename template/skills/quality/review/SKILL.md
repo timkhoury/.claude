@@ -66,13 +66,19 @@ The agent will output PR-comment style feedback:
 
 ### Step 4: Prompt for Action
 
-After review completes, ask the user what they want to do next:
+After displaying the review, use `AskUserQuestion` to let the user choose next steps:
 
-| Option | Description |
-|--------|-------------|
-| Fix issues | Implement the fixes using `/fix` skill |
-| Run checks | Run `/pr-check` for automated validation |
-| Continue | Proceed without changes |
+```
+Question: "What would you like to do next?"
+Header: "Next step"
+Options:
+  - "Continue" / "Proceed without changes"
+  - "Run checks" / "Run /pr-check for automated validation"
+  - "Fix issues" / "Implement fixes using /fix skill"
+  - "Create PR" / "Create pull request for this branch"
+```
+
+Then execute the chosen action.
 
 ## Review Focus
 
@@ -110,13 +116,6 @@ PR-comment style (not rigid template):
 ### Suggestions
 
 - [Optional improvements that are nice-to-have]
-
----
-
-What would you like to do?
-- Fix the issues
-- Run automated checks (`/pr-check`)
-- Continue without changes
 ```
 
 ## Verdict Meanings
