@@ -57,6 +57,18 @@ Template rules are organized in folders:
 
 The sync script handles nested folders automatically. Project-specific rules should go in `.claude/rules/project/` which is NOT synced from template.
 
+## Path Mapping
+
+The template uses hierarchical organization while projects use flat directories for skills:
+
+| Template | Project |
+|----------|---------|
+| `skills/quality/review/` | `skills/review/` |
+| `skills/quality/pr-check/` | `skills/pr-check/` |
+| `skills/workflow/gitbutler/` | `skills/gitbutler/` |
+
+The script handles this mapping internally - reported paths are template-relative.
+
 ## Pruning Unused Rules
 
 When technologies are removed from a project, the sync script identifies orphaned rules in the "Unused" section:
