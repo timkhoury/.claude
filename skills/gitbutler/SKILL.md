@@ -1,6 +1,6 @@
 ---
 name: gitbutler
-description: Invoke BEFORE any git/but commands - branches, commits, pushes, status, PR creation. Don't use but/git commands without this skill.
+description: Manage git operations through GitButler virtual branches. Use when working with branches, commits, pushes, status checks, or PR creation. Invoke before any git/but commands.
 ---
 
 # GitButler Workflow
@@ -123,7 +123,10 @@ If you need to undo operations or restore from history, use the GitButler deskto
 Ask user before pushing or creating PRs.
 
 ```bash
-gh pr create --head <branch-name>  # Handles push automatically
+but push <branch-name>             # Push first - required for GitButler branches
+gh pr create --head <branch-name>  # Then create PR
 ```
+
+**Note:** `gh pr create` does NOT auto-push GitButler virtual branches. Always `but push` first.
 
 PR descriptions: Summary and Test plan only, no footers.

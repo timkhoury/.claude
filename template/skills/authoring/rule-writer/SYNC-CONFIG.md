@@ -1,21 +1,6 @@
-# Sync Configuration
+# Sync Configuration Reference
 
-> Configure what gets synced between template and projects.
-
-## Overview
-
-The sync config defines what content is always copied, and what is copied based on detected technologies.
-
-**Config:** `~/.claude/config/sync-config.yaml`
-**Script:** `~/.claude/scripts/detect-technologies.sh`
-
-## Configuration Sections
-
-| Section | Purpose |
-|---------|---------|
-| `always` | Rules and skills copied to every project |
-| `technologies` | Tech-specific rules (includes integrations) |
-| `tools` | Workflow tools and integrations (beads, openspec) |
+Configure technology detection and sync behavior in `~/.claude/config/sync-config.yaml`.
 
 ## Detection Methods
 
@@ -85,17 +70,6 @@ tools:
       - workflow/beads-cleanup/
     commands:
       - work.md
-
-  # Tool integration (uses requires)
-  beads+openspec:
-    detect:
-      requires:
-        - beads
-        - openspec
-    rules:
-      - workflow/workflow-integration.md
-    commands:
-      - wrap.md
 ```
 
 ## Adding New Technologies
@@ -105,7 +79,7 @@ tools:
 3. Create the rule file in `~/.claude/template/rules/tech/`
 4. Test with `~/.claude/scripts/detect-technologies.sh --report`
 
-## Script Usage
+## Detection Script
 
 ```bash
 # Human-readable report
@@ -117,14 +91,9 @@ tools:
 # List rule paths to copy
 ~/.claude/scripts/detect-technologies.sh --rules
 
-# List skill paths to copy
-~/.claude/scripts/detect-technologies.sh --skills
-
 # JSON output for scripts
 ~/.claude/scripts/detect-technologies.sh --json
 ```
-
-## Used By
 
 | Skill | How It Uses Detection |
 |-------|----------------------|

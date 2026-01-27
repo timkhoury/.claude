@@ -2,8 +2,7 @@
 name: deps-updater
 description: >
   Update dependencies and audit for security issues across any language/package manager.
-  Use when user says "update deps", "upgrade dependencies", "security audit",
-  "check for updates", "update packages", or "npm audit" / "cargo update" etc.
+  Use when user says "update deps", "security audit", or "check for updates".
 ---
 
 # Dependency Update Guide

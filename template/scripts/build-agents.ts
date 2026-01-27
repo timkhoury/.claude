@@ -84,7 +84,7 @@ function parseFrontmatter(content: string, filePath?: string): Record<string, un
   if (!match) return {};
   try {
     return yaml.parse(match[1]) as Record<string, unknown>;
-  } catch (e) {
+  } catch {
     console.warn(`Warning: Failed to parse frontmatter${filePath ? ` in ${filePath}` : ''}`);
     return {};
   }

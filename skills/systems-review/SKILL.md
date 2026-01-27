@@ -1,8 +1,9 @@
 ---
 name: systems-review
 description: >
-  Aggregate review skill showing status of all reviews, recommendations based
-  on cadence, and interactive selection. Tracks execution history per-repo.
+  Show aggregate status of all review skills with cadence-based recommendations.
+  Tracks execution history per-repo. Use when checking which reviews are due
+  or selecting a review to run.
 ---
 
 # Systems Review

@@ -12,33 +12,18 @@
 
 set -eo pipefail
 
-# Source shared library
+# Source shared libraries
 source "$HOME/.claude/scripts/lib/common.sh"
+source "$HOME/.claude/scripts/lib/sync-common.sh"
 
-TEMPLATE_DIR="$HOME/.claude/template"
-PROJECT_DIR=".claude"
-CONFIG_FILE="$HOME/.claude/config/sync-config.yaml"
-
-# Skill categories in template (skills/{category}/skill-name/)
-# These are derived from sync-config.yaml always.skills entries
-SKILL_CATEGORIES="authoring|quality|workflow|automation|meta|tech|tools"
-SKILL_CATEGORIES_ARRAY=(authoring quality workflow automation meta tech tools)
-
-# Protected files (never sync to template - contain project customization)
-# _project.yaml is project-specific (never synced to template)
-# _template.yaml IS synced (template-controlled)
-PROTECTED_PATTERNS="CLAUDE.md|agents-src/_project.yaml"
-
+# Script-specific patterns
 # Project-specific directories (never sync to template)
-# These contain project-specific content that shouldn't be globalized
 PROJECT_SPECIFIC_DIRS="rules/project|skills/project"
 
 # Template-worthy directories (sync both updates AND new files)
-# These directories should contain only reusable, project-agnostic content
 TEMPLATE_WORTHY_DIRS="rules/tech|rules/meta|rules/patterns|rules/workflow|skills"
 
-# Generated files (exist in template but are customized per-project)
-# These should only sync template→project, never project→template
+# Generated files (customized per-project, only sync template→project)
 GENERATED_PATTERNS="agents/.*\.md"
 
 # Parse arguments
@@ -85,28 +70,20 @@ changed_files=$(mktemp)
 new_files=$(mktemp)
 protected_files=$(mktemp)
 generated_files=$(mktemp)
-# shellcheck disable=SC2064 # Variables are intentionally expanded at trap definition time
+# shellcheck disable=SC2064
 trap "rm -f $changed_files $new_files $protected_files $generated_files" EXIT
 
-# Check if file is protected
-is_protected() {
-  local file="$1"
-  echo "$file" | grep -qE "^($PROTECTED_PATTERNS)$"
-}
-
-# Check if file is in a project-specific directory
+# Script-specific helper functions
 is_project_specific_dir() {
   local file="$1"
   echo "$file" | grep -qE "^($PROJECT_SPECIFIC_DIRS)/"
 }
 
-# Check if file is in a template-worthy directory
 is_template_worthy() {
   local file="$1"
   echo "$file" | grep -qE "^($TEMPLATE_WORTHY_DIRS)/"
 }
 
-# Check if file is generated (customized per project)
 is_generated() {
   local file="$1"
   echo "$file" | grep -qE "^($GENERATED_PATTERNS)$"
@@ -118,26 +95,10 @@ echo ""
 # Find template files and compare with project versions
 while IFS= read -r template_file; do
   rel_path="${template_file#"$TEMPLATE_DIR"/}"
-  project_file="$PROJECT_DIR/$rel_path"
 
-  # For categorized skills in template, also check flattened version in project
-  # e.g., template has skills/quality/rules-review/ but project has skills/rules-review/
-  # Also handle tools: skills/tools/beads/beads-cleanup/ -> skills/beads-cleanup/
-  if [[ "$rel_path" =~ ^skills/tools/[^/]+/([^/]+)/(.+)$ ]]; then
-    skill_name="${BASH_REMATCH[1]}"
-    file_name="${BASH_REMATCH[2]}"
-    flat_project_file="$PROJECT_DIR/skills/$skill_name/$file_name"
-    if [[ -f "$flat_project_file" ]]; then
-      project_file="$flat_project_file"
-    fi
-  elif [[ "$rel_path" =~ ^skills/($SKILL_CATEGORIES)/([^/]+)/(.+)$ ]]; then
-    skill_name="${BASH_REMATCH[2]}"
-    file_name="${BASH_REMATCH[3]}"
-    flat_project_file="$PROJECT_DIR/skills/$skill_name/$file_name"
-    if [[ -f "$flat_project_file" ]]; then
-      project_file="$flat_project_file"
-    fi
-  fi
+  # Flatten skill path to find in project
+  flat_rel_path=$(flatten_skill_path "$rel_path")
+  project_file="$PROJECT_DIR/$flat_rel_path"
 
   # Skip if project doesn't have this file
   if [[ ! -f "$project_file" ]]; then
@@ -171,45 +132,22 @@ while IFS= read -r template_file; do
   # Files differ - this is a candidate for sync
   echo "$rel_path" >> "$changed_files"
   ((count_would_update++)) || true
-done < <(find "$TEMPLATE_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" \) | sort)
+done < <(find_syncable_files "$TEMPLATE_DIR")
 
 # Find NEW files in template-worthy directories (not yet in template)
 while IFS= read -r project_file; do
   rel_path="${project_file#"$PROJECT_DIR"/}"
   template_file="$TEMPLATE_DIR/$rel_path"
 
-  # Skip if already in template
+  # Skip if already in template (direct path)
   if [[ -f "$template_file" ]]; then
     continue
   fi
 
-  # For skills, check if a flattened version matches a categorized skill in template
-  # e.g., project has skills/rules-review/ but template has skills/quality/rules-review/
-  # Also check tools: project skills/beads-cleanup/ -> template skills/tools/beads/beads-cleanup/
-  if [[ "$rel_path" =~ ^skills/([^/]+)/ ]]; then
-    skill_name="${BASH_REMATCH[1]}"
-    # Skip if already a category directory
-    # Skip if skill_name is a category directory or project-specific
-    if [[ ! "$skill_name" =~ ^($SKILL_CATEGORIES|project)$ ]]; then
-      # Check all categories for this skill
-      for category in "${SKILL_CATEGORIES_ARRAY[@]}"; do
-        category_template_file="$TEMPLATE_DIR/skills/$category/$skill_name/${rel_path##*/}"
-        if [[ -f "$category_template_file" ]]; then
-          # This skill came from a category in template, don't add as new
-          continue 2
-        fi
-      done
-      # Also check tools subdirectories (skills/tools/{tool}/{skill}/)
-      if [[ -d "$TEMPLATE_DIR/skills/tools" ]]; then
-        while IFS= read -r tool_dir; do
-          tools_template_file="$tool_dir/$skill_name/${rel_path##*/}"
-          if [[ -f "$tools_template_file" ]]; then
-            # This skill came from tools in template, don't add as new
-            continue 2
-          fi
-        done < <(find "$TEMPLATE_DIR/skills/tools" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)
-      fi
-    fi
+  # Check if this skill file exists in template under a category
+  expanded_path=$(expand_skill_path "$rel_path")
+  if [[ -n "$expanded_path" && -f "$TEMPLATE_DIR/$expanded_path" ]]; then
+    continue
   fi
 
   # Skip if in project-specific directory
@@ -235,7 +173,7 @@ while IFS= read -r project_file; do
   # This is a new template-worthy file
   echo "$rel_path" >> "$new_files"
   ((count_new++)) || true
-done < <(find "$PROJECT_DIR" -type f \( -name "*.md" -o -name "*.yaml" -o -name "*.ts" -o -name "*.sh" \) | sort)
+done < <(find_syncable_files "$PROJECT_DIR")
 
 # Report
 echo -e "${GREEN}=== Template Sync Report ===${NC}"

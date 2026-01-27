@@ -2,13 +2,14 @@
 # analyze-skills.sh - Analyze Claude Code skills for context efficiency
 #
 # Usage:
-#   ./analyze-skills.sh [--report|--json|--csv] [--path <skills-dir>]
+#   ./analyze-skills.sh [--report|--json|--csv] [--path <skills-dir>] [--all]
 #
 # Options:
 #   --report    Human-readable report (default)
 #   --json      JSON output for scripting
 #   --csv       CSV output for spreadsheets
 #   --path      Skills directory (default: .claude/skills)
+#   --all       Run both size and description quality analysis
 #   --help      Show this help
 
 set -euo pipefail
@@ -31,6 +32,7 @@ TABLE_ROWS_WARN=20
 # Defaults
 OUTPUT_MODE="report"
 SKILLS_PATH=".claude/skills"
+RUN_ALL=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -39,13 +41,22 @@ while [[ $# -gt 0 ]]; do
     --json)   OUTPUT_MODE="json"; shift ;;
     --csv)    OUTPUT_MODE="csv"; shift ;;
     --path)   SKILLS_PATH="$2"; shift 2 ;;
+    --all)    RUN_ALL=true; shift ;;
     --help)
-      head -15 "$0" | tail -13 | sed 's/^# //'
+      head -16 "$0" | tail -14 | sed 's/^# //'
       exit 0
       ;;
     *) echo "Unknown option: $1"; exit 1 ;;
   esac
 done
+
+# If --all flag, run description analysis after size analysis
+if $RUN_ALL; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  # Run size analysis first (this script continues normally)
+  # Then run description analysis at the end
+  trap 'echo ""; echo ""; "$SCRIPT_DIR/analyze-descriptions.sh" --report --path "$SKILLS_PATH"' EXIT
+fi
 
 # Verify path exists
 if [[ ! -d "$SKILLS_PATH" ]]; then
@@ -59,6 +70,34 @@ trim() {
   var="${var#"${var%%[![:space:]]*}"}"
   var="${var%"${var##*[![:space:]]}"}"
   printf '%s' "$var"
+}
+
+# Extract a boolean field from YAML frontmatter
+# Returns "true" if field is true, empty otherwise
+extract_bool_field() {
+  local file="$1"
+  local field="$2"
+  local in_frontmatter=false
+
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    if [[ "$line" == "---" ]]; then
+      if $in_frontmatter; then
+        break
+      else
+        in_frontmatter=true
+        continue
+      fi
+    fi
+
+    if ! $in_frontmatter; then
+      continue
+    fi
+
+    if [[ "$line" =~ ^${field}:[[:space:]]*(true|yes)$ ]]; then
+      echo "true"
+      return
+    fi
+  done < "$file"
 }
 
 # Extract description from YAML frontmatter
@@ -230,10 +269,22 @@ EOF
 # Main execution
 main() {
   local results=()
+  local protected_skills=()
 
   # Collect all skill analyses
   for skill_dir in "$SKILLS_PATH"/*/; do
     if [[ -f "$skill_dir/SKILL.md" ]]; then
+      local skill_name
+      skill_name=$(basename "$skill_dir")
+
+      # Check if protected
+      local is_protected
+      is_protected=$(extract_bool_field "$skill_dir/SKILL.md" "protected")
+      if [[ "$is_protected" == "true" ]]; then
+        protected_skills+=("$skill_name")
+        continue
+      fi
+
       result=$(analyze_skill "$skill_dir")
       if [[ -n "$result" ]]; then
         results+=("$result")
@@ -274,7 +325,10 @@ main() {
       echo "======================"
       echo ""
       echo -e "Path: ${CYAN}$SKILLS_PATH${NC}"
-      echo -e "Skills found: ${CYAN}${#results[@]}${NC}"
+      echo -e "Skills analyzed: ${CYAN}${#results[@]}${NC}"
+      if (( ${#protected_skills[@]} > 0 )); then
+        echo -e "Skills skipped (protected): ${CYAN}${#protected_skills[@]}${NC} (${protected_skills[*]})"
+      fi
       echo ""
 
       # Sort by file size descending

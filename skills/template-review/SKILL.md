@@ -3,6 +3,7 @@ name: template-review
 description: >
   Validate ~/.claude/template/ structure and sync-config integrity.
   Checks for missing files, broken references, and circular dependencies.
+  Use when sync fails or to audit template health.
 ---
 
 # Template Review

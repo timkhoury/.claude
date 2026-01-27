@@ -1,8 +1,9 @@
 ---
 name: project-sync
 description: >
-  Sync project .claude/ with ~/.claude/template/. Detects technologies
-  to copy only relevant rules.
+  Sync project .claude/ configuration with ~/.claude/template/. Detects
+  technologies to copy only relevant rules. Use when updating a project
+  from template or after template changes.
 allowed-tools: [Bash, AskUserQuestion]
 ---
 

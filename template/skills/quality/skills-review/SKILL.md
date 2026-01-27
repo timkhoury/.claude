@@ -13,8 +13,12 @@ Audit `.claude/skills/` to optimize context consumption while maintaining effect
 ## Quick Start
 
 ```bash
-# Run the analysis script
-.claude/skills/skills-review/analyze-skills.sh --report
+# Run full analysis (size + description quality)
+.claude/skills/skills-review/analyze-skills.sh --all
+
+# Run individual analyses
+.claude/skills/skills-review/analyze-skills.sh --report        # Size only
+.claude/skills/skills-review/analyze-descriptions.sh --report  # Description quality only
 
 # Other output formats
 .claude/skills/skills-review/analyze-skills.sh --json   # For scripting
@@ -34,7 +38,7 @@ Audit `.claude/skills/` to optimize context consumption while maintaining effect
 
 ## Review Process
 
-### Step 1: Run Analysis
+### Step 1: Run Size Analysis
 
 ```bash
 .claude/skills/skills-review/analyze-skills.sh --report
@@ -46,7 +50,19 @@ The script identifies:
 - Verbose descriptions (>200 chars)
 - Large tables (>20 rows) that should be extracted
 
-### Step 2: Analyze Flagged Skills
+### Step 2: Run Description Quality Analysis
+
+```bash
+.claude/skills/skills-review/analyze-descriptions.sh --report
+```
+
+The script checks:
+- **Action verb**: Does description start with third-person verb?
+- **Trigger phrase**: Contains "Use when..." or similar?
+- **Length**: 15-100 words (not too vague, not context waste)
+- **Red flags**: First-person language, generic terms
+
+### Step 3: Analyze Flagged Skills
 
 For each flagged skill, check:
 
@@ -54,7 +70,7 @@ For each flagged skill, check:
 2. **Code examples** - Remove redundant examples
 3. **Duplicate content** - Compare with related skills
 
-### Step 3: Apply Optimizations
+### Step 4: Apply Optimizations
 
 **Extract tables:**
 ```markdown
@@ -97,6 +113,8 @@ description: >
 | `~/.claude/template/skills/` | Template (synced to projects) |
 | `~/.claude/skills/` | Global (user-wide) |
 
+**Always fix global skills too.** When issues are found in `~/.claude/skills/`, suggest and apply fixes there as well - these affect all projects.
+
 ## Common Violations
 
 | Issue | Impact | Fix |
@@ -105,6 +123,23 @@ description: >
 | SKILL.md >10k chars | Context waste on activation | Extract reference files |
 | Inline tables >20 rows | Context bloat | Extract to PATTERNS.md |
 | "Use this tool to..." prefix | Wasted chars | Start with action verb |
+
+## Description Quality Checks
+
+Good descriptions follow the WHAT + WHEN pattern for discoverability.
+
+| Check | Requirement | Why |
+|-------|-------------|-----|
+| Length | 20-100 tokens | Too short = vague; too long = noise |
+| Trigger scenarios | Contains "Use when..." | Claude needs activation cues |
+| Action verb | Starts with third-person verb | POV consistency in system prompt |
+| Keywords | Includes user-facing terms | Natural language discovery |
+
+**Red flags** (review manually after running `analyze-skills.sh`):
+- Description < 20 words (too vague for reliable activation)
+- No "Use when" or trigger phrases (Claude can't select correctly)
+- First-person language ("I will help you...")
+- Generic terms without domain specifics ("Helper for stuff")
 
 ## After Completion
 
