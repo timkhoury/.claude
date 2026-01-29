@@ -11,11 +11,14 @@ bv
 # CLI commands (use these for agents)
 bd ready              # Show issues ready to work (no blockers)
 bd list --status=open # All open issues
-bd show <id>          # Full issue details with dependencies
+bd show <id>          # Full issue details with dependencies (alias: bd view)
+bd children <id>      # Show child issues of an epic/parent
 
 # Create & update
 bd create --title="..." --type=task --priority=2
+bd create --title="..." -m "description"  # -m is alias for --description
 bd update <id> --status=in_progress
+bd update <id> --append-notes="Additional context"  # Append to existing notes
 bd close <id> --reason="Completed"
 bd close <id1> <id2>  # Close multiple issues at once
 
