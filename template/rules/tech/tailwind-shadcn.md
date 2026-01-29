@@ -1,67 +1,26 @@
 # Tailwind + shadcn/ui Integration
 
-> Semantic tokens power shadcn/ui theming.
+> How semantic tokens and shadcn/ui work together. See `tailwind.md` for token usage, `shadcn.md` for components.
 
-## How They Work Together
+## Architecture
 
-shadcn/ui components use CSS variables that map to Tailwind's semantic tokens:
+shadcn/ui uses CSS variables → Tailwind maps them to classes → Dark mode handled automatically.
 
-```css
-/* globals.css - defines the variables */
-:root {
-  --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
-  --primary: 222.2 47.4% 11.2%;
-  --primary-foreground: 210 40% 98%;
-  /* ... */
-}
-
-.dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  /* ... */
-}
+```
+globals.css (--primary: ...)  →  tailwind.config (primary: hsl(var(--primary)))  →  className="bg-primary"
 ```
 
-```js
-// tailwind.config - maps variables to classes
-colors: {
-  background: 'hsl(var(--background))',
-  foreground: 'hsl(var(--foreground))',
-  primary: {
-    DEFAULT: 'hsl(var(--primary))',
-    foreground: 'hsl(var(--primary-foreground))',
-  },
-}
-```
+## Extended Tokens
 
-## Extended Semantic Tokens
+Add project-specific tokens in `globals.css`, map in `tailwind.config`:
 
-Beyond shadcn defaults, add project-specific tokens:
-
-```css
-:root {
-  /* Text hierarchy */
-  --strong-text: 222.2 84% 4.9%;
-  --base-text: 215.4 16.3% 26.9%;
-  --muted-text: 215.4 16.3% 46.9%;
-
-  /* Surfaces */
-  --surface: 0 0% 100%;
-  --surface-muted: 210 40% 96.1%;
-}
-```
-
-```js
-// tailwind.config
-colors: {
-  'strong-text': 'hsl(var(--strong-text))',
-  'base-text': 'hsl(var(--base-text))',
-  'muted-text': 'hsl(var(--muted-text))',
-  'surface': 'hsl(var(--surface))',
-  'surface-muted': 'hsl(var(--surface-muted))',
-}
-```
+| Token | Purpose | CSS Variable |
+|-------|---------|--------------|
+| `text-strong-text` | Headings | `--strong-text` |
+| `text-base-text` | Body | `--base-text` |
+| `text-muted-text` | Secondary | `--muted-text` |
+| `bg-surface` | Cards | `--surface` |
+| `bg-surface-muted` | Subtle BG | `--surface-muted` |
 
 ## Using Together
 

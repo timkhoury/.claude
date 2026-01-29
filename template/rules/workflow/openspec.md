@@ -94,28 +94,18 @@ Do NOT include "Generated with Claude Code" footer in PR descriptions or commit 
 
 ## Beads Integration
 
-OpenSpec changes should be tracked with beads for visibility. See `workflow-integration.md` for the complete workflow.
+See `workflow-integration.md` for the complete OpenSpec + Beads workflow including:
+- When to use simple beads vs epic structure
+- State synchronization patterns
+- Completion order (archive OpenSpec → close bead)
 
-**Quick reference (simple, 1-2 tasks):**
-
+**Quick reference:**
 | OpenSpec Stage | Beads Action |
 |----------------|--------------|
-| After `/opsx:new` or `/opsx:ff` | Create tracking bead: `bd create --title="<change-id>" --type=feature` |
-| Before `/opsx:archive` | Ensure bead exists and is `in_progress` |
-| After `/opsx:archive` | Close bead: `bd close <id> --reason="Archived: <change-id>"` |
+| After `/opsx:new` or `/opsx:ff` | `bd create --title="<change-id>" --type=feature` |
+| After `/opsx:archive` | `bd close <id> --reason="Archived: <change-id>"` |
 
-**Epic structure (3+ tasks):**
-
-For complex changes, create an epic with child task beads mirroring tasks.md:
-
-1. Create epic: `bd create --title="<change-id>" --type=epic`
-2. Create task bead for each task in tasks.md
-3. Set parent: `bd update <task-id> --parent=<epic-id>`
-4. Mirror dependencies: `bd dep add <task-id> <blocking-task-id>`
-5. Use `bd ready` to find unblocked work during implementation
-6. Close tasks as completed, close epic after archiving OpenSpec
-
-**Critical:** Always archive OpenSpec BEFORE closing the tracking bead/epic.
+**Critical:** Always archive OpenSpec BEFORE closing the tracking bead.
 
 ## Reference
 

@@ -1,19 +1,16 @@
 # Next.js + Tanstack Query Integration
 
-> When and how to use Tanstack Query with Next.js App Router.
+> Next.js-specific patterns. See `tanstack-query.md` for core patterns (query keys, options, mutations).
 
-## When to Use Tanstack Query
+## When to Use Each
 
 | Use Case | Approach |
 |----------|----------|
-| Initial page load | Server Component (not Query) |
-| Refetch/polling | Tanstack Query |
-| Infinite scroll | Tanstack Query |
-| Optimistic updates | Tanstack Query |
-| Background refresh | Tanstack Query |
-| Mutations | Server Actions (or Query mutations) |
+| Initial page load | Server Component |
+| Refetch/polling/infinite scroll | Tanstack Query |
+| Mutations | Server Actions |
 
-**Rule:** Use Server Components for initial data. Add Query only when you need refetching.
+**Rule:** Server Components for initial data. Query only when you need refetching.
 
 ## Hybrid Pattern (Server + Client)
 

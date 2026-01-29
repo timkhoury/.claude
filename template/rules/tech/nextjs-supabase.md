@@ -1,17 +1,15 @@
 # Next.js + Supabase Integration
 
-> Patterns for using Supabase in Next.js App Router applications.
+> Next.js-specific patterns. See `supabase.md` for core Supabase patterns (RLS, types, webhooks).
 
-## Supabase Client Selection by Context
+## Client Selection
 
-| Context | Client | Import |
-|---------|--------|--------|
-| Server Components | `createClient()` (await it) | `@/lib/supabase/server` |
-| Client Components | `createClient()` | `@/lib/supabase/client` |
-| Middleware | `createClient()` | `@/lib/supabase/middleware` |
-| Webhook Handlers | `createAdminClient()` | `@/lib/supabase/admin` |
-
-**Why different clients:** Each handles cookie/session management differently based on execution context.
+| Context | Import | Notes |
+|---------|--------|-------|
+| Server Components | `@/lib/supabase/server` | Must `await createClient()` |
+| Client Components | `@/lib/supabase/client` | No await needed |
+| Middleware | `@/lib/supabase/middleware` | Handles session refresh |
+| Webhooks | `@/lib/supabase/admin` | Bypasses RLS (see `supabase.md`) |
 
 ## Server Component Data Fetching
 
