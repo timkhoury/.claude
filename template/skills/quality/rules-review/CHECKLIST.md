@@ -63,5 +63,5 @@ grep -E '\$includes\.(tech|patterns|meta|testing)\.' .claude/agents-src/_project
 ## After Completion
 
 ```bash
-.claude/scripts/review-tracker.sh record rules-review
+.claude/scripts/systems-tracker.sh record rules-review
 ```

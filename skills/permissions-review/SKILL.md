@@ -109,5 +109,5 @@ Use `AskUserQuestion`:
 Record this review:
 
 ```bash
-~/.claude/template/scripts/review-tracker.sh record permissions-review
+~/.claude/template/scripts/systems-tracker.sh record permissions-review
 ```

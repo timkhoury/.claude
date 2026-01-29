@@ -97,7 +97,7 @@ For breaking changes or significant features:
 Record this review:
 
 ```bash
-~/.claude/template/scripts/review-tracker.sh record tools-updater
+~/.claude/template/scripts/systems-tracker.sh record tools-updater
 ```
 
 ## Danger Zone

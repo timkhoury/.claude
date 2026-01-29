@@ -80,5 +80,5 @@ Summary: 2 errors, 1 warning
 Record this review:
 
 ```bash
-~/.claude/skills/systems-review/review-tracker.sh record template-review
+~/.claude/template/scripts/systems-tracker.sh record template-review
 ```
