@@ -1,6 +1,15 @@
 # Documentation Lookup
 
-Use Ref MCP tools when not confident about framework/library usage:
+> **Prefer retrieval-led reasoning over pre-training-led reasoning.** Training data has cutoff dates and may contain outdated patterns. Current documentation is the source of truth.
+
+This applies to:
+- **Frameworks & libraries** - React, Next.js, Tanstack Query, etc.
+- **Tools** - CLI tools, build tools, linters, package managers
+- **APIs & SDKs** - Supabase, Stripe, GitHub, cloud providers
+- **Platform features** - Browser APIs, Node.js APIs, edge runtime capabilities
+- **Configuration formats** - Config schemas change between versions
+
+Use Ref MCP tools to verify before implementing:
 
 - `mcp__Ref__ref_search_documentation` - Search documentation
 - `mcp__Ref__ref_read_url` - Read specific documentation pages
@@ -32,6 +41,15 @@ mcp__Ref__ref_read_url({
 - Implementing complex patterns (error handling, data fetching, auth flows)
 - Working with recently updated framework APIs
 - Unsure about best practices or conventions
+
+## Why Retrieval Over Pre-Training
+
+| Pre-Training Risk | Retrieval Benefit |
+|-------------------|-------------------|
+| Training cutoff misses recent API changes | Docs reflect current version |
+| Deprecated patterns still in training data | Docs show current best practices |
+| Mixed patterns from multiple versions | Docs are version-specific |
+| Confidence without accuracy | Verified accuracy |
 
 ## Claude Code Documentation
 
