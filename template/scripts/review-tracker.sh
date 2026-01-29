@@ -64,8 +64,8 @@ is_applicable() {
             return 0
             ;;
         spec-review)
-            # Only if openspec/ exists
-            [[ -d "openspec" ]]
+            # Only if openspec/ or specs/ exists
+            [[ -d "openspec" || -d "specs" ]]
             ;;
         rules-review)
             # Only if .claude/rules/ exists
