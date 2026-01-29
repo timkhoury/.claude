@@ -103,7 +103,7 @@ function discoverProjectRuleBundles(projectFolderPath: string): Record<string, s
     return bundleAssignments;
   }
 
-  const entries = fs.readdirSync(resolvedPath);
+  const entries = fs.readdirSync(resolvedPath).sort();
   for (const entry of entries) {
     if (!entry.endsWith('.md')) continue;
 
@@ -149,7 +149,7 @@ function isFolderInclude(includePath: string): boolean {
   return includePath.endsWith('/');
 }
 
-// Helper: Discover all .md files in a folder
+// Helper: Discover all .md files in a folder (sorted alphabetically)
 function discoverFolderFiles(folderPath: string): Map<string, string> {
   const files = new Map<string, string>();
   const resolvedPath = resolveIncludePath(folderPath);
@@ -159,7 +159,7 @@ function discoverFolderFiles(folderPath: string): Map<string, string> {
     return files;
   }
 
-  const entries = fs.readdirSync(resolvedPath);
+  const entries = fs.readdirSync(resolvedPath).sort();
   for (const entry of entries) {
     if (entry.endsWith('.md')) {
       const basename = entry.slice(0, -3); // Remove .md extension
