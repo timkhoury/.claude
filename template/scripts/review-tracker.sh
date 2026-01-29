@@ -25,12 +25,13 @@ declare -A CADENCES=(
     ["skills-review"]=7
     ["spec-review"]=14
     ["permissions-review"]=7
+    ["tools-updater"]=14
 )
 
 # Which file each review uses
 get_history_file() {
     local name="$1"
-    if [[ "$name" == "template-review" ]]; then
+    if [[ "$name" == "template-review" ]] || [[ "$name" == "tools-updater" ]]; then
         echo "$GLOBAL_FILE"
     else
         echo "$PROJECT_FILE"
@@ -61,6 +62,10 @@ is_applicable() {
     case "$name" in
         template-review)
             # Always applicable (global scope)
+            return 0
+            ;;
+        tools-updater)
+            # Always applicable (global tools)
             return 0
             ;;
         spec-review)
