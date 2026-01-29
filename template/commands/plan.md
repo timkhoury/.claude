@@ -41,12 +41,12 @@ The planner-researcher agent will:
 3. **Design Architecture**: Plan data models, component hierarchy, and integration points
 4. **Create Implementation Plan**: Break down work into phases with tasks
 5. **Identify Risks**: Flag potential issues and mitigation strategies
-6. **Invoke OpenSpec Proposal**: Use `/openspec:proposal <description>` to create structured proposal
+6. **Invoke OpenSpec Change**: Use `/opsx:new <description>` (step-by-step) or `/opsx:ff <description>` (fast-forward) to create structured proposal
 
 ## Expected Output
 
 For features and changes (most cases):
-- Agent invokes `/openspec:proposal <description>` with prepared context
+- Agent invokes `/opsx:new <description>` or `/opsx:ff <description>` with prepared context
 - OpenSpec auto-generates change-id (e.g., `add-oauth-token-refresh-with-automatic-expiration-handling`)
 - OpenSpec creates structured proposal:
   - `proposal.md` - Why, What Changes, Impact
@@ -63,15 +63,15 @@ For bug fixes only (restoring existing spec behavior):
 Once the OpenSpec proposal is created:
 - **Review and approve the proposal** - Implementation does NOT start until approved
 - OpenSpec validates the proposal automatically (`openspec validate --strict`)
-- Proceed with implementation using main Claude Code or `/openspec:apply`
+- Proceed with implementation using main Claude Code or `/opsx:apply`
 - Consult specialized agents as needed (supabase-expert, tester, etc.)
 
 ## Important Notes
 
 - The planner does NOT implement code - only prepares planning information
-- Planner invokes `/openspec:proposal <description>` for most features and changes
+- Planner invokes `/opsx:new` or `/opsx:ff` for most features and changes
 - OpenSpec auto-generates change-id and creates all proposal files
 - Proposals must be **approved before implementation** begins
 - For bug fixes (restoring existing behavior), planner provides direct checklist
 - Plans follow project patterns from CLAUDE.md and docs/
-- See `openspec/AGENTS.md` for complete OpenSpec conventions
+- Run `/opsx:onboard` for a guided walkthrough of the OpenSpec workflow

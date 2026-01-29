@@ -12,7 +12,7 @@
 3. **Archive OpenSpec changes first** (if applicable):
    ```bash
    openspec list                    # Check for active changes
-   /openspec:archive <change-id>    # Archive completed changes BEFORE closing beads
+   /opsx:archive <change-id>        # Archive completed changes BEFORE closing beads
    ```
 4. **Update issue status** - Close finished work, update in-progress items
    - If OpenSpec was archived, close the tracking bead: `bd close <id> --reason="Archived: <change-id>"`

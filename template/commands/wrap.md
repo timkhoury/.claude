@@ -29,7 +29,7 @@ openspec list
 
 For each active change:
 1. **Ask the user**: "OpenSpec change `<change-id>` is still active. Should I archive it?"
-2. If yes: Run `/openspec:archive <change-id>`
+2. If yes: Run `/opsx:archive <change-id>`
 3. If no: Note it as remaining work
 
 ### Step 2: Check In-Progress Beads
