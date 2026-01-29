@@ -86,7 +86,7 @@ Is this rule project-specific?
 - Syncs `rules/tech/`, `rules/patterns/`, `rules/workflow/`, `rules/meta/`
 - **Never syncs** `rules/project/`
 
-**From template to project (`project-sync`):**
+**From template to project (`project-updater`):**
 - Copies detected technology rules
 - **Never overwrites** `rules/project/`
 

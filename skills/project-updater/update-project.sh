@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Sync project .claude/ with ~/.claude/template/
-# Usage: sync-project.sh [--help]
+# Update project .claude/ from ~/.claude/template/
+# Usage: update-project.sh [--help]
 #
 # Report-only: Shows what differs between template and project.
 # Claude reads the report and decides which files to copy.
@@ -50,7 +50,7 @@ fi
 # Parse arguments
 case "${1:-}" in
   --help|-h)
-    echo "Usage: sync-project.sh"
+    echo "Usage: update-project.sh"
     echo ""
     echo "Report-only: Shows what differs between template and project."
     echo "Claude reads the report and decides which files to copy."
@@ -69,7 +69,7 @@ case "${1:-}" in
     ;;
   *)
     echo "Unknown argument: $1"
-    echo "Usage: sync-project.sh [--help]"
+    echo "Usage: update-project.sh [--help]"
     exit 1
     ;;
 esac

@@ -22,8 +22,8 @@ This repository provides:
 ├── skills/                # On-demand workflows
 │   ├── gitbutler/         # Virtual branch management
 │   ├── project-setup/     # Bootstrap new projects
-│   ├── project-sync/      # Sync template → project
-│   ├── template-updater/  # Sync project → template
+│   ├── project-updater/   # Update project from template
+│   ├── template-updater/  # Update template from project
 │   └── ...
 └── template/              # Project template baseline
     ├── rules/             # Tech-specific rules (Next.js, Supabase, etc.)
@@ -43,8 +43,8 @@ This repository provides:
 
 The template system supports two-way synchronization:
 
-1. `project-sync` - Syncs relevant template content to a project (technology-aware)
-2. `template-updater` - Propagates improvements from a project back to the template
+1. `project-updater` - Updates a project from template (technology-aware)
+2. `template-updater` - Updates template from a project
 
 ### GitButler Integration
 
@@ -62,8 +62,8 @@ All git operations use GitButler virtual branches instead of traditional git:
 |-------|---------|
 | `gitbutler` | Git operations via GitButler virtual branches |
 | `project-setup` | Initialize new projects with template and tools |
-| `project-sync` | Sync template rules/skills to a project |
-| `template-updater` | Sync project improvements back to template |
+| `project-updater` | Update project from template |
+| `template-updater` | Update template from project |
 | `sync` | Bidirectional sync (runs both directions) |
 | `systems-review` | Aggregate status of all review skills |
 | `template-review` | Validate template structure and integrity |
@@ -88,15 +88,15 @@ claude  # Start Claude Code
 
 This initializes the project with the template and configures tools.
 
-### Sync template to existing project
+### Update existing project from template
 
 ```bash
 # From the project directory
 claude
-# Then: /project-sync
+# Then: /project-updater
 ```
 
-Reviews differences and syncs relevant rules based on detected technologies.
+Reviews differences and copies relevant rules based on detected technologies.
 
 ## Configuration
 

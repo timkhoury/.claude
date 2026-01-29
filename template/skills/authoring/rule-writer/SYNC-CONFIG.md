@@ -98,4 +98,4 @@ tools:
 | Skill | How It Uses Detection |
 |-------|----------------------|
 | `/project-setup` | Initial setup - copies detected tech rules |
-| `/project-sync` | Adds new tech rules, removes unused (with confirmation) |
+| `/project-updater` | Adds new tech rules, removes unused (with confirmation) |

@@ -148,7 +148,7 @@ npm run build:agents    # Regenerate all agents from YAML
 
 | Action | `_template.yaml` | `_project.yaml` |
 |--------|------------------|-----------------|
-| `/project-sync` | Updated from template | Protected (copied if missing) |
+| `/project-updater` | Updated from template | Protected (copied if missing) |
 | `/template-updater` | Synced to template | Never synced |
 | `/project-setup` | Copied from template | Copied as starter |
 

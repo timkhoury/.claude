@@ -72,7 +72,7 @@ Summary: 2 errors, 1 warning
 ## See Also
 
 - `CHECKS.md` - Detailed check descriptions
-- `/project-sync` - Sync template to projects
+- `/project-updater` - Update projects from template
 - `/skills-review` - Audit skill context efficiency
 
 ## After Completion
