@@ -80,13 +80,29 @@ Is this rule project-specific?
 
 **Quick test:** Is this needed for most coding tasks? → Rule. Is this a workflow triggered occasionally? → Skill.
 
+## Rule Compression Guidelines
+
+Rules are always-loaded context. Keep them concise to maximize signal-to-noise ratio.
+
+| Technique | Example |
+|-----------|---------|
+| Pipe-delimited tables | `Context \| Client \| Notes` instead of prose |
+| Cross-references | `See supabase.md for core patterns` instead of duplicating |
+| Compressed lists | `Applies to frameworks, libraries, tools, APIs` instead of bullet list |
+| Remove redundant examples | One example per pattern, not three |
+
+**Integration rules** (e.g., `nextjs-supabase.md`) should:
+- Reference base rules for shared concepts
+- Only document what's unique to the integration
+- Avoid duplicating content from either base rule
+
 ## Template Sync Rules
 
 **From project to template (`template-updater`):**
 - Syncs `rules/tech/`, `rules/patterns/`, `rules/workflow/`, `rules/meta/`
 - **Never syncs** `rules/project/`
 
-**From template to project (`project-sync`):**
+**From template to project (`project-updater`):**
 - Copies detected technology rules
 - **Never overwrites** `rules/project/`
 

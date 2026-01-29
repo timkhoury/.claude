@@ -110,4 +110,4 @@ but commit template-sync --only -m "chore: update template"
 - **Conservative by default** - Report mode, not auto-apply
 - **Template-first** - Only syncs files that already exist in template
 - **No guessing** - Deterministic rules, no AI classification needed
-- **Complements project-sync** - Bidirectional workflow
+- **Complements project-updater** - Bidirectional workflow

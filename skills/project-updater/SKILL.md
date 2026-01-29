@@ -1,20 +1,20 @@
 ---
-name: project-sync
+name: project-updater
 description: >
-  Sync project .claude/ configuration with ~/.claude/template/. Detects
+  Update project .claude/ configuration from ~/.claude/template/. Detects
   technologies to copy only relevant rules. Use when updating a project
   from template or after template changes.
 allowed-tools: [Bash, AskUserQuestion]
 ---
 
-# Project Sync
+# Project Updater
 
-Sync project `.claude/` with `~/.claude/template/` using the deterministic sync script.
+Update project `.claude/` from `~/.claude/template/` using the deterministic update script.
 
 ## Usage
 
 ```bash
-~/.claude/skills/project-sync/sync-project.sh
+~/.claude/skills/project-updater/update-project.sh
 ```
 
 The script is **report-only** - it shows what differs between template and project but makes no changes. Claude reads the report and decides which files to copy using Read/Write tools.
@@ -100,7 +100,7 @@ Which unused rules should be removed?
 ## Running the Script
 
 ```bash
-~/.claude/skills/project-sync/sync-project.sh
+~/.claude/skills/project-updater/update-project.sh
 ```
 
 The script reports:

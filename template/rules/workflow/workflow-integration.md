@@ -36,7 +36,7 @@ When using both systems:
 
 ### At Creation Time
 
-1. Create OpenSpec proposal first (`/openspec:proposal`)
+1. Create OpenSpec change first (`/opsx:new` or `/opsx:ff`)
 2. Create tracking bead with title matching the change-id
 3. **For 3+ tasks**: Use epic structure (see below)
 4. **For 1-2 tasks**: Simple bead is sufficient
@@ -108,7 +108,7 @@ bd ready                              # See what's unblocked next
    [ ] Documentation updates task closed (or skipped with reason)
    ```
 
-2. **Archive OpenSpec first** (if applicable) - `/openspec:archive <change-id>`
+2. **Archive OpenSpec first** (if applicable) - `/opsx:archive <change-id>`
 3. **Then close the bead(s)**:
    - Simple bead: `bd close <bead-id> --reason="Archived: <change-id>"`
    - Epic: `bd close <epic-id> --reason="Archived: <change-id>"` (closes epic; tasks should already be closed)

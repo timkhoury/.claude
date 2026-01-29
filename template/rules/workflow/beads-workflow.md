@@ -11,11 +11,14 @@ bv
 # CLI commands (use these for agents)
 bd ready              # Show issues ready to work (no blockers)
 bd list --status=open # All open issues
-bd show <id>          # Full issue details with dependencies
+bd show <id>          # Full issue details with dependencies (alias: bd view)
+bd children <id>      # Show child issues of an epic/parent
 
 # Create & update
 bd create --title="..." --type=task --priority=2
+bd create --title="..." -m "description"  # -m is alias for --description
 bd update <id> --status=in_progress
+bd update <id> --append-notes="Additional context"  # Append to existing notes
 bd close <id> --reason="Completed"
 bd close <id1> <id2>  # Close multiple issues at once
 
@@ -82,18 +85,18 @@ bd create --title="Fix null check in auth middleware" --type=bug --priority=2 \
 - Future sessions can pick up where you left off
 - Users have visibility into all known issues
 
-## Epic Structure (for complex work)
+## Epic Structure
 
-For changes with 3+ tasks, use epics:
+For complex work with 3+ tasks, see `workflow-integration.md` for the complete epic workflow including:
+- Epic creation and task setup
+- Standard tasks (tests, docs) requirements
+- Dependency mirroring
+- OpenSpec integration (when applicable)
 
-1. Create epic: `bd create --title="Feature X" --type=epic`
-2. Create task beads for each task
-3. Set parent: `bd update <task-id> --parent=<epic-id>`
-4. Mirror dependencies: `bd dep add <task-id> <blocking-task-id>`
-5. Use `bd ready` to find unblocked work
-6. Close tasks as completed, close epic when all done
-
-**Benefits:**
-- `bd ready` shows only unblocked tasks
-- Granular progress tracking
-- Clear handoff between sessions
+**Quick reference:**
+```bash
+bd create --title="Feature X" --type=epic
+bd create --title="Task 1" --type=task
+bd update <task-id> --parent=<epic-id>
+bd dep add <task-id> <blocking-task-id>
+```
