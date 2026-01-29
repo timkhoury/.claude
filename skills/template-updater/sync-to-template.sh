@@ -130,7 +130,12 @@ while IFS= read -r template_file; do
   fi
 
   # Files differ - this is a candidate for sync
-  echo "$rel_path" >> "$changed_files"
+  # Store both paths: template_path|project_path (for display)
+  if [[ "$flat_rel_path" != "$rel_path" ]]; then
+    echo "$rel_path|$flat_rel_path" >> "$changed_files"
+  else
+    echo "$rel_path" >> "$changed_files"
+  fi
   ((count_would_update++)) || true
 done < <(find_syncable_files "$TEMPLATE_DIR")
 
@@ -190,7 +195,14 @@ fi
 if [[ -s "$changed_files" ]]; then
   echo -e "${YELLOW}Changed (differs from template):${NC}"
   while IFS= read -r f; do
-    echo "  ~ $f"
+    if [[ "$f" == *"|"* ]]; then
+      template_path="${f%%|*}"
+      project_path="${f##*|}"
+      echo "  ~ $template_path"
+      echo "      project: $project_path"
+    else
+      echo "  ~ $f"
+    fi
   done < "$changed_files"
   echo ""
 fi

@@ -65,7 +65,7 @@ All git operations use GitButler virtual branches instead of traditional git:
 | `project-updater` | Update project from template |
 | `template-updater` | Update template from project |
 | `sync` | Bidirectional sync (runs both directions) |
-| `systems-review` | Aggregate status of all review skills |
+| `systems-check` | Aggregate status of all maintenance tasks |
 | `template-review` | Validate template structure and integrity |
 | `permissions-review` | Audit settings.json for global promotion |
 | `claude-md-editor` | CLAUDE.md maintenance and best practices |

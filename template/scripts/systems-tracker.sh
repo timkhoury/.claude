@@ -1,26 +1,27 @@
 #!/usr/bin/env bash
 #
-# review-tracker.sh - Track review execution history
+# systems-tracker.sh - Track maintenance task execution history
 #
 # Commands:
-#   status      Show all reviews with days since last run
-#   recommend   Show reviews due, sorted by priority
-#   record      Record review completion
+#   status      Show all tasks with days since last run
+#   recommend   Show tasks due, sorted by priority
+#   record      Record task completion
 #   init        Create history files if missing
 #
 # File routing:
-#   template-review -> ~/.claude/.systems-review.json
-#   All others      -> ./.systems-review.json
+#   template-review, tools-updater -> ~/.claude/.systems-check.json
+#   All others                     -> ./.systems-check.json
 #
 
 set -euo pipefail
 
-GLOBAL_FILE="$HOME/.claude/.systems-review.json"
-PROJECT_FILE="./.systems-review.json"
+GLOBAL_FILE="$HOME/.claude/.systems-check.json"
+PROJECT_FILE="./.systems-check.json"
 
 # Cadences in days
 declare -A CADENCES=(
     ["template-review"]=7
+    ["sync"]=7
     ["rules-review"]=7
     ["skills-review"]=7
     ["spec-review"]=14
@@ -28,7 +29,7 @@ declare -A CADENCES=(
     ["tools-updater"]=14
 )
 
-# Which file each review uses
+# Which file each task uses
 get_history_file() {
     local name="$1"
     if [[ "$name" == "template-review" ]] || [[ "$name" == "tools-updater" ]]; then
@@ -38,14 +39,14 @@ get_history_file() {
     fi
 }
 
-# Ensure .systems-review.json is in .gitignore
+# Ensure .systems-check.json is in .gitignore
 ensure_gitignored() {
     local history_file="$1"
     local gitignore_dir gitignore_file entry
 
     gitignore_dir=$(dirname "$history_file")
     gitignore_file="$gitignore_dir/.gitignore"
-    entry=".systems-review.json"
+    entry=".systems-check.json"
 
     # Check if already in .gitignore
     if [[ -f "$gitignore_file" ]] && grep -qxF "$entry" "$gitignore_file" 2>/dev/null; then
@@ -56,7 +57,7 @@ ensure_gitignored() {
     echo "$entry" >> "$gitignore_file"
 }
 
-# Check if a review is applicable in current context
+# Check if a task is applicable in current context
 is_applicable() {
     local name="$1"
     case "$name" in
@@ -67,6 +68,10 @@ is_applicable() {
         tools-updater)
             # Always applicable (global tools)
             return 0
+            ;;
+        sync)
+            # Only if .claude/ exists
+            [[ -d ".claude" ]]
             ;;
         spec-review)
             # Only if openspec/ or specs/ exists
@@ -90,7 +95,7 @@ is_applicable() {
     esac
 }
 
-# Get last run timestamp for a review
+# Get last run timestamp for a task
 get_last_run() {
     local name="$1"
     local file
@@ -101,7 +106,7 @@ get_last_run() {
         return
     fi
 
-    jq -r ".reviews[\"$name\"].lastRun // \"\"" "$file" 2>/dev/null || echo ""
+    jq -r ".tasks[\"$name\"].lastRun // .reviews[\"$name\"].lastRun // \"\"" "$file" 2>/dev/null || echo ""
 }
 
 # Calculate days since last run
@@ -141,13 +146,13 @@ cmd_init() {
 
     if [[ ! -f "$GLOBAL_FILE" ]]; then
         mkdir -p "$(dirname "$GLOBAL_FILE")"
-        echo '{"version":1,"reviews":{}}' > "$GLOBAL_FILE"
+        echo '{"version":1,"tasks":{}}' > "$GLOBAL_FILE"
         ensure_gitignored "$GLOBAL_FILE"
         created+=("$GLOBAL_FILE")
     fi
 
     if [[ ! -f "$PROJECT_FILE" ]]; then
-        echo '{"version":1,"reviews":{}}' > "$PROJECT_FILE"
+        echo '{"version":1,"tasks":{}}' > "$PROJECT_FILE"
         ensure_gitignored "$PROJECT_FILE"
         created+=("$PROJECT_FILE")
     fi
@@ -212,7 +217,7 @@ cmd_recommend() {
     local format="${1:-text}"
     local recommendations=()
 
-    # Collect applicable and overdue reviews
+    # Collect applicable and overdue tasks
     for name in "${!CADENCES[@]}"; do
         if is_applicable "$name"; then
             local last_run days cadence priority
@@ -243,7 +248,7 @@ cmd_recommend() {
         if [[ "$format" == "json" ]]; then
             echo "[]"
         else
-            echo "All reviews are up to date"
+            echo "All tasks are up to date"
         fi
         return
     fi
@@ -274,7 +279,7 @@ cmd_recommend() {
 
         echo "$json_array"
     else
-        echo "Reviews due:"
+        echo "Tasks due:"
         while IFS='|' read -r priority name days cadence; do
             local reason
             if [[ "$days" == "-1" ]]; then
@@ -294,7 +299,7 @@ cmd_record() {
     local name="$1"
 
     if [[ -z "$name" ]]; then
-        echo "Error: review name required" >&2
+        echo "Error: task name required" >&2
         exit 1
     fi
 
@@ -305,7 +310,7 @@ cmd_record() {
     # Create file if missing
     if [[ ! -f "$file" ]]; then
         mkdir -p "$(dirname "$file")"
-        echo '{"version":1,"reviews":{}}' > "$file"
+        echo '{"version":1,"tasks":{}}' > "$file"
         ensure_gitignored "$file"
         created_new=true
     fi
@@ -313,7 +318,7 @@ cmd_record() {
     # Update using jq
     local tmp
     tmp=$(mktemp)
-    jq ".reviews[\"$name\"] = {\"lastRun\": \"$now\"}" "$file" > "$tmp"
+    jq ".tasks[\"$name\"] = {\"lastRun\": \"$now\"}" "$file" > "$tmp"
     mv "$tmp" "$file"
 
     echo "Recorded $name at $now in $file"
@@ -334,12 +339,12 @@ case "${1:-}" in
         cmd_init
         ;;
     *)
-        echo "Usage: review-tracker.sh {status|recommend|record|init} [args]"
+        echo "Usage: systems-tracker.sh {status|recommend|record|init} [args]"
         echo ""
         echo "Commands:"
-        echo "  status [json]       Show all reviews with days since last run"
-        echo "  recommend [json]    Show reviews due, sorted by priority"
-        echo "  record <name>       Record review completion"
+        echo "  status [json]       Show all tasks with days since last run"
+        echo "  recommend [json]    Show tasks due, sorted by priority"
+        echo "  record <name>       Record task completion"
         echo "  init                Create history files if missing"
         exit 1
         ;;

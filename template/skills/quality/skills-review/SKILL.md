@@ -146,5 +146,5 @@ Good descriptions follow the WHAT + WHEN pattern for discoverability.
 Record this review:
 
 ```bash
-.claude/scripts/review-tracker.sh record skills-review
+.claude/scripts/systems-tracker.sh record skills-review
 ```

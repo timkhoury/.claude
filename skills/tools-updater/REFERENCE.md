@@ -80,5 +80,5 @@ bd version
 ## Cadence
 
 - **Frequency**: 14 days
-- **History file**: `~/.claude/.systems-review.json` (global)
-- **Record command**: `~/.claude/template/scripts/review-tracker.sh record tools-updater`
+- **History file**: `~/.claude/.systems-check.json` (global)
+- **Record command**: `~/.claude/template/scripts/systems-tracker.sh record tools-updater`

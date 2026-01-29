@@ -24,4 +24,4 @@ security_*.json
 settings.json
 stats-cache.json
 
-.systems-review.json
+.systems-check.json

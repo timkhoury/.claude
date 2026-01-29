@@ -95,7 +95,7 @@ grep -E '\$includes\.(tech|patterns|meta)\.' .claude/agents-src/_project.yaml
 ## After Completion
 
 ```bash
-.claude/scripts/review-tracker.sh record rules-review
+.claude/scripts/systems-tracker.sh record rules-review
 ```
 
 ## Reference

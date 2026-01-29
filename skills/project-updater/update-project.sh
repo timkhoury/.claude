@@ -254,7 +254,12 @@ while IFS= read -r file; do
 
   # File missing in project - would add
   if [[ ! -f "$project_file" ]]; then
-    echo "$flat_rel_path" >> "$added_files"
+    # Store both paths: project_path|template_path (for display)
+    if [[ "$flat_rel_path" != "$rel_path" ]]; then
+      echo "$flat_rel_path|$rel_path" >> "$added_files"
+    else
+      echo "$flat_rel_path" >> "$added_files"
+    fi
     ((count_added++)) || true
     continue
   fi
@@ -266,7 +271,12 @@ while IFS= read -r file; do
   fi
 
   # Files differ - would update
-  echo "$flat_rel_path" >> "$changed_files"
+  # Store both paths: project_path|template_path (for display)
+  if [[ "$flat_rel_path" != "$rel_path" ]]; then
+    echo "$flat_rel_path|$rel_path" >> "$changed_files"
+  else
+    echo "$flat_rel_path" >> "$changed_files"
+  fi
   ((count_changed++)) || true
 done < <(find_syncable_files "$TEMPLATE_DIR")
 
@@ -297,7 +307,14 @@ echo ""
 if [[ -s "$changed_files" ]]; then
   echo -e "${YELLOW}Changed ($count_changed):${NC}"
   while IFS= read -r f; do
-    echo "  - $f"
+    if [[ "$f" == *"|"* ]]; then
+      project_path="${f%%|*}"
+      template_path="${f##*|}"
+      echo "  - $project_path"
+      echo "      from: $template_path"
+    else
+      echo "  - $f"
+    fi
   done < "$changed_files"
   echo ""
 fi
@@ -305,7 +322,14 @@ fi
 if [[ -s "$added_files" ]]; then
   echo -e "${GREEN}Added ($count_added):${NC}"
   while IFS= read -r f; do
-    echo "  - $f"
+    if [[ "$f" == *"|"* ]]; then
+      project_path="${f%%|*}"
+      template_path="${f##*|}"
+      echo "  - $project_path"
+      echo "      from: $template_path"
+    else
+      echo "  - $f"
+    fi
   done < "$added_files"
   echo ""
 fi
