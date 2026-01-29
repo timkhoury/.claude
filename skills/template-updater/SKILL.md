@@ -29,6 +29,18 @@ The script only syncs files that **already exist in the template**. This prevent
 | Only in template | N/A (doesn't affect project→template) |
 | Protected files | Skipped (shown in report) |
 
+## Path Mapping
+
+The template uses hierarchical organization while projects use flat directories:
+
+| Template | Project |
+|----------|---------|
+| `skills/quality/review/` | `skills/review/` |
+| `skills/quality/pr-check/` | `skills/pr-check/` |
+| `skills/workflow/gitbutler/` | `skills/gitbutler/` |
+
+The script handles this mapping internally - reported paths are template-relative.
+
 ## Protected Files
 
 Never synced to template (contain project-specific content):
