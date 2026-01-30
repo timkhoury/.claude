@@ -16,14 +16,15 @@
 
 ## Critical Rules
 
-1. **Single-line commit messages** - no body, no footers, no Co-Authored-By
+1. **Concise commit messages** - add a body for the "why" only when non-obvious; no footers, no Co-Authored-By
 2. **NEVER push after committing** - only push when explicitly requested or at session end
 3. **Use `git mv` for file moves** - preserves history (this is the one `git` command allowed)
 
 ## Commit Message Format
 
 - Conventional prefixes: `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`, `perf:`
-- Single line only, no HEREDOC
+- Single line for obvious changes
+- Add a body paragraph explaining "why" when the reason isn't self-evident
 
 ## Danger Zone
 

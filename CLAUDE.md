@@ -6,7 +6,7 @@ Personal preferences applied across all projects.
 
 - **Use GitButler** when available - invoke `gitbutler` skill before git operations
 - **Conventional commits** - `feat:`, `fix:`, `docs:`, `refactor:`, `chore:`, `test:`, `perf:`
-- **Single-line commit messages** - no body, no footers, no Co-Authored-By
+- **Concise commit messages** - add a body for the "why" only when non-obvious; no footers, no Co-Authored-By
 - **Never push automatically** - only push when explicitly requested or at session end
 
 ## Code Style
