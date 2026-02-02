@@ -94,13 +94,16 @@ Description: <description>
 
 - Check for more ready children
 - If ready: go to Step 2
-- If none: stop and report
+- If none: proceed to Step 6
 
-### Step 6: Session End
+### Step 6: Epic Complete
+
+When all tasks are done (no more ready children):
 
 1. Run `code-reviewer` agent
 2. If passes, run `/pr-check`
 3. Ask user about PR creation
+4. Invoke `/wrap` to complete the session
 
 ## When NOT to Delegate
 
