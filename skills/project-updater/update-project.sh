@@ -22,6 +22,7 @@ source "$HOME/.claude/scripts/lib/sync-common.sh"
 
 # Script-specific paths
 DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
+HOOKS_SCRIPT="$HOME/.claude/skills/project-updater/sync-hooks.sh"
 
 # Excluded files (skip entirely, not synced to projects)
 EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
@@ -376,4 +377,10 @@ if [[ $count_changed -gt 0 || $count_added -gt 0 ]]; then
   echo "Claude should review the differences and copy files as needed."
 else
   echo -e "${GREEN}Everything up to date.${NC}"
+fi
+
+# Run hooks sync report
+echo ""
+if [[ -x "$HOOKS_SCRIPT" ]]; then
+  "$HOOKS_SCRIPT" --report
 fi

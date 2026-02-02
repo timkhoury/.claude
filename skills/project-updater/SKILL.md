@@ -38,10 +38,49 @@ The script also detects workflow tools by directory existence:
 | Directory | Detected Tool | Files Synced |
 |-----------|---------------|--------------|
 | `.beads/` | Beads | `workflow/beads-workflow.md`, `beads-cleanup/`, `work.md`, `status.md` |
-| `openspec/` | OpenSpec | `workflow/openspec.md` |
+| `openspec/` | OpenSpec | `workflow/openspec.md`, hooks (see below) |
 | Both | Beads + OpenSpec | `workflow/workflow-integration.md`, `wrap.md` |
 
 **Files for disabled tools are skipped**, not copied.
+
+## Hook Syncing
+
+The script also syncs Claude Code hooks from template based on tool detection. Hooks are defined in `~/.claude/config/sync-config.yaml` under each tool's `hooks` section.
+
+**Example hook definition in sync-config.yaml:**
+```yaml
+tools:
+  openspec:
+    detect:
+      directories:
+        - openspec/
+    hooks:
+      PostToolUse:
+        - matcher: "ExitPlanMode"
+          type: "prompt"
+          prompt: "/execute-plan"
+          _templateId: "openspec:execute-plan"
+```
+
+**How it works:**
+- Template hooks have a `_templateId` field to distinguish them from project hooks
+- Project hooks without `_templateId` are preserved
+- Same `_templateId` = project override wins (template version skipped)
+- Hooks are added to `.claude/settings.json`
+
+**Disable a template hook:**
+Add the template ID to `_disabledTemplateHooks` in project settings.json:
+```json
+{
+  "_disabledTemplateHooks": ["openspec:execute-plan"],
+  "hooks": { ... }
+}
+```
+
+**Apply hooks:**
+```bash
+~/.claude/skills/project-updater/sync-hooks.sh --apply
+```
 
 ## Folder Structure
 
@@ -111,6 +150,7 @@ The script reports:
 5. **Skipped** - Files for undetected technologies/tools
 6. **Protected** - Files that need manual review (CLAUDE.md, _project.yaml)
 7. **Unused** - Rules in project for technologies no longer detected
+8. **Hooks** - Template hooks to add based on detected tools
 
 ## After Running
 
