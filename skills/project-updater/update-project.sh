@@ -33,8 +33,9 @@ HAS_OPENSPEC=false
 [[ -d "openspec" ]] && HAS_OPENSPEC=true
 
 # Files that require specific tools (for workflow detection)
-BEADS_FILES="rules/workflow/beads-workflow.md|skills/workflow/beads-cleanup/|skills/workflow/work/|commands/work.md|commands/status.md|commands/wrap.md"
-OPENSPEC_FILES="rules/workflow/openspec.md|skills/quality/"
+# Paths match template structure (before flattening)
+BEADS_FILES="rules/workflow/beads-workflow.md|skills/tools/beads/|skills/workflow/work/|commands/work.md|commands/status.md|commands/wrap.md"
+OPENSPEC_FILES="rules/workflow/openspec.md|skills/tools/openspec/"
 BEADS_AND_OPENSPEC_FILES="rules/workflow/workflow-integration.md"
 
 # Get detected technologies and required rules/skills

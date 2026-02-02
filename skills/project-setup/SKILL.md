@@ -20,7 +20,7 @@ Initialize Claude Code configuration using the deterministic setup script.
 |--------|-------------|
 | `--tools=TOOLS` | Tools to enable: `all`, `beads+openspec`, `beads`, `openspec`, `none` (default: `all`) |
 | `--framework=NAME` | Framework: `nextjs`, `react`, `node`, `other` (optional) |
-| `--scaffold-rules` | Create scaffolded rule files (architecture.md, project-overview.md, danger-zone.md) |
+| `--scaffold-rules` | Create scaffolded rule files (overview.md, architecture.md) |
 | `--project-name=NAME` | Project name for beads prefix (default: directory name) |
 | `--skip-init` | Skip tool initialization (bd init, openspec init) |
 | `--skip-build` | Skip agent building step |
@@ -81,53 +81,54 @@ After gathering answers, run:
 
 ## What Gets Copied
 
+Skills are **flattened** from template's nested structure to project's flat structure:
+- Template: `skills/{category}/{skill}/` or `skills/tools/{tool}/{skill}/`
+- Project: `skills/{skill}/`
+
 ### Always Copied
 
-| Source | Destination |
-|--------|-------------|
+| Template Source | Project Destination |
+|-----------------|---------------------|
 | `CLAUDE.md` | `./CLAUDE.md` |
 | `baseline-agent.md` | `.claude/baseline-agent.md` |
 | `agents-src/` | `.claude/agents-src/` |
 | `scripts/` | `.claude/scripts/` |
-| `rules/landing-the-plane.md` | `.claude/rules/` |
-| `rules/deterministic-systems.md` | `.claude/rules/` |
-| `rules/research-patterns.md` | `.claude/rules/` |
-| `rules/documentation-lookup.md` | `.claude/rules/` |
-| `rules/agents-system.md` | `.claude/rules/` |
-| `skills/pr-check/` | `.claude/skills/` |
-| `skills/deps-update/` | `.claude/skills/` |
-| `skills/adr-writer/` | `.claude/skills/` |
-| `skills/skill-writer/` | `.claude/skills/` |
-| `skills/agent-writer/` | `.claude/skills/` |
-| `commands/plan.md` | `.claude/commands/` |
-| `commands/check.md` | `.claude/commands/` |
-| `commands/fix.md` | `.claude/commands/` |
-| `commands/review.md` | `.claude/commands/` |
-| `commands/test.md` | `.claude/commands/` |
+| `rules/workflow/` | `.claude/rules/workflow/` |
+| `rules/meta/` | `.claude/rules/meta/` |
+| `rules/patterns/` | `.claude/rules/patterns/` |
+| `skills/quality/pr-check/` | `.claude/skills/pr-check/` |
+| `skills/quality/review/` | `.claude/skills/review/` |
+| `skills/automation/deps-updater/` | `.claude/skills/deps-updater/` |
+| `skills/authoring/adr-writer/` | `.claude/skills/adr-writer/` |
+| `skills/authoring/skill-writer/` | `.claude/skills/skill-writer/` |
+| `skills/authoring/agent-writer/` | `.claude/skills/agent-writer/` |
+| `skills/authoring/rule-writer/` | `.claude/skills/rule-writer/` |
+| `commands/plan.md` | `.claude/commands/plan.md` |
+| `commands/check.md` | `.claude/commands/check.md` |
+| `commands/fix.md` | `.claude/commands/fix.md` |
+| `commands/fix-tests.md` | `.claude/commands/fix-tests.md` |
 
 ### If Beads Enabled
 
-| Source | Destination |
-|--------|-------------|
-| `rules/beads-workflow.md` | `.claude/rules/` |
-| `skills/beads-cleanup/` | `.claude/skills/` |
-| `commands/work.md` | `.claude/commands/` |
-| `commands/status.md` | `.claude/commands/` |
+| Template Source | Project Destination |
+|-----------------|---------------------|
+| `skills/tools/beads/beads-cleanup/` | `.claude/skills/beads-cleanup/` |
+| `skills/workflow/work/` | `.claude/skills/work/` |
+| `commands/status.md` | `.claude/commands/status.md` |
 
 ### If OpenSpec Enabled
 
-| Source | Destination |
-|--------|-------------|
-| `rules/openspec.md` | `.claude/rules/` |
-| `skills/quality/` | `.claude/skills/` |
-| `commands/openspec/` | `.claude/commands/` |
+| Template Source | Project Destination |
+|-----------------|---------------------|
+| `skills/quality/rules-review/` | `.claude/skills/rules-review/` |
+| `skills/tools/openspec/spec-review/` | `.claude/skills/spec-review/` |
+| `commands/openspec/` | `.claude/commands/openspec/` |
 
 ### If Beads + OpenSpec Enabled
 
-| Source | Destination |
-|--------|-------------|
-| `rules/workflow-integration.md` | `.claude/rules/` |
-| `commands/wrap.md` | `.claude/commands/` |
+| Template Source | Project Destination |
+|-----------------|---------------------|
+| `commands/wrap.md` | `.claude/commands/wrap.md` |
 
 ## Examples
 
@@ -149,7 +150,7 @@ After gathering answers, run:
 
 1. **Customize CLAUDE.md** - Add project description, commands, rules reference
 2. **Customize _shared.yaml** - Add project-specific skills to bundles
-3. **Customize scaffolded rules** - Fill in architecture.md, danger-zone.md, etc.
+3. **Customize scaffolded rules** - Fill in overview.md, architecture.md
 4. **Commit** (load gitbutler skill first with `/gitbutler`):
    ```bash
    but status                        # Review changes
