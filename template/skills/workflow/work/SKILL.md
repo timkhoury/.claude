@@ -42,11 +42,20 @@ Main Orchestrator (stays lean)
 
 ## Branch Management
 
-**For epics, create one branch for all tasks:**
+**Receiving branch from execute-plan:**
 
+The orchestrator may specify a branch in the invocation:
+```
+/work <epic-id>
+Branch: <branch-name>
+```
+
+**If no branch specified, create one:**
 ```bash
 but branch new <epic-name>    # kebab-case, no feat/fix/ prefixes
 ```
+
+**One branch for entire epic** - all tasks commit to the same branch.
 
 ## Workflow
 
@@ -79,7 +88,7 @@ bd update <task-id> --status=in_progress
 ```
 Use the task-implementer agent:
 
-Target Branch: <branch-name>
+Target Branch: <branch-name>   # REQUIRED - from execute-plan or created in Branch Management
 Task ID: <bead-id>
 Task: <title>
 Description: <description>

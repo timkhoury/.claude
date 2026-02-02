@@ -71,10 +71,6 @@ Look for these signals in the plan content:
    bd update <bead-id> --status=in_progress
    ```
 
-3. **Guide user:**
-   - If OpenSpec generated tasks, use `/opsx:apply <change-id>` or `/work <bead-id>`
-   - The OpenSpec tasks.md provides the task breakdown
-
 ### Direct Beads Path (Simpler Work)
 
 1. **Create epic from plan title:**
@@ -104,10 +100,34 @@ Look for these signals in the plan content:
    bd dep add <test-task-id> <impl-task-2-id>
    ```
 
-5. **Guide user:**
-   ```
-   /work <epic-id>
-   ```
+## Step 4: Create Branch
+
+Create a single branch for all implementation work:
+
+| Path | Branch Name | Command |
+|------|-------------|---------|
+| OpenSpec | `<change-id>` | `but branch new <change-id>` |
+| Direct beads | `<epic-name>` (kebab-case) | `but branch new <epic-name>` |
+
+**Examples:**
+- OpenSpec change `add-user-notifications` → `but branch new add-user-notifications`
+- Epic "Fix auth middleware bugs" → `but branch new fix-auth-middleware-bugs`
+
+## Step 5: Hand Off to /work
+
+Pass the branch name when invoking `/work`:
+
+```
+/work <epic-id or bead-id>
+Branch: <branch-name>
+```
+
+**OpenSpec path:**
+- If OpenSpec generated tasks, use `/opsx:apply <change-id>` or `/work <bead-id>`
+- The OpenSpec tasks.md provides the task breakdown
+
+**Direct beads path:**
+- Use `/work <epic-id>` to execute tasks sequentially
 
 ## Standard Epic Tasks
 
@@ -133,10 +153,11 @@ Look for these signals in the plan content:
 
 ## After Setup
 
-Once beads are created, the `/work` skill handles execution:
+Once beads and branch are created, the `/work` skill handles execution:
+- Receives branch name from this skill
 - Finds next ready child task
 - Claims it (marking in_progress)
-- Delegates to task-implementer
-- Commits via gitbutler
+- Delegates to task-implementer with branch name
+- Commits via gitbutler to the specified branch
 - Closes the task
 - Loops to next ready task
