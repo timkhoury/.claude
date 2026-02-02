@@ -99,10 +99,40 @@ but stage <file-id> template-sync   # Stage changed files
 but commit template-sync --only -m "chore: update template"
 ```
 
+## Maintaining the Template Changelog
+
+When deleting or renaming files in the template, update `~/.claude/config/changelog.yaml`:
+
+```yaml
+changes:
+  - type: delete
+    path: rules/workflow/old-rule.md
+    date: 2026-02-02
+    reason: Merged into workflow-integration.md
+
+  - type: rename
+    from: skills/old-path/SKILL.md
+    to: skills/new-path/SKILL.md
+    date: 2026-02-02
+```
+
+**Why this matters:**
+- Sync scripts use the changelog to distinguish "was deleted" from "is new"
+- Without changelog entries, deleted files will be suggested for re-addition
+- Projects with the old files will see them in "Removed from template" section
+
+**What to record:**
+- **Deletions**: Files intentionally removed from template
+- **Renames**: Files moved to new locations (preserves history)
+
+**What NOT to record:**
+- New files (they're discovered automatically)
+- Content changes (handled by normal sync)
+
 ## When to Use
 
 - After improving a generic skill (deps-update, pr-check, etc.)
-- After updating workflow rules (beads-workflow, landing-the-plane, etc.)
+- After updating workflow rules (beads-workflow, workflow-integration, etc.)
 - After fixing issues in shared patterns
 
 ## Design Philosophy

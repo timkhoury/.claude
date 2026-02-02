@@ -169,6 +169,12 @@ tools:
       - openspec/proposal.md
       - openspec/apply.md
       - openspec/archive.md
+    hooks:
+      PostToolUse:
+        - matcher: "ExitPlanMode"
+          type: "prompt"
+          prompt: "/execute-plan"
+          _templateId: "openspec:execute-plan"
 
   # Tool integration (use requires instead of directories)
   beads+openspec:

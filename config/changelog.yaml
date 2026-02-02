@@ -1,0 +1,16 @@
+# Template changelog - tracks intentional deletions and renames
+# Sync scripts use this to distinguish "deleted" from "never existed"
+#
+# When deleting or renaming files in the template, add an entry here.
+# This prevents project-updater from suggesting deleted files as "new".
+
+changes:
+  - type: delete
+    path: rules/workflow/landing-the-plane.md
+    date: 2026-02-02
+    reason: Merged into workflow-integration.md
+
+  - type: delete
+    path: rules/workflow/plan-execution.md
+    date: 2026-02-02
+    reason: Replaced by execute-plan skill

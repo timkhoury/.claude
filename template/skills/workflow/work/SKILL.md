@@ -42,11 +42,20 @@ Main Orchestrator (stays lean)
 
 ## Branch Management
 
-**For epics, create one branch for all tasks:**
+**Receiving branch from execute-plan:**
 
+The orchestrator may specify a branch in the invocation:
+```
+/work <epic-id>
+Branch: <branch-name>
+```
+
+**If no branch specified, create one:**
 ```bash
 but branch new <epic-name>    # kebab-case, no feat/fix/ prefixes
 ```
+
+**One branch for entire epic** - all tasks commit to the same branch.
 
 ## Workflow
 
@@ -79,7 +88,7 @@ bd update <task-id> --status=in_progress
 ```
 Use the task-implementer agent:
 
-Target Branch: <branch-name>
+Target Branch: <branch-name>   # REQUIRED - from execute-plan or created in Branch Management
 Task ID: <bead-id>
 Task: <title>
 Description: <description>
@@ -94,13 +103,16 @@ Description: <description>
 
 - Check for more ready children
 - If ready: go to Step 2
-- If none: stop and report
+- If none: proceed to Step 6
 
-### Step 6: Session End
+### Step 6: Epic Complete
+
+When all tasks are done (no more ready children):
 
 1. Run `code-reviewer` agent
 2. If passes, run `/pr-check`
 3. Ask user about PR creation
+4. Invoke `/wrap` to complete the session
 
 ## When NOT to Delegate
 

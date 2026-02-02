@@ -2,71 +2,15 @@
 
 This rule defines how beads (issue tracking) and OpenSpec (spec-driven development) work together.
 
-## Decision Tree: When to Use What
+## Starting Work
 
-```
-New work item?
-├─ Small task, bug fix, or isolated change
-│  └─ Beads only → Create bead, work, close bead
-│
-├─ Complex feature, architectural change, or breaking change
-│  └─ Beads + OpenSpec → Create both, keep in sync, archive then close
-│
-└─ Unclear scope?
-   └─ Start with bead → Upgrade to OpenSpec if complexity emerges
-```
+Use `/execute-plan` after plan approval. The skill analyzes complexity and routes to:
+- **OpenSpec** (`/opsx:ff`) for new features, breaking changes, cross-cutting work
+- **Direct beads** (epic + tasks) for bug fixes, refactors, config changes
 
-### Use Beads Only When:
-- Bug fixes (restore intended behavior)
-- Feature changes that don't alter functional requirements
-- Configuration or dependency updates
-- Documentation updates
-- Refactoring without behavior change
+See the `execute-plan` skill for decision criteria and setup workflow.
 
-### Use Beads + OpenSpec When:
-- New features or capabilities
-- Breaking changes (API, schema, behavior)
-- Cross-cutting changes (multiple systems/files)
-- Architectural changes
-- Anything benefiting from upfront design
-
-## Keeping Beads and OpenSpec in Sync
-
-When using both systems:
-
-### At Creation Time
-
-1. Create OpenSpec change first (`/opsx:new` or `/opsx:ff`)
-2. Create tracking bead with title matching the change-id
-3. **For 3+ tasks**: Use epic structure (see below)
-4. **For 1-2 tasks**: Simple bead is sufficient
-
-**Simple bead (1-2 tasks):**
-```bash
-bd create --title="<change-id>" --type=feature --priority=2
-bd update <id> --status=in_progress
-```
-
-### Epic Structure for Complex Changes
-
-For OpenSpec changes with 3+ tasks, create an epic with child task beads. See `beads-workflow.md` for epic creation steps.
-
-### Standard Epic Tasks
-
-**Every epic MUST include these tasks.** Create them when setting up the epic structure.
-
-| Task | Type | Blocked By | Closed By |
-|------|------|------------|-----------|
-| Unit & integration tests | `task` | All implementation tasks | Agent (after tests pass) |
-| E2E tests | `task` | Unit tests (if user-facing) | Agent (after tests pass) |
-| Documentation updates | `task` | Implementation tasks | Agent (if docs changed) |
-
-**Rules for standard tasks:**
-- **Tests**: Must pass `npm run test` and achieve reasonable coverage for new code
-- **E2E**: Required if feature has user-facing UI; skip with `--reason="No UI changes"` if not
-- **Docs**: Update relevant docs in `docs/` or inline comments; skip if truly no doc changes
-
-### During Implementation
+## During Implementation
 
 **Simple bead workflow:**
 
@@ -96,7 +40,7 @@ bd close <task-id> --reason="Implemented in <commit>"
 bd ready                              # See what's unblocked next
 ```
 
-### At Completion Time
+## At Completion Time
 
 **CRITICAL: Follow this order exactly:**
 
@@ -114,7 +58,10 @@ bd ready                              # See what's unblocked next
    - Epic: `bd close <epic-id> --reason="Archived: <change-id>"` (closes epic; tasks should already be closed)
 4. **Run quality gates**:
    - Run `code-reviewer` agent to review all changes
-   - If review passes, run `/pr-check` skill
+   - After implementing fixes from review, suggest next step:
+     - **Large features**: Do 3 review/fix cycles before `/pr-check`
+     - **Small changes**: Run `/pr-check` after fixes
+   - If review passes with no issues, run `/pr-check` skill
    - Prompt user if they want to create a PR (don't auto-create)
 5. **Then land the plane** - Push, sync, verify
 
@@ -129,12 +76,11 @@ bd ready                              # See what's unblocked next
 
 | Command | Purpose |
 |---------|---------|
+| `/execute-plan` | Set up workflow after plan approval (auto-invoked on ExitPlanMode) |
 | `/work <task-id>` | Execute one specific task, then stop |
 | `/work <epic-id>` | Work through all ready tasks in the epic sequentially |
 | `/status` | Show unified view of OpenSpec, beads, and git state |
 | `/wrap` | End-of-session workflow - archive, close, push, verify |
-
-Use `/work <id>` to implement tasks, `/status` for orientation, and `/wrap` to complete a session.
 
 ## Danger Zone
 

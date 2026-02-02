@@ -11,11 +11,10 @@
 
 set -eo pipefail
 
-# Source shared library
+# Source shared libraries
 source "$HOME/.claude/scripts/lib/common.sh"
+source "$HOME/.claude/scripts/lib/sync-common.sh"
 
-TEMPLATE_DIR="$HOME/.claude/template"
-PROJECT_DIR=".claude"
 DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
 
 # Defaults
@@ -25,6 +24,7 @@ SCAFFOLD_RULES=false
 PROJECT_NAME=""
 SKIP_INIT=false
 SKIP_BUILD=false
+FORCE=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -54,6 +54,10 @@ while [[ $# -gt 0 ]]; do
       SKIP_BUILD=true
       shift
       ;;
+    --force|-f)
+      FORCE=true
+      shift
+      ;;
     --help|-h)
       echo "Usage: setup-project.sh [options]"
       echo ""
@@ -65,6 +69,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --project-name=NAME  Project name for beads prefix (default: directory name)"
       echo "  --skip-init          Skip tool initialization (bd init, openspec init)"
       echo "  --skip-build         Skip agent building step"
+      echo "  --force, -f          Skip confirmation if .claude/ already exists"
       echo ""
       echo "Tech detection:"
       echo "  Automatically detects technologies from package.json, config files,"
@@ -136,9 +141,11 @@ fi
 # Check if already initialized
 if [[ -d "$PROJECT_DIR" ]]; then
   warn ".claude/ directory already exists"
-  if ! confirm "This will update existing files. Continue?"; then
-    echo "Aborted."
-    exit 0
+  if [[ "$FORCE" != "true" ]]; then
+    if ! confirm "This will update existing files. Continue?"; then
+      echo "Aborted."
+      exit 0
+    fi
   fi
 fi
 
@@ -209,6 +216,34 @@ copy_dir() {
     fi
   fi
   echo -e "  ${GREEN}Copy:${NC} $src/"
+  ((files_copied++)) || true
+}
+
+# Helper: copy skill directory with path flattening
+# Template: skills/{category}/{skill}/ or skills/tools/{tool}/{skill}/
+# Project:  skills/{skill}/
+copy_skill() {
+  local template_skill_path="$1"  # e.g., "quality/rules-review" or "tools/beads/beads-cleanup"
+  local skill_name="$2"           # e.g., "rules-review" or "beads-cleanup"
+
+  local src="skills/$template_skill_path"
+  local dst="$PROJECT_DIR/skills/$skill_name"
+
+  if [[ ! -d "$TEMPLATE_DIR/$src" ]]; then
+    echo -e "  ${YELLOW}Skip:${NC} $src/ (not in template)"
+    ((files_skipped++)) || true
+    return
+  fi
+
+  mkdir -p "$dst"
+  if compgen -G "$TEMPLATE_DIR/$src/*" > /dev/null; then
+    if ! cp -r "$TEMPLATE_DIR/$src/"* "$dst/"; then
+      warn "Failed to copy $src/ to $dst/"
+      ((files_skipped++)) || true
+      return
+    fi
+  fi
+  echo -e "  ${GREEN}Copy:${NC} $src/ -> skills/$skill_name/"
   ((files_copied++)) || true
 }
 
@@ -297,12 +332,13 @@ echo -e "  ${GREEN}Create:${NC} skills/project/ (empty)"
 echo -e "  ${BLUE}Copying always-included skills...${NC}"
 echo "$DETECTED_SKILLS" | while read -r skill_folder; do
   [[ -z "$skill_folder" ]] && continue
-  # skill_folder is like "authoring/", copy all subdirectories
+  # skill_folder is like "authoring/" or "quality/", copy all subdirectories with flattening
   if [[ -d "$TEMPLATE_DIR/skills/$skill_folder" ]]; then
     for skill_dir in "$TEMPLATE_DIR/skills/$skill_folder"*/; do
       [[ -d "$skill_dir" ]] || continue
       skill_name=$(basename "$skill_dir")
-      copy_dir "skills/${skill_folder}${skill_name}" "$PROJECT_DIR/skills/${skill_folder}${skill_name}"
+      # Flatten: skills/{category}/{skill}/ -> skills/{skill}/
+      copy_skill "${skill_folder}${skill_name}" "$skill_name"
     done
   fi
 done
@@ -320,8 +356,8 @@ echo ""
 if [[ "$ENABLE_BEADS" == "true" ]]; then
   echo -e "${BLUE}Phase 2a: Copying Beads files...${NC}"
   # beads-workflow.md should already be in rules/workflow/ from Phase 1
-  copy_dir "skills/tools/beads/beads-cleanup" "$PROJECT_DIR/skills/tools/beads/beads-cleanup"
-  copy_dir "skills/workflow/work" "$PROJECT_DIR/skills/workflow/work"
+  copy_skill "tools/beads/beads-cleanup" "beads-cleanup"
+  copy_skill "workflow/work" "work"
   copy_file "commands/status.md" "$PROJECT_DIR/commands/status.md"
   echo ""
 fi
@@ -329,8 +365,8 @@ fi
 if [[ "$ENABLE_OPENSPEC" == "true" ]]; then
   echo -e "${BLUE}Phase 2b: Copying OpenSpec files...${NC}"
   # openspec.md should already be in rules/workflow/ from Phase 1
-  copy_dir "skills/quality/rules-review" "$PROJECT_DIR/skills/quality/rules-review"
-  copy_dir "skills/tools/openspec/spec-review" "$PROJECT_DIR/skills/tools/openspec/spec-review"
+  copy_skill "quality/rules-review" "rules-review"
+  copy_skill "tools/openspec/spec-review" "spec-review"
   mkdir -p "$PROJECT_DIR/commands/openspec"
   copy_file "commands/openspec/proposal.md" "$PROJECT_DIR/commands/openspec/proposal.md"
   copy_file "commands/openspec/apply.md" "$PROJECT_DIR/commands/openspec/apply.md"
@@ -353,17 +389,21 @@ if [[ "$SCAFFOLD_RULES" == "true" ]]; then
     cat > "$PROJECT_DIR/rules/project/architecture.md" << 'EOF'
 # Architecture
 
-## Overview
+## Route/File Structure
 
-<!-- Describe your architecture here -->
+<!-- Document key directories and their purposes -->
 
-## Key Patterns
+## Database
 
-<!-- Document important patterns -->
+<!-- Database technology, schema patterns, key tables -->
 
-## Data Flow
+## Key Features
 
-<!-- How data moves through the system -->
+<!-- Document major features and their implementation patterns -->
+
+## External Integrations
+
+<!-- Third-party services, APIs, webhooks -->
 EOF
     echo -e "  ${GREEN}Create:${NC} rules/project/architecture.md"
   else
@@ -372,43 +412,34 @@ EOF
 
   if [[ ! -f "$PROJECT_DIR/rules/project/overview.md" ]]; then
     cat > "$PROJECT_DIR/rules/project/overview.md" << 'EOF'
+---
+bundles: all
+---
+
 # Project Overview
 
-<!-- Brief description of the project -->
+<!-- Brief description of the project and its key technologies -->
 
 ## Development Commands
 
 ```bash
-# Add your common commands here
 npm run dev          # Start dev server
 npm run build        # Production build
+npm run lint         # Run ESLint
 npm run test         # Run tests
 ```
 
-## File Organization
+## Import Path Alias
 
-<!-- Describe how files are organized -->
+<!-- Document import conventions, e.g., `@/` → `src/` -->
 
-## Naming Conventions
+## File Naming Conventions
 
-<!-- Project-specific naming rules -->
-EOF
-    echo -e "  ${GREEN}Create:${NC} rules/project/overview.md"
-  else
-    echo -e "  ${YELLOW}Skip:${NC} rules/project/overview.md (exists)"
-  fi
+<!-- Document file naming rules, e.g., kebab-case for files -->
 
-  if [[ ! -f "$PROJECT_DIR/rules/project/troubleshooting.md" ]]; then
-    cat > "$PROJECT_DIR/rules/project/troubleshooting.md" << 'EOF'
-# Troubleshooting
+## Additional Documentation
 
-> Common issues and their solutions.
-
-## Common Issues
-
-| Problem | Solution |
-|---------|----------|
-| <!-- Add project-specific issues --> | |
+<!-- Link to other docs, ADRs, or external resources -->
 
 ## Danger Zone
 
@@ -416,9 +447,9 @@ EOF
 |-------|-------------|
 | <!-- Add project-specific "never do" rules --> | |
 EOF
-    echo -e "  ${GREEN}Create:${NC} rules/project/troubleshooting.md"
+    echo -e "  ${GREEN}Create:${NC} rules/project/overview.md"
   else
-    echo -e "  ${YELLOW}Skip:${NC} rules/project/troubleshooting.md (exists)"
+    echo -e "  ${YELLOW}Skip:${NC} rules/project/overview.md (exists)"
   fi
   echo ""
 fi

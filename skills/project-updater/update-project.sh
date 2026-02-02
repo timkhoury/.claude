@@ -22,6 +22,7 @@ source "$HOME/.claude/scripts/lib/sync-common.sh"
 
 # Script-specific paths
 DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
+HOOKS_SCRIPT="$HOME/.claude/skills/project-updater/sync-hooks.sh"
 
 # Excluded files (skip entirely, not synced to projects)
 EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
@@ -33,8 +34,9 @@ HAS_OPENSPEC=false
 [[ -d "openspec" ]] && HAS_OPENSPEC=true
 
 # Files that require specific tools (for workflow detection)
-BEADS_FILES="rules/workflow/beads-workflow.md|skills/workflow/beads-cleanup/|skills/workflow/work/|commands/work.md|commands/status.md|commands/wrap.md"
-OPENSPEC_FILES="rules/workflow/openspec.md|skills/quality/"
+# Paths match template structure (before flattening)
+BEADS_FILES="rules/workflow/beads-workflow.md|skills/tools/beads/|skills/workflow/work/|commands/work.md|commands/status.md|commands/wrap.md"
+OPENSPEC_FILES="rules/workflow/openspec.md|skills/tools/openspec/"
 BEADS_AND_OPENSPEC_FILES="rules/workflow/workflow-integration.md"
 
 # Get detected technologies and required rules/skills
@@ -92,12 +94,16 @@ count_added=0
 count_protected=0
 count_skipped=0
 count_unused=0
+count_syncignored=0
+count_changelog_deleted=0
 
 # Temp files for reporting (from sync-common.sh: changed_files, added_files, protected_files, skipped_files)
 setup_sync_temp_files
 unused_files=$(mktemp)
+syncignored_files=$(mktemp)
+changelog_deleted_files=$(mktemp)
 # shellcheck disable=SC2064
-trap "rm -f $changed_files $added_files $protected_files $skipped_files $unused_files" EXIT
+trap "rm -f $changed_files $added_files $protected_files $skipped_files $unused_files $syncignored_files $changelog_deleted_files" EXIT
 
 # Extended is_protected check (adds PROJECT-SPECIFIC marker check)
 is_protected_extended() {
@@ -252,8 +258,23 @@ while IFS= read -r file; do
     continue
   fi
 
-  # File missing in project - would add
+  # File missing in project - check why before suggesting to add
   if [[ ! -f "$project_file" ]]; then
+    # Check if project opted out via .syncignore
+    if is_syncignored "$flat_rel_path"; then
+      echo "$flat_rel_path (per .syncignore)" >> "$syncignored_files"
+      ((count_syncignored++)) || true
+      continue
+    fi
+
+    # Check if this was intentionally deleted from template scope
+    if was_deleted_from_template "$rel_path"; then
+      echo "$flat_rel_path (removed from template)" >> "$changelog_deleted_files"
+      ((count_changelog_deleted++)) || true
+      continue
+    fi
+
+    # Genuinely new file - would add
     # Store both paths: project_path|template_path (for display)
     if [[ "$flat_rel_path" != "$rel_path" ]]; then
       echo "$flat_rel_path|$rel_path" >> "$added_files"
@@ -342,6 +363,22 @@ if [[ -s "$skipped_files" ]]; then
   echo ""
 fi
 
+if [[ -s "$syncignored_files" ]]; then
+  echo -e "${BLUE}Ignored ($count_syncignored - per .syncignore):${NC}"
+  while IFS= read -r f; do
+    echo "  - $f"
+  done < "$syncignored_files"
+  echo ""
+fi
+
+if [[ -s "$changelog_deleted_files" ]]; then
+  echo -e "${BLUE}Skipped ($count_changelog_deleted - removed from template):${NC}"
+  while IFS= read -r f; do
+    echo "  - $f"
+  done < "$changelog_deleted_files"
+  echo ""
+fi
+
 if [[ -s "$protected_files" ]]; then
   echo -e "${RED}Protected (review manually):${NC}"
   while IFS= read -r f; do
@@ -365,6 +402,8 @@ echo "  Up to date: $count_up_to_date"
 echo "  Changed:    $count_changed"
 echo "  Added:      $count_added"
 echo "  Skipped:    $count_skipped (tools not enabled)"
+echo "  Ignored:    $count_syncignored (per .syncignore)"
+echo "  Removed:    $count_changelog_deleted (removed from template)"
 echo "  Protected:  $count_protected"
 echo "  Unused:     $count_unused (tech not detected)"
 echo ""
@@ -375,4 +414,10 @@ if [[ $count_changed -gt 0 || $count_added -gt 0 ]]; then
   echo "Claude should review the differences and copy files as needed."
 else
   echo -e "${GREEN}Everything up to date.${NC}"
+fi
+
+# Run hooks sync report
+echo ""
+if [[ -x "$HOOKS_SCRIPT" ]]; then
+  "$HOOKS_SCRIPT" --report
 fi

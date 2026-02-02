@@ -64,14 +64,16 @@ count_would_update=0
 count_new=0
 count_protected=0
 count_generated=0
+count_removed=0
 
 # Temp files for reporting
 changed_files=$(mktemp)
 new_files=$(mktemp)
 protected_files=$(mktemp)
 generated_files=$(mktemp)
+removed_files=$(mktemp)
 # shellcheck disable=SC2064
-trap "rm -f $changed_files $new_files $protected_files $generated_files" EXIT
+trap "rm -f $changed_files $new_files $protected_files $generated_files $removed_files" EXIT
 
 # Script-specific helper functions
 is_project_specific_dir() {
@@ -175,6 +177,13 @@ while IFS= read -r project_file; do
     continue
   fi
 
+  # Check if this was intentionally deleted from template (in changelog)
+  if was_deleted_from_template "$rel_path"; then
+    echo "$rel_path" >> "$removed_files"
+    ((count_removed++)) || true
+    continue
+  fi
+
   # This is a new template-worthy file
   echo "$rel_path" >> "$new_files"
   ((count_new++)) || true
@@ -207,6 +216,14 @@ if [[ -s "$changed_files" ]]; then
   echo ""
 fi
 
+if [[ -s "$removed_files" ]]; then
+  echo -e "${YELLOW}Removed from template (delete from project):${NC}"
+  while IFS= read -r f; do
+    echo "  x $f"
+  done < "$removed_files"
+  echo ""
+fi
+
 if [[ -s "$generated_files" ]]; then
   echo -e "${BLUE}Skipped (generated/per-project):${NC}"
   while IFS= read -r f; do
@@ -227,11 +244,12 @@ echo -e "${BLUE}Summary:${NC}"
 echo "  Up to date:       $count_up_to_date"
 echo "  New:              $count_new"
 echo "  Changed:          $count_would_update"
+echo "  Removed:          $count_removed (delete from project)"
 echo "  Generated:        $count_generated (skipped)"
 echo "  Protected:        $count_protected (skipped)"
 echo ""
 
-total_changes=$((count_new + count_would_update))
+total_changes=$((count_new + count_would_update + count_removed))
 
 if [[ $total_changes -gt 0 ]]; then
   echo -e "${YELLOW}Report only - no changes made${NC}"

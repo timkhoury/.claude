@@ -64,9 +64,34 @@ The agent will output PR-comment style feedback:
 - Suggest concrete fixes
 - Group by severity: Blockers > Issues > Suggestions
 
-### Step 4: Prompt for Action
+### Step 4: Detect UI Changes
 
-After displaying the review, use `AskUserQuestion` to let the user choose next steps:
+Check if the branch contains UI-related changes by examining the diff output for:
+- Files in `app/**/page.tsx`, `app/**/page.client.tsx`
+- Files in `**/components/**/*.tsx`
+- Files in `components/ui/**`
+- Tailwind class changes (className with `bg-`, `text-`, `flex`, `grid`, etc.)
+- CSS/style file changes
+
+Set `hasUIChanges = true` if any UI-related files were modified.
+
+### Step 5: Prompt for Action
+
+After displaying the review, use `AskUserQuestion` to let the user choose next steps.
+
+**If `hasUIChanges` is true**, include the design review option:
+
+```
+Question: "UI changes detected. What would you like to do next?"
+Header: "Next step"
+Options:
+  - "Design review" / "Get frontend design quality feedback using /fed"
+  - "Continue" / "Proceed without changes"
+  - "Run checks" / "Run /pr-check for automated validation"
+  - "Fix issues" / "Implement fixes using /fix skill"
+```
+
+**If no UI changes**, use standard options:
 
 ```
 Question: "What would you like to do next?"
@@ -78,7 +103,7 @@ Options:
   - "Create PR" / "Create pull request for this branch"
 ```
 
-Then execute the chosen action.
+Then execute the chosen action. For "Design review", invoke `/fed` with the changed UI files as context.
 
 ## Review Focus
 
@@ -91,6 +116,9 @@ Based on CLAUDE.md and project rules:
 | Performance | N+1 queries, unnecessary operations |
 | Security | Auth checks, injection, XSS |
 | Tests | Coverage, cleanup, isolation |
+| UI patterns | Semantic colors, shadcn/ui usage, component organization |
+
+**Note**: Code review covers UI *patterns* (correct usage of components, semantic tokens). For *design quality* assessment (aesthetics, typography, visual hierarchy), use `/fed` after the code review.
 
 ## Output Format
 

@@ -22,6 +22,7 @@ _SYNC_COMMON_SH_LOADED=1
 TEMPLATE_DIR="$HOME/.claude/template"
 PROJECT_DIR=".claude"
 CONFIG_FILE="$HOME/.claude/config/sync-config.yaml"
+CHANGELOG_FILE="$HOME/.claude/config/changelog.yaml"
 
 # ==============================================================================
 # Skill categories (used for path flattening)
@@ -136,4 +137,61 @@ setup_sync_temp_files() {
   skipped_files=$(mktemp)
   # shellcheck disable=SC2064
   trap "rm -f $changed_files $added_files $protected_files $skipped_files" EXIT
+}
+
+# ==============================================================================
+# Changelog and Syncignore Functions
+# ==============================================================================
+
+# Check if path was intentionally deleted from template (in changelog)
+# Usage: if was_deleted_from_template "rules/workflow/old-rule.md"; then ...
+was_deleted_from_template() {
+  local path="$1"
+  [[ -f "$CHANGELOG_FILE" ]] || return 1
+  # Look for delete entries matching this path
+  grep -A1 "type: delete" "$CHANGELOG_FILE" 2>/dev/null | grep -q "path: $path"
+}
+
+# Check if path was renamed in template (in changelog)
+# Usage: if was_renamed_in_template "skills/old-path/SKILL.md"; then ...
+# Returns the new path via stdout if found
+get_renamed_path() {
+  local path="$1"
+  [[ -f "$CHANGELOG_FILE" ]] || return 1
+  # Look for rename entries matching this path as 'from'
+  local entry
+  entry=$(awk -v path="$path" '
+    /type: rename/ { in_rename=1; next }
+    in_rename && /from:/ && $2 == path { found=1; next }
+    in_rename && found && /to:/ { print $2; exit }
+    /^[^ ]/ || /^  -/ { in_rename=0; found=0 }
+  ' "$CHANGELOG_FILE" 2>/dev/null)
+  [[ -n "$entry" ]] && echo "$entry" && return 0
+  return 1
+}
+
+# Check if path is ignored by project (.syncignore)
+# Usage: if is_syncignored "skills/some-skill/"; then ...
+is_syncignored() {
+  local path="$1"
+  local syncignore_file="${PROJECT_DIR:-.claude}/.syncignore"
+  [[ -f "$syncignore_file" ]] || return 1
+
+  # Check each pattern in .syncignore (supports globs)
+  while IFS= read -r pattern || [[ -n "$pattern" ]]; do
+    # Skip empty lines and comments
+    [[ -z "$pattern" || "$pattern" == \#* ]] && continue
+    # Remove trailing whitespace
+    pattern="${pattern%"${pattern##*[![:space:]]}"}"
+    # Check if path matches pattern (supports * and ** globs)
+    # shellcheck disable=SC2053
+    if [[ "$path" == $pattern ]]; then
+      return 0
+    fi
+    # Also check if path starts with pattern (for directory patterns)
+    if [[ "$pattern" == */ && "$path" == "$pattern"* ]]; then
+      return 0
+    fi
+  done < "$syncignore_file"
+  return 1
 }
