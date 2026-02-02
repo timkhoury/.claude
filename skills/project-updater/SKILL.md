@@ -108,6 +108,39 @@ The template uses hierarchical organization while projects use flat directories 
 
 The script handles this mapping internally - reported paths are template-relative.
 
+## Opting Out of Template Files (.syncignore)
+
+Create `.claude/.syncignore` to permanently opt out of specific template files:
+
+```
+# Don't sync frontend design skill - not a frontend project
+skills/fed/
+
+# Using custom auth, don't want template's supabase rules
+rules/tech/supabase*.md
+
+# Skip a specific workflow rule
+rules/workflow/some-rule.md
+```
+
+**Patterns:**
+- Glob patterns supported (`*.md`, `skills/*/`)
+- Directory patterns should end with `/`
+- Comments start with `#`
+- One pattern per line
+
+**When to use .syncignore:**
+- Project will never need certain template files
+- Template files conflict with project-specific implementations
+- Cleaner than repeatedly declining to add files
+
+**Report output:**
+```
+Ignored (per .syncignore):
+  - skills/fed/ (per .syncignore)
+  - rules/tech/supabase*.md (per .syncignore)
+```
+
 ## Pruning Unused Rules
 
 When technologies are removed from a project, the sync script identifies orphaned rules in the "Unused" section:
