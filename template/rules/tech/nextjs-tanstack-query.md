@@ -37,7 +37,7 @@ export function PageClient({ initialData }) {
     queryKey: queryKeys.items.all,
     queryFn: getData,
     initialData, // No loading state on first render
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 0, // Always refetch on mount, show cached data while loading
   });
 
   return <ItemList items={data} isRefetching={isRefetching} />;
@@ -80,12 +80,7 @@ export function PageClient({ organizationId }: Props) {
 
   if (isLoading) return <PageSkeleton />; // First visit only
 
-  return (
-    <>
-      <RefetchIndicator isRefetching={isRefetching} />
-      <PageContent data={data} />
-    </>
-  );
+  return <PageContent data={data} />;
 }
 ```
 
@@ -93,8 +88,7 @@ export function PageClient({ organizationId }: Props) {
 
 With `staleTime: 0`, data is immediately considered stale:
 - **Cached data displays instantly** on navigation (no loading skeleton)
-- **Background refetch triggers** automatically (`isRefetching = true`)
-- **Spinner shows** while fresh data loads
+- **Background refetch triggers** automatically
 - **Data updates** when refetch completes
 
 This ensures users always see the latest data while enjoying instant navigation.
@@ -171,25 +165,6 @@ export function PrefetchLink({ href, organizationId, children, ...props }) {
 
   return <Link href={href} onMouseEnter={handleMouseEnter} {...props}>{children}</Link>;
 }
-```
-
-## Refetch Indicators
-
-Show subtle feedback during background data refresh:
-
-```tsx
-export function RefetchIndicator({ isRefetching }: { isRefetching: boolean }) {
-  if (!isRefetching) return null;
-  return <Loader2 className="size-4 animate-spin text-muted-text" aria-label="Refreshing" />;
-}
-
-// Usage in page headers
-const { data, isRefetching } = useQuery({ ... });
-
-<div className="flex items-center gap-2">
-  <h1>Page Title</h1>
-  <RefetchIndicator isRefetching={isRefetching} />
-</div>
 ```
 
 ## Anti-Patterns
