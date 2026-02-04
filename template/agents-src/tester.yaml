@@ -2,7 +2,7 @@
 # Runs full quality checks: lint, typecheck, tests, build, e2e
 
 name: tester
-model: haiku
+model: sonnet
 color: $colors.testing
 tools: $toolSets.readOnly
 # No permissionMode - read-only agent
@@ -14,7 +14,7 @@ includes:
 description:
   summary: >
     Use this agent to run pre-PR quality checks (lint, typecheck, tests, build, e2e).
-    Fast validation on haiku. Reports pass/fail only, does not write code.
+    Reports pass/fail only, does not write code.
   examples:
     - context: Just finished implementing a new feature
       user: Run the tests and check coverage
