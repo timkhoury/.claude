@@ -227,11 +227,11 @@ for event in $(echo "$template_hooks" | jq -r 'keys | .[]'); do
     hook_type=$(echo "$hook" | jq -r '.type')
 
     # Convert YAML hook format to JSON settings.json format
-    # YAML: { matcher, type, prompt, _templateId }
-    # JSON: { matcher, hooks: [{ type, prompt }], _templateId }
+    # YAML: { matcher, type, prompt|command, _templateId }
+    # JSON: { matcher, hooks: [{ type, prompt|command }], _templateId }
     settings_hook=$(echo "$hook" | jq -c '{
       matcher: .matcher,
-      hooks: [{type: .type, prompt: .prompt}],
+      hooks: [{type: .type} + (if .prompt then {prompt: .prompt} else {command: .command} end)],
       _templateId: ._templateId
     }')
 
