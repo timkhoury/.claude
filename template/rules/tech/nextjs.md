@@ -45,6 +45,35 @@ export function PageClient({ data }: Props) {
 }
 ```
 
+## Hooks and Early Returns
+
+**All hooks must be called before any early returns.** React requires hooks to run in the same order on every render.
+
+```typescript
+// WRONG - hook after early return causes "Rendered more hooks" error
+function PageClient({ data }) {
+  const { isLoading } = useQuery({ ... });
+
+  if (isLoading) {
+    return <Skeleton />;  // Early return
+  }
+
+  useCustomHook();  // ❌ Only runs when !isLoading
+}
+
+// CORRECT - all hooks before early returns
+function PageClient({ data }) {
+  const { isLoading } = useQuery({ ... });
+  useCustomHook();  // ✅ Always runs
+
+  if (isLoading) {
+    return <Skeleton />;
+  }
+}
+```
+
+**Why this matters:** When `isLoading` changes from `true` to `false`, React sees a different number of hooks, causing the error: "Rendered more hooks than during the previous render."
+
 ## Naming Conventions
 
 | Pattern | Example |
@@ -124,6 +153,7 @@ Avoid heavy computation or database queries in middleware.
 | Never | Consequence |
 |-------|-------------|
 | useState/useEffect in Server Component | Build error |
+| Hooks after early returns (loading/error checks) | "Rendered more hooks" error |
 | Call server action during SSR render | Cookie modification error |
 | Heavy logic in middleware | Slow every request |
 | Forget revalidatePath after mutation | Stale data shown |

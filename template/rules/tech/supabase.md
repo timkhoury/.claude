@@ -9,13 +9,38 @@
 | Regular client | User operations | Enforced |
 | Admin client | Webhooks, system operations | Bypassed |
 
-## Type Generation
+## Migrations & Type Generation Workflow
+
+When modifying the database schema, follow this workflow to keep types in sync:
 
 ```bash
-npx supabase gen types typescript --local > src/types/supabase.ts
+# 1. Create/modify migration files in supabase/migrations/
+
+# 2. Reset local database to apply migrations
+npx supabase db reset --local
+
+# 3. Regenerate types from LOCAL database
+npx supabase gen types typescript --local 2>/dev/null > src/types/supabase.ts
 ```
 
-Re-run after any schema changes.
+**Why this order matters:**
+- `db reset --local` applies all migrations from scratch, ensuring clean state
+- Types must be generated from the local database that has the new schema
+- The `2>/dev/null` suppresses CLI upgrade messages that can corrupt the output file
+
+**When to regenerate types:**
+- After creating or modifying any migration
+- After pulling migrations from remote (`supabase db pull`)
+- After switching branches with different migrations
+
+### Local vs Remote Type Generation
+
+| Flag | When to Use |
+|------|-------------|
+| `--local` | Development - types match your local migrations |
+| `--linked` | Only when intentionally syncing with remote/production |
+
+**Default to `--local` during development.** Using `--linked` can pull stale types from remote if you haven't pushed your migrations yet, causing type mismatches.
 
 ## TypeScript Helper Types
 
@@ -126,7 +151,14 @@ CREATE TABLE users (
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ```
 
-Apply with: `npx supabase db push`
+**Applying migrations:**
+
+| Command | Purpose |
+|---------|---------|
+| `npx supabase db reset --local` | Reset local DB and apply all migrations (dev workflow) |
+| `npx supabase db push` | Push migrations to remote (deployment) |
+
+After applying migrations locally, always regenerate types (see workflow above).
 
 ## MCP Diagnostic Tools
 
@@ -157,3 +189,6 @@ mcp__supabase__search_docs({ query: "RLS policies" })
 | Forget `ENABLE ROW LEVEL SECURITY` | Data exposed to all users |
 | Skip cleanup in real-time | Memory leaks |
 | Query without considering RLS | Empty results, confusion |
+| Generate types without `db reset` after migration changes | Types don't match schema |
+| Use `--linked` for types during local development | Pulls stale remote types |
+| Omit `2>/dev/null` in type generation | CLI messages corrupt output file |
