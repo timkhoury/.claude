@@ -43,6 +43,18 @@ useQuery({
 | `initialData` | SSR/hydration data |
 | `placeholderData` | Shown while loading (keeps previous data) |
 
+## Navigation-Aware Caching
+
+TQ cache enables instant navigation between pages:
+
+1. **First visit**: TQ fetches and caches data
+2. **Navigation away**: Cache persists in memory
+3. **Return visit**: Data served instantly from cache
+4. **Background refresh**: `isRefetching` for subtle indicator
+
+For this to work, data fetching must happen in Client Components.
+Server Component data fetching bypasses the TQ cache entirely.
+
 ## staleTime Recommendations
 
 | Data Type | staleTime | Rationale |
