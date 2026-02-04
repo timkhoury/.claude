@@ -50,7 +50,7 @@ TQ cache enables instant navigation between pages:
 1. **First visit**: TQ fetches and caches data
 2. **Navigation away**: Cache persists in memory
 3. **Return visit**: Cached data displays instantly, refetch triggers in background
-4. **Background refresh**: `isRefetching` shows spinner while updating
+4. **Background refresh**: Data updates silently when refetch completes
 
 **Key setting:** Use `staleTime: 0` to always refetch on mount while displaying cached data.
 
@@ -76,7 +76,29 @@ Server Component data fetching bypasses the TQ cache entirely.
 | User profile | 5-10 min | Changes infrequently |
 | Real-time/polling | 0 | Need latest always |
 
-**Default for app pages:** Use `staleTime: 0` to ensure fresh data on every navigation. Cached data still displays instantly - the refetch happens in the background with a spinner.
+**Default for app pages:** Use `staleTime: 0` to ensure fresh data on every navigation. Cached data still displays instantly - the refetch happens silently in the background.
+
+## Background Refresh UX
+
+Background refetches should be **silent by default**. Spinners during refetch add visual noise without user benefit.
+
+| Scenario | UX Pattern |
+|----------|------------|
+| Initial load | Show skeleton |
+| Background refetch (success) | Silent - data just updates |
+| Background refetch (error) | Silent if cached data exists |
+| No cached data + error | Show error state |
+| User-triggered refresh | Show indicator |
+
+**Why silent?**
+- If cached data is valid, users don't need to know about background activity
+- Spinners create anxiety ("is something wrong?")
+- Stale data (30 seconds old) is acceptable for dashboards, settings, etc.
+
+**When to show indicators:**
+- Real-time critical data (stock prices, live scores)
+- User explicitly triggered refresh (pull-to-refresh)
+- Long-running operations with uncertain completion
 
 ## Polling Pattern
 
