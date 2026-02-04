@@ -3,7 +3,7 @@ name: execute-plan
 description: >
   Execute an approved plan using the appropriate workflow. Analyzes plan
   complexity and routes to OpenSpec (complex features) or direct beads
-  (simpler work). Auto-invoked after ExitPlanMode or use /execute-plan.
+  (simpler work). Use when ready to start implementing an approved plan.
 ---
 
 # Execute Plan

@@ -76,7 +76,7 @@ bd ready                              # See what's unblocked next
 
 | Command | Purpose |
 |---------|---------|
-| `/execute-plan` | Set up workflow after plan approval (auto-invoked on ExitPlanMode) |
+| `/execute-plan` | Set up workflow after plan approval |
 | `/work <task-id>` | Execute one specific task, then stop |
 | `/work <epic-id>` | Work through all ready tasks in the epic sequentially |
 | `/status` | Show unified view of OpenSpec, beads, and git state |
