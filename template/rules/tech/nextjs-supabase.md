@@ -52,15 +52,63 @@ export async function createItem(formData: FormData) {
 }
 ```
 
-## Auth in Server Components
+## Auth: getClaims vs getUser
+
+| Method | Mechanism | Latency | Use When |
+|--------|-----------|---------|----------|
+| `getClaims()` | Local JWT validation via cached JWKS | ~1-5ms | Redirects, read operations |
+| `getUser()` | Network call to Supabase Auth | ~100-300ms | Mutations, security-sensitive ops |
+
+**Key insight:** `getClaims()` still refreshes expired tokens before validating. Per Supabase docs: "If the user's access token is about to expire, the session will first be refreshed."
+
+**Trade-off:** `getClaims()` won't detect server-side session revocation until token expires (~1hr). Use `getUser()` for mutations where this matters.
+
+## Middleware with Fast Auth Headers
+
+Middleware validates JWT via `getClaims()` and passes auth info to Server Components via headers:
 
 ```typescript
-// Get current user
-import { createClient } from '@/lib/supabase/server';
+// src/lib/supabase/middleware.ts
+export async function updateSession(request: NextRequest) {
+  let supabaseResponse = NextResponse.next({ request });
+  const supabase = createServerClient(/* ... */);
+
+  // Fast local JWT validation (refreshes if needed)
+  const { data, error } = await supabase.auth.getClaims();
+
+  // Pass auth info downstream via headers
+  if (!error && data?.claims?.sub) {
+    supabaseResponse.headers.set('x-user-id', data.claims.sub);
+    supabaseResponse.headers.set('x-user-email', data.claims.email || '');
+    supabaseResponse.headers.set('x-auth-validated', 'true');
+  }
+
+  return supabaseResponse;
+}
+```
+
+**Security:** Clear incoming auth headers in main middleware to prevent client spoofing:
+
+```typescript
+// src/middleware.ts
+export async function middleware(request: NextRequest) {
+  request.headers.delete('x-user-id');
+  request.headers.delete('x-user-email');
+  request.headers.delete('x-auth-validated');
+
+  return updateSession(request);
+}
+```
+
+## Auth in Server Components
+
+For redirects and read operations, use the fast path via auth helper:
+
+```typescript
+import { getCurrentUser } from '@/lib/auth';
 
 export default async function Page() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getCurrentUser();  // Reads from headers (~0ms)
 
   if (!user) {
     redirect('/auth/sign-in');
@@ -70,23 +118,16 @@ export default async function Page() {
 }
 ```
 
-## Middleware Auth Refresh
-
-The middleware must refresh the session to keep users logged in:
+For mutations or when full User object needed:
 
 ```typescript
-// middleware.ts
-import { createClient } from '@/lib/supabase/middleware';
+import { getCurrentUserVerified } from '@/lib/auth';
 
-export async function middleware(request: NextRequest) {
-  const { supabaseResponse } = await createClient(request);
-
-  // CRITICAL: Return the exact supabaseResponse
-  return supabaseResponse;
+export async function sensitiveAction() {
+  const user = await getCurrentUserVerified();  // Network call (~100-300ms)
+  // Full user object with fresh validation
 }
 ```
-
-**Never modify `supabaseResponse`** - it contains cookies that must be set exactly as returned.
 
 ## Cookie Modification Rules
 
