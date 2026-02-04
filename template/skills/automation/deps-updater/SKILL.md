@@ -21,9 +21,25 @@ Audit security vulnerabilities and guide through dependency updates with migrati
 
 ## Phase 1: Detect Package Manager
 
+**Detection order for JS/TS projects (check lock files first):**
+
+| Lock File | Package Manager |
+|-----------|-----------------|
+| `bun.lockb` | bun |
+| `pnpm-lock.yaml` | pnpm |
+| `yarn.lock` | yarn |
+| `package-lock.json` | npm |
+
+**If no lock file exists, check `package.json`:**
+- `engines.bun` field → bun
+- `packageManager` field → specified manager
+- Scripts using `bun` → bun
+- Default → npm
+
+**Other languages:**
+
 | File | Package Manager |
 |------|-----------------|
-| `package.json` | npm/pnpm/yarn/bun |
 | `Cargo.toml` | cargo |
 | `go.mod` | go mod |
 | `requirements.txt` / `pyproject.toml` | pip/poetry/uv |
@@ -39,13 +55,14 @@ Key concept: Framework packages must be updated together to avoid version confli
 When analyzing outdated packages:
 1. Group by ecosystem
 2. Flag partial updates (some packages in ecosystem have updates, others don't)
-3. Check peer dependencies: `npm ls {package}`
+3. Check peer dependencies: `bun pm ls {package}` (or `npm ls {package}`)
 4. Identify standalone packages (no ecosystem)
 
 ## Phase 3: Security Audit
 
 | Package Manager | Command |
 |-----------------|---------|
+| bun | `bun audit` |
 | npm | `npm audit` |
 | pnpm | `pnpm audit` |
 | yarn | `yarn audit` |
@@ -53,12 +70,19 @@ When analyzing outdated packages:
 | pip | `pip-audit` |
 | go | `govulncheck ./...` |
 
+**Bun audit options:**
+- `--audit-level=<low|moderate|high|critical>` - Filter by severity
+- `--prod` - Production deps only
+- `--ignore <CVE>` - Skip specific CVEs
+- `--json` - Raw JSON output
+
 **Critical/high vulnerabilities:** Recommend immediate fix before other updates.
 
 ## Phase 4: Check for Updates
 
 | Package Manager | Command |
 |-----------------|---------|
+| bun | `bun outdated` |
 | npm | `npm outdated` |
 | pnpm | `pnpm outdated` |
 | cargo | `cargo outdated` |
@@ -73,6 +97,11 @@ For each ecosystem with major updates:
 ### 1. Analyze Transitive Dependencies
 
 ```bash
+# bun (uses npm registry)
+bunx npm info {package}@{version} peerDependencies
+bunx npm info {package}@{version} dependencies
+
+# npm
 npm info {package}@{version} peerDependencies
 npm info {package}@{version} dependencies
 ```
@@ -109,14 +138,20 @@ Use AskUserQuestion:
 ## Phase 7: Apply Updates
 
 ### Security
-```bash
-npm audit fix
-```
+
+| Package Manager | Command |
+|-----------------|---------|
+| bun | `bun update` (compatible) or `bun update --latest` (breaking) |
+| npm | `npm audit fix` |
+
+**Note:** Bun doesn't have `audit fix`. Use `bun update` for compatible fixes or `bun add {package}@{version}` for specific versions.
 
 ### Minor/Patch Ecosystem
-```bash
-npm install react@latest react-dom@latest @types/react@latest @types/react-dom@latest
-```
+
+| Package Manager | Command |
+|-----------------|---------|
+| bun | `bun add react@latest react-dom@latest @types/react@latest @types/react-dom@latest` |
+| npm | `npm install react@latest react-dom@latest @types/react@latest @types/react-dom@latest` |
 
 ### Major Ecosystem (one at a time)
 1. Update all ecosystem packages together
@@ -140,12 +175,33 @@ npm install react@latest react-dom@latest @types/react@latest @types/react-dom@l
 ## Common Issues
 
 ### Peer Dependency Conflicts
-```bash
-npm ls {package}           # See conflicts
-npm install --legacy-peer-deps  # Force (use with caution)
-```
+
+| Package Manager | Commands |
+|-----------------|----------|
+| bun | `bun pm ls {package}` to see conflicts |
+| npm | `npm ls {package}` / `npm install --legacy-peer-deps` |
 
 ### Lock File Issues
+
+| Package Manager | Command |
+|-----------------|---------|
+| bun | `rm bun.lockb && bun install` |
+| npm | `rm package-lock.json && npm install` |
+
+### Bun-Specific Notes
+
+- Bun uses `bun.lockb` (binary) - convert with `bun bun.lockb` to view as text
+- `bun add` = `npm install` for adding packages
+- `bun install` = `npm install` for installing from lockfile
+- `bun pm ls` = `npm ls` for listing installed packages
+- `bun audit` = `npm audit` for security scanning
+- `bun update` = update to compatible versions
+- `bun update --latest` = update to latest (including breaking changes)
+
+## Completion
+
+After completing dependency updates, record for systems-check tracking:
+
 ```bash
-rm package-lock.json && npm install
+.claude/scripts/systems-tracker.sh record deps-updater
 ```
