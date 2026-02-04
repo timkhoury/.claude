@@ -25,6 +25,7 @@ DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
 HOOKS_SCRIPT="$HOME/.claude/skills/project-updater/sync-hooks.sh"
 
 # Excluded files (skip entirely, not synced to projects)
+# Note: hooks/ is synced separately via sync-hooks.sh and copied in setup-project.sh
 EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
 
 # Detect enabled tools (for workflow files)

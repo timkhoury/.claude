@@ -352,6 +352,12 @@ copy_file "commands/fix-tests.md" "$PROJECT_DIR/commands/fix-tests.md"
 
 echo ""
 
+# Copy hooks directory if it exists
+if [[ -d "$TEMPLATE_DIR/hooks" ]]; then
+  echo -e "  ${BLUE}Copying hooks...${NC}"
+  copy_dir "hooks" "$PROJECT_DIR/hooks"
+fi
+
 # Tool-specific files
 if [[ "$ENABLE_BEADS" == "true" ]]; then
   echo -e "${BLUE}Phase 2a: Copying Beads files...${NC}"
