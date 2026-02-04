@@ -12,7 +12,7 @@
 
 **Rule:** Server Components for initial data. Query only when you need refetching.
 
-## Hybrid Pattern (Server + Client)
+## Hybrid Pattern (Server + Client) - initialData
 
 Initial data from Server Component, refetching from Client:
 
@@ -43,6 +43,60 @@ export function PageClient({ initialData }) {
   return <ItemList items={data} isRefetching={isRefetching} />;
 }
 ```
+
+## Client-Side Fetch for Instant Navigation
+
+For authenticated app pages where instant navigation matters more than SSR SEO:
+
+### The Problem
+`loading.tsx` shows on every navigation because Server Components run async operations.
+TQ cache is client-side only - servers can't access it. The `initialData` pattern
+still triggers `loading.tsx` because the server fetches data on every request.
+
+### The Solution
+Move data fetching to Client Components. Server Components render shells only.
+
+| Pattern | First Visit | Return Visit |
+|---------|-------------|--------------|
+| initialData (Server fetch) | Skeleton → Page | Skeleton → Page |
+| Client fetch (TQ only) | Shell → TQ loading → Page | **Instant from cache** |
+
+### Implementation
+
+```typescript
+// page.tsx - Server Component (NO data fetch)
+export default async function Page() {
+  const ctx = await requireAuthContext(); // Fast - cookie read only
+  return <PageClient organizationId={ctx.organization.id} />;
+}
+
+// page.client.tsx - Client Component (handles data)
+export function PageClient({ organizationId }: Props) {
+  const { data, isLoading, isRefetching } = useQuery({
+    queryKey: queryKeys.items.all(organizationId),
+    queryFn: fetchItems,
+  });
+
+  if (isLoading) return <PageSkeleton />; // First visit only
+
+  return <PageContent data={data} isRefetching={isRefetching} />;
+}
+```
+
+### When to Use Each Pattern
+
+| Use Case | Pattern |
+|----------|---------|
+| Public pages needing SEO | `initialData` (Server fetch) |
+| Authenticated app pages | Client-side fetch (TQ only) |
+| Real-time data | Client-side fetch with polling |
+
+### Remove loading.tsx
+
+With client-side fetch, `loading.tsx` is redundant:
+- Server Component completes instantly (no async data fetch)
+- TQ handles loading states in client components
+- Cache provides instant navigation on return visits
 
 ## Cache Invalidation with router.refresh()
 
@@ -141,6 +195,6 @@ export default async function Page() {
 | Never | Consequence |
 |-------|-------------|
 | Use Query when Server Component suffices | Extra complexity, larger bundle |
-| Skip `initialData` when SSR data available | Unnecessary loading states |
+| Wrong pattern for use case | SEO pages need initialData; app pages benefit from client-only fetch |
 | Forget hydration boundaries | Hydration mismatches |
 | `router.refresh()` without `invalidateQueries()` | Tanstack Query shows stale data |
