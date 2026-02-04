@@ -10,9 +10,19 @@
 
 | Instead of | Use |
 |------------|-----|
-| `git commit` | `but commit <branch> --only -m "..."` |
+| `git commit` | `but commit <branch> -m "..."` (see Commit Patterns below) |
 | `git push` | `but push <branch>` |
 | `git status` | `but status` |
+
+## Commit Patterns
+
+| Scenario | Command |
+|----------|---------|
+| Commit specific files | `but commit <branch> --files <id1>,<id2> -m "..."` |
+| Commit all staged to branch | `but commit <branch> --only -m "..."` |
+| Commit everything on branch | `but commit <branch> -m "..."` |
+
+**Prefer `--files`** for selective commits - it takes file/hunk IDs directly, avoiding the ID-shifting problem when staging multiple files.
 
 ## Critical Rules
 
@@ -33,4 +43,4 @@
 | `but undo` | `but restore <snapshot-id>` - undo can lose work |
 | `but reword <id>` without `-m` | Always use `-m "message"` - avoids interactive editor |
 | `but pr new` | `gh pr create` - avoids interactive editor |
-| Chain `but stage` with `&&` | Use `bulk-stage.sh` - IDs shift after each stage |
+| Chain `but stage` with `&&` | Use `--files` on commit, or `bulk-stage.sh` for staging only |
