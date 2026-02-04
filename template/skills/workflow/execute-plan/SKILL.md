@@ -10,22 +10,46 @@ description: >
 
 Orchestrates plan implementation via OpenSpec or direct beads workflow.
 
+## Usage
+
+```
+/execute-plan              # Read plan from conversation context (default)
+/execute-plan <file-path>  # Read plan from specified file
+```
+
 ## Quick Reference
 
 | Plan Type | Workflow |
 |-----------|----------|
-| New feature, breaking change, cross-cutting | OpenSpec → tracking bead |
-| Bug fix, refactor, config, single-component | Direct beads epic |
+| New feature, breaking change, cross-cutting | OpenSpec → epic + task beads from tasks.md |
+| Bug fix, refactor, config, single-component | Direct beads epic + task beads from plan |
 
-## Step 1: Find the Plan File
+## Step 1: Get the Plan
 
-Check for the most recently modified plan in the plans directory:
+**Default:** Read the plan from the current conversation context (the approved plan discussed above).
+
+**With file argument:** If a path is passed (e.g., `/execute-plan plans/my-plan.md`), read from that file instead.
+
+### From Context (Default)
+
+Look for the most recent plan in the conversation history. Plans typically have:
+- A clear title or goal statement
+- Implementation steps (numbered or bulleted)
+- Context about what needs to change
+
+Extract:
+- **Title**: The main goal or feature name
+- **Summary**: One-line description of what the plan accomplishes
+- **Steps**: The implementation tasks to perform
+
+### From File (When Path Provided)
 
 ```bash
-ls -t plans/*.md | head -1
+# Only if a file path was passed as argument
+cat <provided-path>
 ```
 
-Read the plan file and extract:
+Extract:
 - **Title**: From the `# Plan:` header
 - **Summary**: From the `## Summary` section
 - **Steps**: From numbered lists or `## Implementation` sections
@@ -64,12 +88,38 @@ Look for these signals in the plan content:
    ```
    /opsx:ff <summary from plan>
    ```
+   This generates `openspec/changes/<change-id>/tasks.md` with the task breakdown.
 
-2. **Create tracking bead** (after change-id is generated):
+2. **Create epic to track the change:**
    ```bash
-   bd create --title="<change-id>" --type=feature --priority=2
-   bd update <bead-id> --status=in_progress
+   bd create --title="<change-id>" --type=epic --priority=2
    ```
+
+3. **Parse tasks.md and create child beads:**
+
+   Read `openspec/changes/<change-id>/tasks.md` and for each unchecked task (`- [ ]`):
+   ```bash
+   bd create --title="<task description>" --type=task --priority=2
+   bd update <task-id> --parent=<epic-id>
+   ```
+
+   **Task grouping:** If tasks.md has section headers (## Section), include section context in task description.
+
+   **Skip creating beads for:**
+   - Already checked tasks (`- [x]`)
+   - Manual testing tasks (leave for humans)
+
+4. **Set dependencies between tasks:**
+
+   If tasks have natural ordering (e.g., "Create migration" before "Run migration"):
+   ```bash
+   bd dep add <later-task-id> <earlier-task-id>
+   ```
+
+5. **Add standard tasks** (same as direct beads path):
+   - Unit & integration tests (blocked by implementation tasks)
+   - E2E tests (if user-facing)
+   - Documentation updates
 
 ### Direct Beads Path (Simpler Work)
 
@@ -115,19 +165,20 @@ Create a single branch for all implementation work:
 
 ## Step 5: Hand Off to /work
 
-Pass the branch name when invoking `/work`:
+Both paths create an epic with child beads. Hand off the same way:
 
 ```
-/work <epic-id or bead-id>
+/work <epic-id>
 Branch: <branch-name>
 ```
 
-**OpenSpec path:**
-- If OpenSpec generated tasks, use `/opsx:apply <change-id>` or `/work <bead-id>`
-- The OpenSpec tasks.md provides the task breakdown
+The `/work` skill will:
+- Find next ready child task
+- Delegate to task-implementer
+- Close bead when task completes
+- Loop until all tasks done
 
-**Direct beads path:**
-- Use `/work <epic-id>` to execute tasks sequentially
+**OpenSpec note:** When closing task beads, also tick the corresponding checkbox in tasks.md to keep them in sync.
 
 ## Standard Epic Tasks
 
