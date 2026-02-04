@@ -64,6 +64,64 @@ router.refresh();
 - `router.refresh()` alone: Server props update, but TQ cache stays stale until `staleTime` expires
 - `invalidateQueries()` alone: TQ refetches, but server-rendered content stays stale
 
+## Prefetch on Hover
+
+Pre-fetch query data when users hover over navigation links for instant page loads:
+
+```typescript
+// lib/prefetch.ts - map routes to prefetch functions
+type PrefetchFn = (queryClient: QueryClient, organizationId: string) => void;
+
+const routePrefetchers: Record<string, PrefetchFn> = {
+  '/dashboard': (qc, orgId) => {
+    qc.prefetchQuery({
+      queryKey: queryKeys.dashboard.summary(orgId),
+      queryFn: () => getDashboardSummary(orgId),
+    });
+  },
+};
+
+export function prefetchRouteData(qc: QueryClient, route: string, orgId: string) {
+  routePrefetchers[route]?.(qc, orgId);
+}
+```
+
+```tsx
+// components/navigation/prefetch-link.tsx
+'use client';
+
+export function PrefetchLink({ href, organizationId, children, ...props }) {
+  const queryClient = useQueryClient();
+
+  const handleMouseEnter = () => {
+    if (organizationId && typeof href === 'string') {
+      prefetchRouteData(queryClient, href, organizationId);
+    }
+  };
+
+  return <Link href={href} onMouseEnter={handleMouseEnter} {...props}>{children}</Link>;
+}
+```
+
+## Refetch Indicators
+
+Show subtle feedback during background data refresh:
+
+```tsx
+export function RefetchIndicator({ isRefetching }: { isRefetching: boolean }) {
+  if (!isRefetching) return null;
+  return <Loader2 className="size-4 animate-spin text-muted-text" aria-label="Refreshing" />;
+}
+
+// Usage in page headers
+const { data, isRefetching } = useQuery({ ... });
+
+<div className="flex items-center gap-2">
+  <h1>Page Title</h1>
+  <RefetchIndicator isRefetching={isRefetching} />
+</div>
+```
+
 ## Anti-Patterns
 
 ### Don't: useQuery for static data
