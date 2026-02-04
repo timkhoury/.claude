@@ -9,7 +9,8 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 
 ## Key Practices
 
-- **Run `but status` after every action** - file IDs shift after commits
+- **Run `but status` before committing** - to get current file/hunk IDs
+- **Use `--files` for selective commits** - avoids ID-shifting problems
 - **Group changes logically** - feature+tests together, config separate
 
 ## Command Reference
@@ -19,15 +20,29 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 | `but status` | View uncommitted changes by branch (`-v` verbose, `-f` files, `-u` upstream) |
 | `but show <id>` | Show commit or branch details (`-v` for verbose) |
 | `but branch new <name>` | Create new virtual branch |
-| `but stage <file-id> <branch>` | Assign file/hunk to branch |
+| `but stage <file-id> <branch>` | Assign file/hunk to branch (use for organizing, not committing) |
 | `but rub <source> <target>` | Squash commits, amend, move commits |
-| `but commit <branch> --only -m "..."` | Commit only assigned files |
+| `but commit <branch> --files <ids> -m "..."` | Commit specific files/hunks by ID (preferred) |
+| `but commit <branch> --only -m "..."` | Commit only staged files |
+| `but commit <branch> -m "..."` | Commit all changes on branch |
 | `but reword <id> -m "message"` | Edit commit message (or rename branch) |
 | `but push <branch>` | Push branch to remote (`--dry-run` to preview) |
 | `but pull` | Update branches from remote |
 | `but pull --check` | Check merge status without updating |
 
-## Staging Files
+## Committing Specific Files
+
+**Preferred:** Use `--files` to commit specific files/hunks directly by their IDs:
+```bash
+but status                                    # Get file IDs (e.g., g1, g2, h3)
+but commit <branch> --files g1,g2,h3 -m "..."  # Commit those specific items
+```
+
+This avoids the ID-shifting problem entirely - no staging step needed.
+
+## Staging Files (for organizing across branches)
+
+Use staging when you need to organize files across multiple branches before committing:
 
 **For multiple files, use `bulk-stage.sh`** - handles ID refresh automatically:
 ```bash
@@ -55,8 +70,7 @@ Scripts in `~/.claude/skills/gitbutler/`. All support `--help` and `--dry-run`.
 
 | Script | Purpose |
 |--------|---------|
-| `bulk-stage.sh` | Stage multiple files with automatic ID refresh |
-| `resolve-ambiguous.sh` | Handle ID ambiguity using git add workaround |
+| `bulk-stage.sh` | Stage multiple files to organize across branches (use `--files` for commits) |
 | `branch-health.sh` | Branch status overview (unpushed, remote sync) |
 
 ## Branch Naming
@@ -71,40 +85,20 @@ Descriptive names without conventional commit prefixes:
 ## Standard Workflow
 
 ```bash
-but branch new feature-name           # 1. Create branch
+but branch new feature-name                          # 1. Create branch
 # ... make changes ...
-but status                            # 2. See changed files
-~/.claude/skills/gitbutler/bulk-stage.sh feature-name file1.ts file2.ts
-but commit feature-name --only -m "feat: description"
+but status                                           # 2. See changed files with IDs
+but commit feature-name --files g1,g2 -m "feat: ..." # 3. Commit specific files by ID
 ```
 
 ## Commit Workflow
 
-1. Run `but status` to see branches and uncommitted changes
+1. Run `but status` to see branches and uncommitted changes with IDs
 2. If multiple branches have changes, ask user which branch
 3. Group changes logically (feature+tests together, config separate)
 4. For each group:
-   - Stage with `bulk-stage.sh`
-   - Commit with `but commit <branch> --only -m "..."`
+   - Use `but commit <branch> --files <ids> -m "..."` with the file IDs
 5. Confirm with `but status`
-
-## ID Ambiguity
-
-If you see "Source 'XX' is ambiguous":
-
-```
-g8 D .claude/agents/example.md
-│  │  └── file path
-│  └── status (D=Deleted, M=Modified, A=Added, R=Renamed)
-└── ID (just "g8", NOT "g8D")
-```
-
-**Workaround:**
-```bash
-git add <file-path>              # Stage with git directly
-but commit <branch> -m "..."     # Omit --only to include staged changes
-but rub <new-commit> <previous>  # Squash into previous if needed
-```
 
 ## Locked Files (🔒)
 
