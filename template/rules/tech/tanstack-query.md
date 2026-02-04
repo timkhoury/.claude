@@ -43,6 +43,17 @@ useQuery({
 | `initialData` | SSR/hydration data |
 | `placeholderData` | Shown while loading (keeps previous data) |
 
+## staleTime Recommendations
+
+| Data Type | staleTime | Rationale |
+|-----------|-----------|-----------|
+| Static/config | 30-60 min | Rarely changes |
+| User profile | 5-10 min | Changes infrequently |
+| Lists/dashboards | 2-5 min | Balance freshness vs requests |
+| Real-time data | 0 (always stale) | Need latest always |
+
+**Default:** Start with 2 minutes for most data, adjust based on update frequency.
+
 ## Polling Pattern
 
 Poll until a condition is met:
