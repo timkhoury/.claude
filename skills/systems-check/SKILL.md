@@ -21,6 +21,7 @@ Aggregate dashboard for maintenance tasks with cadence-based recommendations.
 | permissions-review | 7 days | Project | Permission promotion to global settings |
 | spec-review | 14 days | Project | OpenSpec implementation and test coverage |
 | tools-updater | 14 days | Global | Check for beads/OpenSpec updates |
+| deps-updater | 14 days | Project | Dependency updates and security audit |
 
 ## Workflow
 
@@ -101,7 +102,7 @@ If more tasks are due after completion, ask if the user wants to run another. Ot
 | Scope | File | Tasks Tracked |
 |-------|------|---------------|
 | Global | `~/.claude/.systems-check.json` | template-review, tools-updater |
-| Project | `./.systems-check.json` | sync, rules-review, skills-review, permissions-review, spec-review |
+| Project | `./.systems-check.json` | sync, rules-review, skills-review, permissions-review, spec-review, deps-updater |
 
 Both files are gitignored. The script automatically routes to the correct file.
 
@@ -116,3 +117,4 @@ Tasks are only shown if applicable:
 - `skills-review`: Only if `.claude/skills/` exists
 - `permissions-review`: Only if `.claude/settings.local.json` exists
 - `spec-review`: Only if `.openspec/` or `specs/` exists
+- `deps-updater`: Only if `package.json`, `Cargo.toml`, `go.mod`, or similar exists

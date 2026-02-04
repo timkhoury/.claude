@@ -27,6 +27,7 @@ declare -A CADENCES=(
     ["spec-review"]=14
     ["permissions-review"]=7
     ["tools-updater"]=14
+    ["deps-updater"]=14
 )
 
 # Which file each task uses
@@ -88,6 +89,10 @@ is_applicable() {
         permissions-review)
             # Only if .claude/settings.local.json exists
             [[ -f ".claude/settings.local.json" ]]
+            ;;
+        deps-updater)
+            # Only if a dependency manifest exists
+            [[ -f "package.json" || -f "Cargo.toml" || -f "go.mod" || -f "requirements.txt" || -f "pyproject.toml" || -f "Gemfile" ]]
             ;;
         *)
             return 1
