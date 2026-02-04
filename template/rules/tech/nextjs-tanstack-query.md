@@ -75,13 +75,29 @@ export function PageClient({ organizationId }: Props) {
   const { data, isLoading, isRefetching } = useQuery({
     queryKey: queryKeys.items.all(organizationId),
     queryFn: fetchItems,
+    staleTime: 0, // Always refetch on mount, show cached data while loading
   });
 
   if (isLoading) return <PageSkeleton />; // First visit only
 
-  return <PageContent data={data} isRefetching={isRefetching} />;
+  return (
+    <>
+      <RefetchIndicator isRefetching={isRefetching} />
+      <PageContent data={data} />
+    </>
+  );
 }
 ```
+
+### Why staleTime: 0?
+
+With `staleTime: 0`, data is immediately considered stale:
+- **Cached data displays instantly** on navigation (no loading skeleton)
+- **Background refetch triggers** automatically (`isRefetching = true`)
+- **Spinner shows** while fresh data loads
+- **Data updates** when refetch completes
+
+This ensures users always see the latest data while enjoying instant navigation.
 
 ### When to Use Each Pattern
 
