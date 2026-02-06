@@ -178,16 +178,27 @@ Which unused rules should be removed?
 The script reports:
 1. Detected technologies (package.json, config files, directories)
 2. Detected tools (beads, openspec)
-3. **Updated** - Files that differ from template
+3. **Changed** - Files that differ, with timestamps and sync direction
 4. **Added** - Files missing from project
 5. **Skipped** - Files for undetected technologies/tools
 6. **Protected** - Files that need manual review (CLAUDE.md, _project.yaml)
 7. **Unused** - Rules in project for technologies no longer detected
 8. **Hooks** - Template hooks to add based on detected tools
 
+## Determining Sync Direction
+
+The script compares file modification timestamps and shows direction for each changed file:
+
+| Direction | Meaning | Action |
+|-----------|---------|--------|
+| `template is newer -> sync to project` | Template was edited more recently | Copy template → project |
+| `project is newer -> use /template-updater` | Project was edited more recently | Skip (run `/template-updater` instead) |
+
+**Only sync files where the template is newer.** Files where the project is newer should be pushed to the template via `/template-updater`, not overwritten.
+
 ## After Running
 
-Review the report and copy files as needed:
+Review the report and copy files where the template is newer:
 
 ```bash
 # Read a file that needs updating

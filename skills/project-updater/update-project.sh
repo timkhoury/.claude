@@ -293,11 +293,25 @@ while IFS= read -r file; do
   fi
 
   # Files differ - would update
-  # Store both paths: project_path|template_path (for display)
-  if [[ "$flat_rel_path" != "$rel_path" ]]; then
-    echo "$flat_rel_path|$rel_path" >> "$changed_files"
+  # Get modification timestamps for both files
+  project_mtime=$(stat -f "%m" "$project_file" 2>/dev/null || stat -c "%Y" "$project_file" 2>/dev/null)
+  template_mtime=$(stat -f "%m" "$template_file" 2>/dev/null || stat -c "%Y" "$template_file" 2>/dev/null)
+  project_mtime_human=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$project_file" 2>/dev/null || date -d "@$(stat -c '%Y' "$project_file")" "+%Y-%m-%d %H:%M" 2>/dev/null)
+  template_mtime_human=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$template_file" 2>/dev/null || date -d "@$(stat -c '%Y' "$template_file")" "+%Y-%m-%d %H:%M" 2>/dev/null)
+
+  if [[ "$template_mtime" -gt "$project_mtime" ]]; then
+    newer="template"
+  elif [[ "$project_mtime" -gt "$template_mtime" ]]; then
+    newer="project"
   else
-    echo "$flat_rel_path" >> "$changed_files"
+    newer="same"
+  fi
+
+  # Store: project_path|template_path|project_mtime|template_mtime|newer
+  if [[ "$flat_rel_path" != "$rel_path" ]]; then
+    echo "$flat_rel_path|$rel_path|$project_mtime_human|$template_mtime_human|$newer" >> "$changed_files"
+  else
+    echo "$flat_rel_path||$project_mtime_human|$template_mtime_human|$newer" >> "$changed_files"
   fi
   ((count_changed++)) || true
 done < <(find_syncable_files "$TEMPLATE_DIR")
@@ -328,15 +342,19 @@ echo ""
 
 if [[ -s "$changed_files" ]]; then
   echo -e "${YELLOW}Changed ($count_changed):${NC}"
-  while IFS= read -r f; do
-    if [[ "$f" == *"|"* ]]; then
-      project_path="${f%%|*}"
-      template_path="${f##*|}"
-      echo "  - $project_path"
-      echo "      from: $template_path"
+  while IFS='|' read -r project_path template_path project_mtime template_mtime newer; do
+    if [[ "$newer" == "template" ]]; then
+      direction="${GREEN}template is newer${NC} -> sync to project"
+    elif [[ "$newer" == "project" ]]; then
+      direction="${RED}project is newer${NC} -> use /template-updater"
     else
-      echo "  - $f"
+      direction="same timestamp"
     fi
+    echo -e "  - $project_path"
+    if [[ -n "$template_path" ]]; then
+      echo "      from: $template_path"
+    fi
+    echo -e "      template: $template_mtime  |  project: $project_mtime  ($direction)"
   done < "$changed_files"
   echo ""
 fi
