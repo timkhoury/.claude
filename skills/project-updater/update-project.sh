@@ -298,6 +298,8 @@ while IFS= read -r file; do
   template_mtime=$(stat -f "%m" "$template_file" 2>/dev/null || stat -c "%Y" "$template_file" 2>/dev/null)
   project_mtime_human=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$project_file" 2>/dev/null || date -d "@$(stat -c '%Y' "$project_file")" "+%Y-%m-%d %H:%M" 2>/dev/null)
   template_mtime_human=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$template_file" 2>/dev/null || date -d "@$(stat -c '%Y' "$template_file")" "+%Y-%m-%d %H:%M" 2>/dev/null)
+  project_mtime_human="${project_mtime_human:-unknown}"
+  template_mtime_human="${template_mtime_human:-unknown}"
 
   if [[ "$template_mtime" -gt "$project_mtime" ]]; then
     newer="template"

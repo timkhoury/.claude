@@ -137,6 +137,8 @@ while IFS= read -r template_file; do
   template_mtime=$(stat -f "%m" "$template_file" 2>/dev/null || stat -c "%Y" "$template_file" 2>/dev/null)
   project_mtime_human=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$project_file" 2>/dev/null || date -d "@$(stat -c '%Y' "$project_file")" "+%Y-%m-%d %H:%M" 2>/dev/null)
   template_mtime_human=$(stat -f "%Sm" -t "%Y-%m-%d %H:%M" "$template_file" 2>/dev/null || date -d "@$(stat -c '%Y' "$template_file")" "+%Y-%m-%d %H:%M" 2>/dev/null)
+  project_mtime_human="${project_mtime_human:-unknown}"
+  template_mtime_human="${template_mtime_human:-unknown}"
 
   if [[ "$project_mtime" -gt "$template_mtime" ]]; then
     newer="project"
@@ -227,7 +229,7 @@ if [[ -s "$changed_files" ]]; then
     fi
     echo -e "  ~ $template_path"
     if [[ -n "$project_path" ]]; then
-      echo "      project: $project_path"
+      echo "      as: $project_path"
     fi
     echo -e "      project: $project_mtime  |  template: $template_mtime  ($direction)"
   done < "$changed_files"
