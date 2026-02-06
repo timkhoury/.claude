@@ -71,6 +71,8 @@ export default async function Page() {
 }
 
 // page.client.tsx - Client Component (handles data)
+'use client';
+
 export function PageClient({ organizationId }: Props) {
   const { data, isLoading, isRefetching } = useQuery({
     queryKey: queryKeys.items.all(organizationId),
