@@ -109,12 +109,14 @@ Look for these signals in the plan content:
    - Already checked tasks (`- [x]`)
    - Manual testing tasks (leave for humans)
 
-4. **Set dependencies between tasks:**
+4. **Set dependencies between sibling tasks only:**
 
    If tasks have natural ordering (e.g., "Create migration" before "Run migration"):
    ```bash
    bd dep add <later-task-id> <earlier-task-id>
    ```
+
+   **Never add a dependency between a child task and its parent epic.** Use `--parent` for structural grouping, `bd dep add` for ordering between siblings.
 
 5. **Add standard tasks** (same as direct beads path):
    - Unit & integration tests (blocked by implementation tasks)
