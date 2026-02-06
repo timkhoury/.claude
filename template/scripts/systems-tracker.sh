@@ -95,6 +95,10 @@ is_applicable() {
             # Only if a dependency manifest exists
             [[ -f "package.json" || -f "Cargo.toml" || -f "go.mod" || -f "requirements.txt" || -f "pyproject.toml" || -f "Gemfile" ]]
             ;;
+        memory-review)
+            # Always applicable (memory files always exist)
+            return 0
+            ;;
         *)
             return 1
             ;;
