@@ -1,10 +1,8 @@
 ---
 name: rules-updater
 description: >
-  Analyzes current conversation context to extract patterns worth codifying into rules.
-  Writes to both project and template locations to keep them in sync.
-  Use when a session revealed corrections, gotchas, or best practices that should be
-  remembered. Triggers: "update rules", "extract patterns", "learn from this", "codify this".
+  Extract patterns from conversation context into rules (project + template).
+  Use when "update rules", "extract patterns", "learn from this", or "codify this".
 ---
 
 # Rules Updater
