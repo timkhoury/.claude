@@ -33,14 +33,14 @@ import { useQuery } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 
 export function PageClient({ initialData }) {
-  const { data, isRefetching } = useQuery({
+  const { data } = useQuery({
     queryKey: queryKeys.items.all,
     queryFn: getData,
     initialData, // No loading state on first render
     staleTime: 0, // Always refetch on mount, show cached data while loading
   });
 
-  return <ItemList items={data} isRefetching={isRefetching} />;
+  return <ItemList items={data} />;
 }
 ```
 
@@ -205,3 +205,4 @@ export default async function Page() {
 | Wrong pattern for use case | SEO pages need initialData; app pages benefit from client-only fetch |
 | Forget hydration boundaries | Hydration mismatches |
 | `router.refresh()` without `invalidateQueries()` | Tanstack Query shows stale data |
+| `suspense: true` in useQuery with Server Component Suspense | Double-suspension, unexpected waterfalls |
