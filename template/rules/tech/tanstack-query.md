@@ -56,7 +56,7 @@ TQ cache enables instant navigation between pages:
 
 ```typescript
 useQuery({
-  queryKey: queryKeys.items.all(orgId),
+  queryKey: queryKeys.items.all,
   queryFn: fetchItems,
   staleTime: 0, // Always refetch, show cached data while loading
 });
