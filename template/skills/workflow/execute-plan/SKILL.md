@@ -1,11 +1,8 @@
 ---
 name: execute-plan
 description: >
-  Execute an approved plan using the appropriate workflow. Analyzes plan
-  complexity and routes to OpenSpec (complex features) or direct beads
-  (simpler work). MUST be invoked after plan mode approval, before writing
-  any code. Triggers: plan approved, "go ahead", "looks good", "implement this",
-  user approves ExitPlanMode, starting implementation.
+  Execute an approved plan via OpenSpec or direct beads.
+  Use when plan is approved, "go ahead", "implement this", or after ExitPlanMode.
 ---
 
 # Execute Plan
