@@ -66,16 +66,18 @@ Move data fetching to Client Components. Server Components render shells only.
 ```typescript
 // page.tsx - Server Component (NO data fetch)
 export default async function Page() {
-  const ctx = await requireAuthContext(); // Must be lightweight (e.g. cookie read, not DB lookup)
-  return <PageClient organizationId={ctx.organization.id} />;
+  await requireAuthContext(); // Must be lightweight (e.g. cookie read, not DB lookup)
+  return <PageClient />;
 }
 
 // page.client.tsx - Client Component (handles data)
 'use client';
 
-export function PageClient({ organizationId }: Props) {
-  const { data, isLoading, isRefetching } = useQuery({
-    queryKey: queryKeys.items.all(organizationId),
+import { queryKeys } from '@/lib/query-keys';
+
+export function PageClient() {
+  const { data, isLoading } = useQuery({
+    queryKey: queryKeys.items.all,
     queryFn: fetchItems,
     staleTime: 0, // Always refetch on mount, show cached data while loading
   });
@@ -171,13 +173,13 @@ type PrefetchLinkProps = ComponentProps<typeof Link> & { organizationId: string 
 export function PrefetchLink({ href, organizationId, children, ...props }: PrefetchLinkProps) {
   const queryClient = useQueryClient();
 
-  const handleMouseEnter = () => {
+  const handlePrefetch = () => {
     if (organizationId && typeof href === 'string') {
       prefetchRouteData(queryClient, href, organizationId);
     }
   };
 
-  return <Link href={href} onMouseEnter={handleMouseEnter} {...props}>{children}</Link>;
+  return <Link href={href} onMouseEnter={handlePrefetch} onFocus={handlePrefetch} {...props}>{children}</Link>;
 }
 ```
 
