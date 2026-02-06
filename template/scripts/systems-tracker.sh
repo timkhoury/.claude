@@ -28,6 +28,7 @@ declare -A CADENCES=(
     ["permissions-review"]=7
     ["tools-updater"]=14
     ["deps-updater"]=14
+    ["memory-review"]=14
 )
 
 # Which file each task uses

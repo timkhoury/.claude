@@ -18,11 +18,11 @@
 
 | Scenario | Command |
 |----------|---------|
-| Commit specific files | `but commit <branch> --files <id1>,<id2> -m "..."` |
+| Commit specific files | `but commit <branch> -p <id1>,<id2> -m "..."` |
 | Commit all staged to branch | `but commit <branch> --only -m "..."` |
 | Commit everything on branch | `but commit <branch> -m "..."` |
 
-**Prefer `--files`** for selective commits - it takes file/hunk IDs directly, avoiding the ID-shifting problem when staging multiple files.
+**Prefer `-p`** for selective commits - it takes file/hunk IDs directly, avoiding the ID-shifting problem when staging multiple files.
 
 ## Critical Rules
 
@@ -40,7 +40,9 @@
 
 | Never Do | Use Instead |
 |----------|-------------|
+| `git stash` | Nothing - breaks GitButler virtual branches |
+| `git checkout main` | Nothing - breaks GitButler virtual branches |
 | `but undo` | `but restore <snapshot-id>` - undo can lose work |
 | `but reword <id>` without `-m` | Always use `-m "message"` - avoids interactive editor |
 | `but pr new` | `gh pr create` - avoids interactive editor |
-| Chain `but stage` with `&&` | Use `--files` on commit, or `bulk-stage.sh` for staging only |
+| Chain `but stage` with `&&` | Use `-p` on commit, or `bulk-stage.sh` for staging only |

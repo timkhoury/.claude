@@ -1,9 +1,8 @@
 ---
 name: review
 description: >
-  Perform comprehensive code review checking quality and standards compliance.
-  Use when reviewing branch changes vs main, before creating PRs, or checking code quality.
-  Triggers: "review", "check code", "PR review", "code quality"
+  Review branch changes for quality and standards compliance.
+  Use when "review", "check code", "PR review", or "code quality".
 ---
 
 # Review Skill
