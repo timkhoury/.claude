@@ -270,7 +270,7 @@ if [[ ${#hooks_to_add[@]} -gt 0 ]]; then
   echo -e "${YELLOW}Template hooks to add ($count_to_add):${NC}"
   for entry in "${hooks_to_add[@]}"; do
     IFS='|' read -r event hook template_id matcher hook_type <<< "$entry"
-    prompt=$(echo "$hook" | jq -r '.hooks[0].prompt')
+    prompt=$(echo "$hook" | jq -r '.hooks[0].prompt // .hooks[0].command')
     echo "  $event:"
     echo "    ${GREEN}+${NC} $matcher → $prompt ($template_id)"
   done
