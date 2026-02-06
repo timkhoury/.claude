@@ -94,18 +94,13 @@ Do NOT include "Generated with Claude Code" footer in PR descriptions or commit 
 
 ## Beads Integration
 
-See `workflow-integration.md` for the complete OpenSpec + Beads workflow including:
-- When to use simple beads vs epic structure
-- State synchronization patterns
-- Completion order (archive OpenSpec → close bead)
+Use `/execute-plan` after plan approval - it handles creating the epic and child task beads from tasks.md automatically.
 
-**Quick reference:**
-| OpenSpec Stage | Beads Action |
-|----------------|--------------|
-| After `/opsx:new` or `/opsx:ff` | `bd create --title="<change-id>" --type=feature` |
-| After `/opsx:archive` | `bd close <id> --reason="Archived: <change-id>"` |
+**Completion order (critical):**
+1. Archive OpenSpec first: `/opsx:archive <change-id>`
+2. Then close the epic: `bd close <epic-id> --reason="Archived: <change-id>"`
 
-**Critical:** Always archive OpenSpec BEFORE closing the tracking bead.
+Never close the tracking bead before archiving - it loses traceability.
 
 ## Reference
 

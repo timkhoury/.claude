@@ -85,18 +85,21 @@ bd create --title="Fix null check in auth middleware" --type=bug --priority=2 \
 - Future sessions can pick up where you left off
 - Users have visibility into all known issues
 
-## Epic Structure
+## Parent vs Dependency
 
-For complex work with 3+ tasks, see `workflow-integration.md` for the complete epic workflow including:
-- Epic creation and task setup
-- Standard tasks (tests, docs) requirements
-- Dependency mirroring
-- OpenSpec integration (when applicable)
+These are different relationships - never confuse them:
 
-**Quick reference:**
-```bash
-bd create --title="Feature X" --type=epic
-bd create --title="Task 1" --type=task
-bd update <task-id> --parent=<epic-id>
-bd dep add <task-id> <blocking-task-id>
-```
+| Relationship | Command | Meaning |
+|-------------|---------|---------|
+| **Parent** (structural) | `bd update <task> --parent=<epic>` | Task belongs to epic |
+| **Dependency** (ordering) | `bd dep add <blocked> <blocker>` | Task can't start until blocker completes |
+
+**Never add a dependency between a child and its own parent.** Children are linked to epics via `--parent`. Dependencies are for ordering between sibling tasks (e.g., "run migration" depends on "create migration").
+
+## Epic Setup
+
+Use `/execute-plan` to create epics with child tasks. It handles:
+- Routing to OpenSpec or direct beads based on complexity
+- Creating epic + child tasks with `--parent`
+- Setting dependencies between sibling tasks
+- Adding standard tasks (tests, docs)
