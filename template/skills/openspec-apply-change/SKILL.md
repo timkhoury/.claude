@@ -3,6 +3,7 @@ name: openspec-apply-change
 description: Implement tasks from an OpenSpec change. Use when the user wants to start implementing, continue implementation, or work through tasks.
 license: MIT
 compatibility: Requires openspec CLI.
+protected: true
 metadata:
   author: openspec
   version: "1.0"
