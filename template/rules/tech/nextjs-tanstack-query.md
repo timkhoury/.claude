@@ -66,7 +66,7 @@ Move data fetching to Client Components. Server Components render shells only.
 ```typescript
 // page.tsx - Server Component (NO data fetch)
 export default async function Page() {
-  const ctx = await requireAuthContext(); // Fast - cookie read only
+  const ctx = await requireAuthContext(); // Must be lightweight (e.g. cookie read, not DB lookup)
   return <PageClient organizationId={ctx.organization.id} />;
 }
 
@@ -101,36 +101,46 @@ This ensures users always see the latest data while enjoying instant navigation.
 | Authenticated app pages | Client-side fetch (TQ only) |
 | Real-time data | Client-side fetch with polling |
 
-### Remove loading.tsx
+### Remove loading.tsx (when server component is lightweight)
 
-With client-side fetch, `loading.tsx` is redundant:
-- Server Component completes instantly (no async data fetch)
+If the server component has no slow async operations (auth is a fast cookie read, no DB queries), `loading.tsx` is redundant:
+- Server Component resolves instantly, so the Suspense boundary never shows
 - TQ handles loading states in client components
 - Cache provides instant navigation on return visits
 
-## Cache Invalidation with router.refresh()
+Keep `loading.tsx` if the server component does anything slow (DB lookups, external API calls) — without it, the user sees nothing until the server component resolves.
 
-When external events (webhooks, polling, other tabs) change server data, you must invalidate BOTH caches:
+## Cache Invalidation
+
+When external events (webhooks, polling, other tabs) change data, invalidation depends on which pattern you use:
+
+**Client-side fetch (no initialData):** `invalidateQueries()` is sufficient.
 
 ```typescript
-// After detecting data changed (e.g., webhook processed, polling success)
+const queryClient = useQueryClient();
+queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
+```
+
+**initialData pattern (server + client):** invalidate both caches.
+
+```typescript
 const router = useRouter();
 const queryClient = useQueryClient();
 
-// 1. Invalidate Tanstack Query cache - makes queries refetch
+// 1. Invalidate TQ cache - makes queries refetch
 queryClient.invalidateQueries({ queryKey: queryKeys.items.all });
 
 // 2. Refresh server component data - updates initialData props
 router.refresh();
 ```
 
-**Why both?**
-- `router.refresh()` alone: Server props update, but TQ cache stays stale until `staleTime` expires
-- `invalidateQueries()` alone: TQ refetches, but server-rendered content stays stale
+`router.refresh()` alone: server props update, but TQ cache stays stale until `staleTime` expires. `invalidateQueries()` alone: TQ refetches, but server-rendered content stays stale.
 
 ## Prefetch on Hover
 
 Pre-fetch query data when users hover over navigation links for instant page loads:
+
+Note: this central map couples route strings to data logic. For larger apps, consider co-locating prefetch functions with route definitions to avoid drift.
 
 ```typescript
 // lib/prefetch.ts - map routes to prefetch functions
@@ -154,7 +164,9 @@ export function prefetchRouteData(qc: QueryClient, route: string, orgId: string)
 // components/navigation/prefetch-link.tsx
 'use client';
 
-export function PrefetchLink({ href, organizationId, children, ...props }) {
+type PrefetchLinkProps = ComponentProps<typeof Link> & { organizationId: string };
+
+export function PrefetchLink({ href, organizationId, children, ...props }: PrefetchLinkProps) {
   const queryClient = useQueryClient();
 
   const handleMouseEnter = () => {
