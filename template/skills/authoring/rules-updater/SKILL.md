@@ -52,8 +52,6 @@ Review the current session for:
 
 ### 2. Check Existing Rules
 
-Search both locations:
-
 Search both locations using the Grep tool:
 - Path: `.claude/rules/` (project)
 - Path: `~/.claude/template/rules/` (template)
@@ -137,4 +135,4 @@ Show:
 ## After Approval
 
 1. Edit both files with identical content
-2. Commit changes: `but commit <branch> -m "docs: add rule for [pattern]"`
+2. Commit changes with message: `docs: add rule for [pattern]`
