@@ -196,6 +196,8 @@ The script compares file modification timestamps and shows direction for each ch
 
 **Only sync files where the template is newer.** Files where the project is newer should be pushed to the template via `/template-updater`, not overwritten.
 
+**Caveat:** Timestamps are heuristic. Operations like `git clone`, `git checkout`, and `cp` without `-p` reset mtime to "now". When copying files, always use `cp -p` to preserve timestamps. When using Read/Write tools, the destination mtime will be "now" regardless — accept that the next sync report may show stale direction indicators.
+
 ## After Running
 
 Review the report and copy files where the template is newer:
@@ -204,8 +206,8 @@ Review the report and copy files where the template is newer:
 # Read a file that needs updating
 cat ~/.claude/template/rules/tech/nextjs.md
 
-# Copy it to project
-cp ~/.claude/template/rules/tech/nextjs.md .claude/rules/tech/nextjs.md
+# Copy it to project (use -p to preserve timestamps)
+cp -p ~/.claude/template/rules/tech/nextjs.md .claude/rules/tech/nextjs.md
 ```
 
 Or use Claude's Read/Write tools to selectively copy files based on the report.
