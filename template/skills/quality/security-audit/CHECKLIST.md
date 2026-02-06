@@ -43,7 +43,7 @@ Detailed search patterns for each audit category. Agents use these to systematic
 - Components rendering user-generated content
 - Database queries and migrations
 
-## Data Exposure (A09)
+## Data Exposure (A01, A05)
 
 ### Search Patterns
 
@@ -152,3 +152,21 @@ Detailed search patterns for each audit category. Agents use these to systematic
 | go | `govulncheck ./...` |
 
 Report: total vulnerabilities, critical/high count, any with known exploits.
+
+## Server-Side Request Forgery (A10)
+
+### Search Patterns
+
+| Pattern | Looking For |
+|---------|------------|
+| User-controlled URLs in fetch/axios | URLs built from user input passed to server-side HTTP clients |
+| Open redirects | Redirect destinations from query params without allowlist |
+| Internal service access | External requests that could target internal endpoints (e.g. `localhost`, `127.0.0.1`, `169.254.*`) |
+| DNS rebinding | URL validation at request time but resolution at fetch time |
+
+### Files to Check
+
+- API routes with outbound HTTP requests
+- Webhook handlers that fetch external resources
+- Any URL construction from user-supplied data
+- Redirect handlers (`redirect`, `router.replace` with user input)
