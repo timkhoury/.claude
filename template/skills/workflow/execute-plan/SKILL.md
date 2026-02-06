@@ -3,7 +3,9 @@ name: execute-plan
 description: >
   Execute an approved plan using the appropriate workflow. Analyzes plan
   complexity and routes to OpenSpec (complex features) or direct beads
-  (simpler work). Use when ready to start implementing an approved plan.
+  (simpler work). MUST be invoked after plan mode approval, before writing
+  any code. Triggers: plan approved, "go ahead", "looks good", "implement this",
+  user approves ExitPlanMode, starting implementation.
 ---
 
 # Execute Plan
@@ -138,10 +140,11 @@ Look for these signals in the plan content:
    bd update <task-id> --parent=<epic-id>
    ```
 
-3. **Set dependencies** (if steps depend on each other):
+3. **Set dependencies between sibling tasks** (if steps depend on each other):
    ```bash
    bd dep add <later-task-id> <earlier-task-id>
    ```
+   Only between siblings - never between a child and its parent epic.
 
 4. **Add standard tasks:**
    ```bash
