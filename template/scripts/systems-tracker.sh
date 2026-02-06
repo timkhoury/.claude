@@ -9,8 +9,8 @@
 #   init        Create history files if missing
 #
 # File routing:
-#   template-review, tools-updater -> ~/.claude/.systems-check.json
-#   All others                     -> ./.systems-check.json
+#   template-review, tools-updater, claude-audit -> ~/.claude/.systems-check.json
+#   All others                                   -> ./.systems-check.json
 #
 
 set -euo pipefail
@@ -29,12 +29,13 @@ declare -A CADENCES=(
     ["tools-updater"]=14
     ["deps-updater"]=14
     ["memory-review"]=14
+    ["claude-audit"]=30
 )
 
 # Which file each task uses
 get_history_file() {
     local name="$1"
-    if [[ "$name" == "template-review" ]] || [[ "$name" == "tools-updater" ]]; then
+    if [[ "$name" == "template-review" ]] || [[ "$name" == "tools-updater" ]] || [[ "$name" == "claude-audit" ]]; then
         echo "$GLOBAL_FILE"
     else
         echo "$PROJECT_FILE"
@@ -97,6 +98,10 @@ is_applicable() {
             ;;
         memory-review)
             # Always applicable (memory files always exist)
+            return 0
+            ;;
+        claude-audit)
+            # Always applicable (global scope)
             return 0
             ;;
         *)
