@@ -50,6 +50,7 @@ Use `subagent_type: Explore` with thoroughness "very thorough" for each.
 | Database Security | Check RLS policies, SECURITY DEFINER functions, GRANTs, soft-delete filters | Supabase/PostgreSQL |
 | Webhook & API Security | Check signature verification, idempotency, error handling, auth on endpoints | Apps with webhooks |
 | Cryptographic Practices | Check password hashing, token storage, timing-safe comparisons, key management | Apps with auth |
+| Server-Side Request Forgery | Check for user-controlled URLs in fetch calls, open redirects, internal service access | Apps with outbound HTTP |
 | Dependencies | Run `npm audit` or equivalent, check for known vulnerabilities | Always |
 
 **Prompt template for each agent:**
@@ -177,6 +178,7 @@ When a scope argument is provided, run only the relevant category agents:
 | `api` | Webhook & API Security, Input Validation |
 | `rls` or `database` | Database Security |
 | `headers` or `config` | Security Headers & Config |
+| `ssrf` | Server-Side Request Forgery |
 | `deps` | Dependencies only |
 
 ## Reference
