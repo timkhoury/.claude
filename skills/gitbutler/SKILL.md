@@ -10,7 +10,7 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 ## Key Practices
 
 - **Run `but status` before committing** - to get current file/hunk IDs
-- **Use `--files` for selective commits** - avoids ID-shifting problems
+- **Use `-p` for selective commits** - avoids ID-shifting problems
 - **Group changes logically** - feature+tests together, config separate
 
 ## Command Reference
@@ -22,7 +22,7 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 | `but branch new <name>` | Create new virtual branch |
 | `but stage <file-id> <branch>` | Assign file/hunk to branch (use for organizing, not committing) |
 | `but rub <source> <target>` | Squash commits, amend, move commits |
-| `but commit <branch> --files <ids> -m "..."` | Commit specific files/hunks by ID (preferred) |
+| `but commit <branch> -p <ids> -m "..."` | Commit specific files/hunks by ID (preferred, alias: `--changes`) |
 | `but commit <branch> --only -m "..."` | Commit only staged files |
 | `but commit <branch> -m "..."` | Commit all changes on branch |
 | `but reword <id> -m "message"` | Edit commit message (or rename branch) |
@@ -32,10 +32,10 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 
 ## Committing Specific Files
 
-**Preferred:** Use `--files` to commit specific files/hunks directly by their IDs:
+**Preferred:** Use `-p` (or `--changes`) to commit specific files/hunks directly by their IDs:
 ```bash
 but status                                    # Get file IDs (e.g., g1, g2, h3)
-but commit <branch> --files g1,g2,h3 -m "..."  # Commit those specific items
+but commit <branch> -p g1,g2,h3 -m "..."       # Commit those specific items
 ```
 
 This avoids the ID-shifting problem entirely - no staging step needed.
@@ -70,7 +70,7 @@ Scripts in `~/.claude/skills/gitbutler/`. All support `--help` and `--dry-run`.
 
 | Script | Purpose |
 |--------|---------|
-| `bulk-stage.sh` | Stage multiple files to organize across branches (use `--files` for commits) |
+| `bulk-stage.sh` | Stage multiple files to organize across branches (use `-p` for commits) |
 | `branch-health.sh` | Branch status overview (unpushed, remote sync) |
 
 ## Branch Naming
@@ -88,7 +88,7 @@ Descriptive names without conventional commit prefixes:
 but branch new feature-name                          # 1. Create branch
 # ... make changes ...
 but status                                           # 2. See changed files with IDs
-but commit feature-name --files g1,g2 -m "feat: ..." # 3. Commit specific files by ID
+but commit feature-name -p g1,g2 -m "feat: ..."       # 3. Commit specific files by ID
 ```
 
 ## Commit Workflow
@@ -97,7 +97,7 @@ but commit feature-name --files g1,g2 -m "feat: ..." # 3. Commit specific files 
 2. If multiple branches have changes, ask user which branch
 3. Group changes logically (feature+tests together, config separate)
 4. For each group:
-   - Use `but commit <branch> --files <ids> -m "..."` with the file IDs
+   - Use `but commit <branch> -p <ids> -m "..."` with the file IDs
 5. Confirm with `but status`
 
 ## Locked Files (🔒)
