@@ -22,6 +22,7 @@ Aggregate dashboard for maintenance tasks with cadence-based recommendations.
 | spec-review | 14 days | Project | OpenSpec implementation and test coverage |
 | tools-updater | 14 days | Global | Check for beads/OpenSpec updates |
 | deps-updater | 14 days | Project | Dependency updates and security audit |
+| memory-review | 14 days | Project | Prune redundant auto-memory entries |
 
 ## Workflow
 
@@ -102,7 +103,7 @@ If more tasks are due after completion, ask if the user wants to run another. Ot
 | Scope | File | Tasks Tracked |
 |-------|------|---------------|
 | Global | `~/.claude/.systems-check.json` | template-review, tools-updater |
-| Project | `./.systems-check.json` | sync, rules-review, skills-review, permissions-review, spec-review, deps-updater |
+| Project | `./.systems-check.json` | sync, rules-review, skills-review, permissions-review, spec-review, deps-updater, memory-review |
 
 Both files are gitignored. The script automatically routes to the correct file.
 
@@ -118,3 +119,4 @@ Tasks are only shown if applicable:
 - `permissions-review`: Only if `.claude/settings.local.json` exists
 - `spec-review`: Only if `.openspec/` or `specs/` exists
 - `deps-updater`: Only if `package.json`, `Cargo.toml`, `go.mod`, or similar exists
+- `memory-review`: Always included
