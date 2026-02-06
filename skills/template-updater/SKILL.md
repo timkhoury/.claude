@@ -60,15 +60,26 @@ Skipped automatically (generated or customized per-project):
 
 The script reports:
 1. **New** - Files in project that could be added to template
-2. **Changed** - Files that differ from template
+2. **Changed** - Files that differ, with timestamps and sync direction
 3. **Skipped (generated)** - Per-project files (agents/*.md)
 4. **Skipped (protected)** - Project-specific files (CLAUDE.md, _project.yaml)
 
+## Determining Sync Direction
+
+The script compares file modification timestamps and shows direction for each changed file:
+
+| Direction | Meaning | Action |
+|-----------|---------|--------|
+| `project is newer -> sync to template` | Project was edited more recently | Copy project → template |
+| `template is newer -> use /project-updater` | Template was edited more recently | Skip (run `/project-updater` instead) |
+
+**Only sync files where the project is newer.** Files where the template is newer should be pulled into the project via `/project-updater`, not overwritten.
+
 ## After Running
 
-### 1. Sync Changed Files
+### 1. Sync Changed Files (project-newer only)
 
-Copy all files listed as "Changed" to the template.
+Copy files listed as "Changed" where the project is newer to the template. Skip files where the template is newer.
 
 ### 2. Sync Additional Skill Files
 
