@@ -54,13 +54,9 @@ Review the current session for:
 
 Search both locations:
 
-```bash
-# Project rules
-grep -r "keyword" .claude/rules/
-
-# Template rules
-grep -r "keyword" ~/.claude/template/rules/
-```
+Search both locations using the Grep tool:
+- Path: `.claude/rules/` (project)
+- Path: `~/.claude/template/rules/` (template)
 
 | If Found | Action |
 |----------|--------|
@@ -93,6 +89,8 @@ For syncable rules, always write to BOTH:
 
 **Important:** Content must be identical in both locations to stay in sync.
 
+**If locations have diverged:** Read both files, diff them, and present the differences to the user. Let the user decide which version to keep or how to merge. Do not silently overwrite either location.
+
 ### 5. Present to User
 
 Show:
@@ -124,7 +122,6 @@ Show:
 
 - [ ] Update `.claude/rules/tech/example.md`
 - [ ] Update `~/.claude/template/rules/tech/example.md`
-- [ ] Rebuild agents: `npm run build:agents` (if bundle affected)
 ```
 
 ## Anti-Patterns
@@ -140,5 +137,4 @@ Show:
 ## After Approval
 
 1. Edit both files with identical content
-2. If rule bundles affected, rebuild agents: `npm run build:agents`
-3. Commit changes: `but commit <branch> -m "docs: add rule for [pattern]"`
+2. Commit changes: `but commit <branch> -m "docs: add rule for [pattern]"`

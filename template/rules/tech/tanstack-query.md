@@ -64,8 +64,8 @@ useQuery({
 
 **Note on `gcTime`:** Default is 5 minutes - inactive query data is garbage collected after 5 min. This is usually fine. Only increase if users might not visit a page for extended periods.
 
-For this to work, data fetching must happen in Client Components.
-Server Component data fetching bypasses the TQ cache entirely.
+For this to work, data fetching must happen client-side through TQ.
+Server-side data fetching (SSR, server components) bypasses the client-side TQ cache entirely.
 
 ## staleTime Recommendations
 
