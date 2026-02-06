@@ -75,6 +75,8 @@ The script compares file modification timestamps and shows direction for each ch
 
 **Only sync files where the project is newer.** Files where the template is newer should be pulled into the project via `/project-updater`, not overwritten.
 
+**Caveat:** Timestamps are heuristic. Operations like `git clone`, `git checkout`, and `cp` without `-p` reset mtime to "now". When copying files, always use `cp -p` to preserve timestamps. When using Read/Write tools, the destination mtime will be "now" regardless — accept that the next sync report may show stale direction indicators.
+
 ## After Running
 
 ### 1. Sync Changed Files (project-newer only)
@@ -92,9 +94,9 @@ For skills that exist in the template, **sync ALL files in the skill directory**
 ### 3. Copy Files
 
 ```bash
-# Copy all files in a skill directory
-cp .claude/skills/rules-review/*.md ~/.claude/template/skills/quality/rules-review/
-cp .claude/skills/rules-review/*.sh ~/.claude/template/skills/quality/rules-review/
+# Copy all files in a skill directory (use -p to preserve timestamps)
+cp -p .claude/skills/rules-review/*.md ~/.claude/template/skills/quality/rules-review/
+cp -p .claude/skills/rules-review/*.sh ~/.claude/template/skills/quality/rules-review/
 ```
 
 Or use Claude's Read/Write tools to copy files based on the report.
