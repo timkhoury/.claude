@@ -34,6 +34,8 @@ The epic stays open until all tasks are closed and OpenSpec (if applicable) is a
 4. Run quality gates: `code-reviewer` agent, then `/pr-check`
 5. Land the plane: push, sync, verify
 
+See `completion-criteria.md` for quality bar at each level.
+
 ## Workflow Commands
 
 | Command | Purpose |
@@ -43,6 +45,21 @@ The epic stays open until all tasks are closed and OpenSpec (if applicable) is a
 | `/work <epic-id>` | Work through all ready tasks in the epic sequentially |
 | `/status` | Show unified view of OpenSpec, beads, and git state |
 | `/wrap` | End-of-session workflow - archive, close, push, verify |
+
+## Subagent Strategy
+
+Use parallel subagents for independent exploration; sequential subagents for implementation.
+
+| Situation | Strategy |
+|-----------|----------|
+| Exploring multiple files/areas | 2-4 parallel Explore agents |
+| Implementing tasks from an epic | Sequential task-implementer (one at a time) |
+| Research + implementation | Research in parallel, then implement sequentially |
+| Broad codebase questions | 2-3 parallel agents covering different areas |
+
+**Sweet spot is 2-4 parallel agents.** Beyond that, consolidation overhead outweighs exploration gains. Each subagent gets fresh context, so use them to protect the main conversation from context exhaustion - not to maximize parallelism.
+
+**Avoid:** 5+ parallel agents for routine work, parallel implementation agents (they conflict on files), spawning agents for tasks you could do directly in 1-2 tool calls.
 
 ## Danger Zone
 

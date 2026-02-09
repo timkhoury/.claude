@@ -86,3 +86,16 @@ body: |
   - You hit a blocker (missing dependency, unclear requirement)
   - Task requires changes outside its scope
   - You discover a bug that should be a separate task
+  - Same error persists after 3 genuinely different fix approaches
+
+  If your fixes keep failing, question whether the approach is wrong before trying another variation of the same idea.
+
+  When stopping due to a blocker, use this format:
+
+  ```
+  ## Blocked: [brief summary]
+
+  **Tried:** [what was attempted]
+  **Blocker:** [what's preventing progress]
+  **Suggestion:** [recommended next step for orchestrator]
+  ```
