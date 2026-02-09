@@ -70,6 +70,7 @@ The `bd` command is the correct CLI. `npx beads` does not exist and will fail.
 - Documentation gaps
 - Performance issues
 - Accessibility problems
+- **Two-phase deploy cleanup** - when a change adds temporary backward-compatible code (`.optional()`, fallback logic) that must be removed after deployment and dependent services are updated
 
 Create a bead immediately with `bd create`. This ensures nothing gets lost and provides visibility into discovered work.
 
