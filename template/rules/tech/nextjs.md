@@ -89,19 +89,24 @@ function PageClient({ data }) {
 **Always:**
 - Use `'use server'` directive at top of file
 - Return error states instead of throwing
+- Sanitize errors before returning to client (see `patterns/security.md`)
 - Revalidate paths after mutations
 
 ```typescript
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('MyFeature');
 
 export async function myAction(data: FormData) {
-  // Perform mutation
   const result = await doSomething(data);
 
   if (!result.success) {
-    return { error: result.message };
+    // Log full details server-side, return generic message to client
+    log.error('Action failed:', result.error);
+    return { error: 'Failed to create item' };
   }
 
   revalidatePath('/affected-path');
@@ -157,3 +162,4 @@ Avoid heavy computation or database queries in middleware.
 | Call server action during SSR render | Cookie modification error |
 | Heavy logic in middleware | Slow every request |
 | Forget revalidatePath after mutation | Stale data shown |
+| Return `error.message` to client in server actions | Leaks internal details (see `patterns/security.md`) |
