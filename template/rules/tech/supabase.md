@@ -82,6 +82,45 @@ ON users FOR SELECT
 USING (deleted_at IS NULL AND id = auth.uid());
 ```
 
+## RLS Security Hardening
+
+Patterns from security audit. Complement the basic RLS section above.
+
+**Admin-only tables** need explicit read denies, not just write denies:
+
+```sql
+-- Write deny alone is insufficient - authenticated users can still SELECT
+CREATE POLICY "Deny all access" ON sensitive_table
+  FOR ALL USING (false) WITH CHECK (false);
+```
+
+Without a `USING(false)` SELECT policy, any authenticated user can read all rows.
+
+**SECURITY DEFINER functions** that accept user ID parameters must validate ownership:
+
+```sql
+CREATE OR REPLACE FUNCTION my_function(p_user_id UUID)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+  -- Validate caller owns this user ID
+  IF p_user_id != auth.uid() THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+  -- ...
+END;
+$$;
+```
+
+**RLS/app logic consistency:** Server action authorization and RLS policies must agree. If a server action checks org membership, the RLS policy must also scope to that org. Mismatches cause silent data leaks or confusing empty results.
+
+**Anon role privileges:** Revoke all access on sensitive tables. RLS protects authenticated users; `GRANT` controls unauthenticated:
+
+```sql
+REVOKE ALL ON api_keys, oauth_tokens, subscriptions, payment_methods FROM anon;
+```
+
+**Soft-delete in policies:** Every RLS policy on tables with `deleted_at` must include the filter. See `data-retention.md` for the full pattern.
+
 ## Webhook Handlers
 
 External webhooks (Stripe, GitHub) have no user session. Use admin client:
@@ -184,6 +223,11 @@ mcp__supabase__search_docs({ query: "RLS policies" })
 
 | Never | Consequence |
 |-------|-------------|
+| Admin-only table without `USING(false)` SELECT policy | Authenticated users can read all rows |
+| SECURITY DEFINER function trusting `p_user_id` parameter | Caller can impersonate other users |
+| RLS policy missing `deleted_at IS NULL` filter | Soft-deleted data exposed |
+| Sensitive table accessible to `anon` role | Unauthenticated access to secrets |
+| RLS policy disagrees with server action auth check | Silent data leaks or empty results |
 | Skip signature verification in webhooks | Security vulnerability |
 | Use regular client in webhooks | RLS blocks operations |
 | Forget `ENABLE ROW LEVEL SECURITY` | Data exposed to all users |
