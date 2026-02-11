@@ -17,12 +17,15 @@ always:
   rules:
     - meta/
     - patterns/
-    - workflow/
+    - workflow/task-workflow.md
   skills:
     - authoring/
     - quality/
-    - workflow/
+    - workflow/execute-plan/
+    - workflow/work/
     - automation/
+  commands:
+    - status.md
 
 # Technology-specific rules
 technologies:
@@ -152,10 +155,7 @@ tools:
     rules:
       - workflow/openspec.md
       - workflow/workflow-integration.md
-      - workflow/task-workflow.md
     skills:
       - tools/openspec/spec-review/
-      - workflow/work/
     commands:
-      - status.md
       - wrap.md
