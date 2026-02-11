@@ -183,7 +183,7 @@ The `/work` skill will:
 | Documentation updates | Implementation tasks |
 
 **Rules:**
-- **Tests**: Must pass `bun run test` and achieve reasonable coverage
+- **Tests**: Must pass and achieve reasonable coverage (detect runner from lockfile: `bun.lock` → bun, `pnpm-lock.yaml` → pnpm, `package-lock.json` → npm)
 - **E2E**: Required if feature has user-facing UI; skip if no UI changes
 - **Docs**: Update relevant docs in `docs/`; skip if no doc changes needed
 
