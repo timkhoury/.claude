@@ -4,12 +4,12 @@
 
 ## Error Sanitization
 
-Return generic messages to clients. Log full details server-side.
+Return generic messages to clients in all environments. Log full details server-side.
 
-| Environment | Client sees | Server logs |
-|-------------|------------|-------------|
-| Development | Full error details | Full error details |
-| Production | Generic fallback message | Full error with stack trace |
+| Layer | Shows |
+|-------|-------|
+| Client (all environments) | Generic, static error message |
+| Server logs | Full error with stack trace |
 
 ```
 // Good - generic message to client, full details logged
@@ -19,6 +19,10 @@ return { error: 'Failed to create item' };
 // Bad - leaks internal details
 return { error: error.message };
 return { error: result.message };
+
+// Bad - environment-conditional error display
+if (isDev) return { error: error.message };
+return { error: 'Something went wrong' };
 ```
 
 **Toast messages:** Use static strings. Never interpolate error objects or database messages into user-facing toasts.
@@ -66,6 +70,7 @@ Framework-specific examples: see your tech rules (e.g., `nextjs.md` for server a
 | Never | Consequence |
 |-------|-------------|
 | `return { error: error.message }` | Leaks DB schema, provider details to client |
+| Show detailed errors in dev but not prod | Inconsistent behavior, masks bugs that only appear in production |
 | Raw `console.log` / `console.error` | No structure, no redaction, no level filtering |
 | Query entity by ID without tenant scope | IDOR - users access other tenants' data |
 | Skip input validation at system boundaries | Injection, type confusion, unexpected behavior |
