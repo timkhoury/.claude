@@ -50,7 +50,7 @@ but diff <branch>
 Invoke the code-reviewer agent with:
 - Scope: [branch name]
 - Diff: [output from `but diff`]
-- Files: [list from diff --stat]
+- Files: [extract file paths from the diff output header lines (e.g., "M src/foo.tsx")]
 - Context: Branch diff for PR review
 
 ### Step 3: Display Review

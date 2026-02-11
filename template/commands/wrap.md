@@ -46,26 +46,7 @@ For each in-progress task:
 For pending tasks (not blocked):
 1. Note as remaining work in handoff summary
 
-### Step 3: Run Quality Gates (if code changed)
-
-Check if session branches contain **actual code changes** (not just markdown/docs):
-```bash
-but status -f    # Shows committed files per commit
-```
-
-Look for code file extensions in the session branch commits:
-- **Code files** (run pr-check): `.ts`, `.tsx`, `.js`, `.jsx`, `.css`, `.sql`, `.py`, `.go`, `.rs`
-- **Build config** (run pr-check): `package.json`, `tsconfig.json`, config files
-- **Docs/tooling** (skip pr-check): `.md`, `.sh`, `.yaml`
-
-If code files were changed:
-1. Ask user if they want to run quality gates
-2. If yes: Run pr-check or equivalent
-3. If quality gates fail: Report issues and ask how to proceed
-
-Skip this step entirely for documentation-only sessions.
-
-### Step 4: Push
+### Step 3: Push
 
 ```bash
 but push <branch>            # Push only branches worked on THIS session
