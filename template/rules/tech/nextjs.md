@@ -88,6 +88,7 @@ function PageClient({ data }) {
 
 **Always:**
 - Use `'use server'` directive at top of file
+- Validate inputs with Zod before processing
 - Return error states instead of throwing
 - Sanitize errors before returning to client (see `patterns/security.md`)
 - Revalidate paths after mutations
@@ -95,13 +96,20 @@ function PageClient({ data }) {
 ```typescript
 'use server';
 
+import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { createLogger } from '@/lib/logger';
 
-const log = createLogger('MyFeature');
+const createItemSchema = z.object({
+  name: z.string().min(1).max(100),
+});
 
-export async function myAction(data: FormData) {
-  const result = await doSomething(data);
+export async function createItem(data: unknown) {
+  const validation = createItemSchema.safeParse(data);
+  if (!validation.success) {
+    return { error: validation.error.errors[0].message };
+  }
+
+  const result = await doSomething(validation.data);
 
   if (!result.success) {
     // Log full details server-side, return generic message to client
