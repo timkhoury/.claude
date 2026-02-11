@@ -277,10 +277,10 @@ cmd_enumerate() {
     for s in "${specs[@]}"; do
       IFS='|' read -r name reqs scenarios size prefix <<< "$s"
       if $first; then first=false; else echo ","; fi
-      printf '    {"name": "%s", "requirements": %s, "scenarios": %s, "size": "%s", "prefix": "%s"}' \
-        "$name" "$reqs" "$scenarios" "$size" "$prefix"
+      jq -n --arg name "$name" --argjson reqs "$reqs" --argjson scenarios "$scenarios" \
+        --arg size "$size" --arg prefix "$prefix" \
+        '{name: $name, requirements: $reqs, scenarios: $scenarios, size: $size, prefix: $prefix}' | sed 's/^/    /'
     done
-    echo ""
     echo "  ]"
     echo "}"
   else
@@ -326,7 +326,7 @@ cmd_test_health() {
     local first=true
     for f in "${skipped_files[@]}"; do
       if $first; then first=false; else echo ","; fi
-      printf '    "%s"' "$f"
+      printf '    %s' "$(jq -n --arg v "$f" '$v')"
     done
     if [[ ${#skipped_files[@]} -gt 0 ]]; then echo ""; fi
     echo "  ],"
@@ -409,7 +409,7 @@ cmd_structure() {
     local first=true
     for prefix in "${!prefix_counts[@]}"; do
       if $first; then first=false; else echo ","; fi
-      printf '    "%s": %s' "$prefix" "${prefix_counts[$prefix]}"
+      printf '    %s: %s' "$(jq -n --arg v "$prefix" '$v')" "${prefix_counts[$prefix]}"
     done
     echo ""
     echo "  },"
@@ -417,7 +417,7 @@ cmd_structure() {
     first=true
     for pair in "${crossref_pairs[@]}"; do
       if $first; then first=false; else echo ","; fi
-      printf '    "%s"' "$pair"
+      printf '    %s' "$(jq -n --arg v "$pair" '$v')"
     done
     if [[ ${#crossref_pairs[@]} -gt 0 ]]; then echo ""; fi
     echo "  ]"
@@ -661,9 +661,9 @@ cmd_detect() {
     for item in "${small_results[@]}"; do
       IFS='|' read -r name reqs prefix <<< "$item"
       if $first; then first=false; else echo ","; fi
-      printf '      {"spec": "%s", "requirements": %s, "prefix": "%s"}' "$name" "$reqs" "$prefix"
+      jq -n --arg spec "$name" --argjson reqs "$reqs" --arg prefix "$prefix" \
+        '{spec: $spec, requirements: $reqs, prefix: $prefix}' | sed 's/^/      /'
     done
-    if [[ ${#small_results[@]} -gt 0 ]]; then echo ""; fi
     echo "    ],"
 
     # large
@@ -672,9 +672,9 @@ cmd_detect() {
     for item in "${large_results[@]}"; do
       IFS='|' read -r name reqs <<< "$item"
       if $first; then first=false; else echo ","; fi
-      printf '      {"spec": "%s", "requirements": %s}' "$name" "$reqs"
+      jq -n --arg spec "$name" --argjson reqs "$reqs" \
+        '{spec: $spec, requirements: $reqs}' | sed 's/^/      /'
     done
-    if [[ ${#large_results[@]} -gt 0 ]]; then echo ""; fi
     echo "    ],"
 
     # orphanRefs
@@ -683,9 +683,9 @@ cmd_detect() {
     for item in "${orphan_results[@]}"; do
       IFS='|' read -r name target <<< "$item"
       if $first; then first=false; else echo ","; fi
-      printf '      {"spec": "%s", "references": "%s", "exists": false}' "$name" "$target"
+      jq -n --arg spec "$name" --arg refs "$target" \
+        '{spec: $spec, references: $refs, exists: false}' | sed 's/^/      /'
     done
-    if [[ ${#orphan_results[@]} -gt 0 ]]; then echo ""; fi
     echo "    ],"
 
     # emptyReqs
@@ -694,9 +694,9 @@ cmd_detect() {
     for item in "${empty_results[@]}"; do
       IFS='|' read -r name requirement scenarios <<< "$item"
       if $first; then first=false; else echo ","; fi
-      printf '      {"spec": "%s", "requirement": "%s", "scenarios": %s}' "$name" "$requirement" "$scenarios"
+      jq -n --arg spec "$name" --arg req "$requirement" --argjson scenarios "$scenarios" \
+        '{spec: $spec, requirement: $req, scenarios: $scenarios}' | sed 's/^/      /'
     done
-    if [[ ${#empty_results[@]} -gt 0 ]]; then echo ""; fi
     echo "    ],"
 
     # crossrefClusters
@@ -705,9 +705,9 @@ cmd_detect() {
     for item in "${cluster_results[@]}"; do
       IFS='|' read -r source target count <<< "$item"
       if $first; then first=false; else echo ","; fi
-      printf '      {"source": "%s", "target": "%s", "count": %s}' "$source" "$target" "$count"
+      jq -n --arg src "$source" --arg tgt "$target" --argjson count "$count" \
+        '{source: $src, target: $tgt, count: $count}' | sed 's/^/      /'
     done
-    if [[ ${#cluster_results[@]} -gt 0 ]]; then echo ""; fi
     echo "    ]"
 
     echo "  },"
@@ -972,7 +972,7 @@ cmd_batch() {
   compute_progress "$analysis"
 
   if [[ -z "$PROGRESS_PENDING" ]]; then
-    exit 0
+    return 0
   fi
 
   # Take first N pending specs and output as comma-separated
@@ -1187,13 +1187,13 @@ report_coverage() {
   outdated=$(jq -r '.summary.outdatedScenarios' "$results_file")
   coverage_pct=$(jq -r '.summary.coveragePercent' "$results_file")
 
-  # Compute percentages
+  # Compute percentages (integer arithmetic, no bc dependency)
   local impl_pct=0 partial_pct=0 unimpl_pct=0 outdated_pct=0
   if [[ $total_scenarios -gt 0 ]]; then
-    impl_pct=$(echo "scale=0; $implemented * 100 / $total_scenarios" | bc)
-    partial_pct=$(echo "scale=0; $partial * 100 / $total_scenarios" | bc)
-    unimpl_pct=$(echo "scale=0; $unimplemented * 100 / $total_scenarios" | bc)
-    outdated_pct=$(echo "scale=0; $outdated * 100 / $total_scenarios" | bc)
+    impl_pct=$(( implemented * 100 / total_scenarios ))
+    partial_pct=$(( partial * 100 / total_scenarios ))
+    unimpl_pct=$(( unimplemented * 100 / total_scenarios ))
+    outdated_pct=$(( outdated * 100 / total_scenarios ))
   fi
 
   # Generate gaps table
@@ -1250,12 +1250,12 @@ report_tests() {
   missing=$(jq -r '.summary.missingScenarios' "$results_file")
   coverage_pct=$(jq -r '.summary.coveragePercent' "$results_file")
 
-  # Compute percentages
+  # Compute percentages (integer arithmetic, no bc dependency)
   local covered_pct=0 partial_pct=0 missing_pct=0
   if [[ $total_scenarios -gt 0 ]]; then
-    covered_pct=$(echo "scale=0; $covered * 100 / $total_scenarios" | bc)
-    partial_pct=$(echo "scale=0; $partial * 100 / $total_scenarios" | bc)
-    missing_pct=$(echo "scale=0; $missing * 100 / $total_scenarios" | bc)
+    covered_pct=$(( covered * 100 / total_scenarios ))
+    partial_pct=$(( partial * 100 / total_scenarios ))
+    missing_pct=$(( missing * 100 / total_scenarios ))
   fi
 
   # Generate gaps table (high priority first)
