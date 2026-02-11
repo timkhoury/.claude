@@ -22,7 +22,7 @@ cat >> "$PLAN_FILE" << 'EOF'
 
 ---
 
-**After approval, invoke `/execute-plan` to create the epic, task beads, and branch before implementing.**
+**After approval, invoke `/execute-plan` to create the tasks and branch before implementing.**
 EOF
 
 exit 0
