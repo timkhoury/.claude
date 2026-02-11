@@ -23,8 +23,8 @@ Personal preferences applied across all projects.
 
 ## Session Management
 
-- **After plan approval** - always invoke `/execute-plan` before writing code. It sets up epic/task structure and branch.
-- **Track multi-step work** - use appropriate tracking (beads, TodoWrite, or project-specific)
+- **After plan approval** - always invoke `/execute-plan` before writing code. It sets up task structure and branch.
+- **Track multi-step work** - use built-in Task tools (TaskCreate, TaskUpdate, TaskList)
 - **Land the plane** - ensure all work is committed and pushed before ending
 - **Document remaining work** - don't leave loose ends undocumented
 

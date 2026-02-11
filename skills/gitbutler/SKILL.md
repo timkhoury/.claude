@@ -10,6 +10,7 @@ GitButler manages multiple virtual branches simultaneously. See git-rules for co
 ## Key Practices
 
 - **Run `but status` before committing** - to get current file/hunk IDs
+- **Use `--status-after` on mutations** - shows workspace status after the command, avoids a separate `but status` call
 - **Use `-p` for selective commits** - avoids ID-shifting problems
 - **Group changes logically** - feature+tests together, config separate
 
@@ -87,8 +88,8 @@ Descriptive names without conventional commit prefixes:
 ```bash
 but branch new feature-name                          # 1. Create branch
 # ... make changes ...
-but status                                           # 2. See changed files with IDs
-but commit feature-name -p g1,g2 -m "feat: ..."       # 3. Commit specific files by ID
+but status                                                        # 2. See changed files with IDs
+but commit feature-name -p g1,g2 -m "feat: ..." --status-after    # 3. Commit specific files by ID
 ```
 
 ## Commit Workflow
@@ -97,8 +98,7 @@ but commit feature-name -p g1,g2 -m "feat: ..."       # 3. Commit specific files
 2. If multiple branches have changes, ask user which branch
 3. Group changes logically (feature+tests together, config separate)
 4. For each group:
-   - Use `but commit <branch> -p <ids> -m "..."` with the file IDs
-5. Confirm with `but status`
+   - Use `but commit <branch> -p <ids> -m "..." --status-after` with the file IDs
 
 ## Locked Files (🔒)
 
