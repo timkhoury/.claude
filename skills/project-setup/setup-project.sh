@@ -21,7 +21,6 @@ DETECT_SCRIPT="$HOME/.claude/scripts/detect-technologies.sh"
 TOOLS="all"
 FRAMEWORK=""
 SCAFFOLD_RULES=false
-PROJECT_NAME=""
 SKIP_INIT=false
 SKIP_BUILD=false
 FORCE=false
@@ -83,10 +82,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Derive project name from directory if not provided
-if [[ -z "$PROJECT_NAME" ]]; then
-  PROJECT_NAME=$(basename "$(pwd)")
-fi
+DIR_NAME=$(basename "$(pwd)")
 
 # Parse tool flags
 ENABLE_OPENSPEC=false
@@ -133,7 +129,7 @@ fi
 
 echo -e "${BLUE}Setting up Claude Code configuration...${NC}"
 echo ""
-echo "Project: $PROJECT_NAME"
+echo "Project: $DIR_NAME"
 echo "Tools:   $TOOLS"
 echo ""
 
@@ -502,7 +498,7 @@ fi
 # Summary
 echo -e "${GREEN}=== Setup Complete ===${NC}"
 echo ""
-echo "Project: $PROJECT_NAME"
+echo "Project: $DIR_NAME"
 echo "Files copied: $files_copied"
 [[ $files_skipped -gt 0 ]] && echo "Files skipped: $files_skipped"
 echo ""
