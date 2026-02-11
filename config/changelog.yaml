@@ -24,3 +24,8 @@ changes:
     path: skills/tools/beads/beads-cleanup/SKILL.md
     date: 2026-02-11
     reason: Beads removed, using built-in Task tools
+
+  - type: delete
+    path: commands/status.md
+    date: 2026-02-11
+    reason: Unused - no workflow depends on it, other commands gather their own state

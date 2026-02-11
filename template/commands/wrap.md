@@ -1,6 +1,6 @@
 ---
 name: Wrap
-description: End-of-session workflow - archive specs, complete tasks, run quality gates, push changes
+description: End-of-session workflow - archive specs, complete tasks, push changes
 category: Workflow
 tags: [wrap, session, end, landing]
 ---
@@ -54,7 +54,7 @@ but push <branch>            # Push only branches worked on THIS session
 
 **Only push branches where you made commits during this session.** Do not push unrelated branches that happen to have unpushed commits from previous sessions.
 
-### Step 5: Verify Completion and Check PRs
+### Step 4: Verify Completion and Check PRs
 
 ```bash
 but status                   # Verify all branches pushed
@@ -68,7 +68,7 @@ gh pr view <branch-name> --json url,state --jq '"\(.url) (\(.state))"' 2>/dev/nu
 
 If a PR exists, include the link in the summary. If no PR exists, note that one can be created.
 
-### Step 6: Generate Handoff Summary
+### Step 5: Generate Handoff Summary
 
 Output a summary:
 
@@ -109,6 +109,5 @@ _None_ (if all branches are pushed)
 | Situation | Action |
 |-----------|--------|
 | OpenSpec archive fails | Report error, ask user how to proceed |
-| Quality gates fail | Report failures, ask if user wants to fix or skip |
 | Push fails | Report error, suggest resolution |
 | No active work | Skip to verification and report clean state |

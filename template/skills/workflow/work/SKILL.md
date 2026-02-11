@@ -109,8 +109,7 @@ When all tasks are completed:
 
 1. Run `code-reviewer` agent
 2. If passes, run `/pr-check`
-3. Ask user about PR creation
-4. Invoke `/wrap` to complete the session
+3. Invoke `/wrap` to complete the session
 
 ## When NOT to Delegate
 
