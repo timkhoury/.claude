@@ -50,12 +50,12 @@ Display a summary table:
 ```markdown
 ## Systems Status
 
-| Task | Last Run | Status |
-|------|----------|--------|
-| template-review | 10 days | Due (3 days overdue) |
-| sync | 8 days | Due (1 day overdue) |
-| rules-review | 5 days | OK (2 days remaining) |
-| spec-review | 20 days | Due (6 days overdue) |
+| Task | Description | Last Run | Status |
+|------|-------------|----------|--------|
+| template-review | Template structure and sync-config integrity | 10 days | Due (3 days overdue) |
+| sync | Bidirectional template/project config sync | 8 days | Due (1 day overdue) |
+| rules-review | Rule organization and separation of concerns | 5 days | OK (2 days remaining) |
+| spec-review | OpenSpec implementation and test coverage | 20 days | Due (6 days overdue) |
 ```
 
 ### Step 4: Ask User Selection
