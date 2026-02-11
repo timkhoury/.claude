@@ -22,7 +22,7 @@ Spec organization analysis - detects structural issues and suggests refactoring.
 **Before analysis, check for active OpenSpec changes:**
 
 ```bash
-npx openspec list
+./review-specs.sh changes
 ```
 
 If active changes exist:
@@ -44,73 +44,34 @@ If active changes exist:
 
 ## Detection Algorithms
 
-### Small Spec Detection
+### Scripted Detections (deterministic)
 
-```
-FOR each spec WHERE requirements < 3:
-  IF spec prefix matches another spec:
-    SUGGEST merge into parent
-  ELSE IF >2 cross-refs to single spec:
-    SUGGEST merge into that spec
-  ELSE:
-    FLAG as standalone (may be intentional)
-```
+Run all detections at once, or specific ones:
 
-### Large Spec Detection
-
-```
-FOR each spec WHERE requirements > 12:
-  ANALYZE groupings by:
-    - Entity focus (different tables/routes)
-    - Functional area (CRUD vs display vs validation)
-    - User role (admin vs member)
-  SUGGEST split based on natural groupings
+```bash
+./review-specs.sh detect              # All detections
+./review-specs.sh detect --small      # Specs with <3 requirements
+./review-specs.sh detect --large      # Specs with >12 requirements
+./review-specs.sh detect --orphan-refs      # Cross-refs to non-existent specs
+./review-specs.sh detect --empty-reqs       # Requirements with 0 scenarios
+./review-specs.sh detect --crossref-clusters  # Specs with >3 cross-refs to same target
+./review-specs.sh detect --small --json     # JSON output
 ```
 
-### Cross-Reference Cluster Detection
+### AI-Analyzed Detections (require judgment)
 
-```
-BUILD reference graph: spec -> [referenced specs]
-FIND clusters with >3 refs between pair
-SUGGEST consolidation for tightly coupled specs
-```
+These require semantic understanding and cannot be scripted:
+
+| Detection | Why AI | What to look for |
+|-----------|--------|-----------------|
+| Duplicate requirements | Semantic similarity (>80% text match) | Normalize, compare requirement text |
+| Boundary overlaps | Intent understanding of WHEN conditions | Same WHEN in multiple specs |
+| Contradictions | Comparing THEN outcomes for same WHEN | Conflicting behavior |
+| Split/merge suggestions | Domain knowledge for grouping | Entity focus, functional area, user role |
 
 ### Entity Prefix Analysis
 
-```
-EXTRACT prefixes from spec names (before first hyphen)
-GROUP specs by prefix
-FOR each prefix with 2+ specs:
-  CHECK if parent spec exists
-  IF no parent: SUGGEST creating hierarchy
-```
-
-### Duplicate Requirement Detection
-
-```
-FOR each requirement text:
-  NORMALIZE (lowercase, remove punctuation)
-  COMPUTE similarity with all others
-  IF similarity > 80%: FLAG as duplicate
-```
-
-### Boundary Overlap Detection
-
-```
-EXTRACT WHEN conditions from all scenarios
-GROUP by normalized WHEN
-FOR each WHEN in multiple specs:
-  FLAG as boundary overlap
-```
-
-### Contradiction Detection
-
-```
-FOR each pair with similar WHEN:
-  COMPARE THEN conditions
-  IF THEN conditions conflict:
-    FLAG as contradiction
-```
+Uses `./review-specs.sh structure` (prefix groups section) combined with AI judgment for hierarchy suggestions.
 
 ## Spec Index Entry
 
@@ -199,18 +160,3 @@ Build this for each spec:
 - [ ] Issue 2 action
 ```
 
-## Quick Commands
-
-```bash
-# Count specs
-ls openspec/specs/*/spec.md | wc -l
-
-# Count requirements
-rg "^### Requirement:" openspec/specs | wc -l
-
-# Find cross-references
-rg "See \[" openspec/specs
-
-# Prefix groups
-ls openspec/specs | cut -d'-' -f1 | sort | uniq -c | sort -rn
-```

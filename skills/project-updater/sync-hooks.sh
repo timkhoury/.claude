@@ -62,9 +62,7 @@ if ! command -v jq &>/dev/null; then
 fi
 
 # Detect enabled tools
-HAS_BEADS=false
 HAS_OPENSPEC=false
-[[ -d ".beads" ]] && HAS_BEADS=true
 [[ -d "openspec" ]] && HAS_OPENSPEC=true
 
 # Get all tools from config
@@ -77,14 +75,8 @@ is_tool_enabled() {
   local tool="$1"
 
   case "$tool" in
-    beads)
-      [[ "$HAS_BEADS" == "true" ]]
-      ;;
     openspec)
       [[ "$HAS_OPENSPEC" == "true" ]]
-      ;;
-    "beads+openspec")
-      [[ "$HAS_BEADS" == "true" ]] && [[ "$HAS_OPENSPEC" == "true" ]]
       ;;
     *)
       # Unknown tool - check if it has requires
@@ -202,7 +194,6 @@ declare -a hooks_conflict
 echo -e "${BLUE}=== Hooks Sync ===${NC}"
 echo ""
 echo -e "Tools detected:"
-echo -e "  Beads:    $([[ "$HAS_BEADS" == "true" ]] && echo "${GREEN}yes${NC}" || echo "${YELLOW}no${NC}")"
 echo -e "  OpenSpec: $([[ "$HAS_OPENSPEC" == "true" ]] && echo "${GREEN}yes${NC}" || echo "${YELLOW}no${NC}")"
 echo ""
 

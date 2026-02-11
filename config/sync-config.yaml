@@ -4,7 +4,7 @@
 # Sections:
 #   always: Content copied to every project
 #   technologies: Tech-specific content (detected automatically)
-#   tools: Workflow tools (beads, openspec)
+#   tools: Workflow tools (openspec)
 #
 # Detection methods:
 #   packages: Check package.json dependencies/devDependencies
@@ -145,33 +145,17 @@ technologies:
 
 # Workflow tools - detected by directory existence
 tools:
-  beads:
-    detect:
-      directories:
-        - .beads/
-    rules:
-      - workflow/beads-workflow.md
-    skills:
-      - tools/beads/beads-cleanup/
-      - workflow/work/
-    commands:
-      - status.md
-
   openspec:
     detect:
       directories:
         - openspec/
     rules:
       - workflow/openspec.md
+      - workflow/workflow-integration.md
+      - workflow/task-workflow.md
     skills:
       - tools/openspec/spec-review/
-  # Tool integration (use requires instead of directories)
-  beads+openspec:
-    detect:
-      requires:
-        - beads
-        - openspec
-    rules:
-      - workflow/workflow-integration.md
+      - workflow/work/
     commands:
+      - status.md
       - wrap.md

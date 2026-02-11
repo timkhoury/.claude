@@ -12,7 +12,7 @@ A task is complete when:
 ## Feature Level
 
 A feature is complete when:
-- All child tasks are closed
+- All tasks are completed
 - Tests written and passing (unit + integration, E2E if user-facing)
 - Code review is clean (no blockers or unresolved issues)
 - Quality gates pass (`/pr-check`)

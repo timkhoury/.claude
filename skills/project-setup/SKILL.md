@@ -2,7 +2,7 @@
 name: project-setup
 description: >
   Initialize Claude Code configuration for new projects. Copies template,
-  configures tools (GitButler, Beads, OpenSpec), and scaffolds rules.
+  configures tools (GitButler, OpenSpec), and scaffolds rules.
   Use when setting up a new project or onboarding to Claude Code.
 ---
 
@@ -18,11 +18,10 @@ Initialize Claude Code configuration using the deterministic setup script.
 
 | Option | Description |
 |--------|-------------|
-| `--tools=TOOLS` | Tools to enable: `all`, `beads+openspec`, `beads`, `openspec`, `none` (default: `all`) |
+| `--tools=TOOLS` | Tools to enable: `all`, `openspec`, `none` (default: `all`) |
 | `--framework=NAME` | Framework: `nextjs`, `react`, `node`, `other` (optional) |
 | `--scaffold-rules` | Create scaffolded rule files (overview.md, architecture.md) |
-| `--project-name=NAME` | Project name for beads prefix (default: directory name) |
-| `--skip-init` | Skip tool initialization (bd init, openspec init) |
+| `--skip-init` | Skip tool initialization (openspec init) |
 | `--skip-build` | Skip agent building step |
 
 ## Interactive Workflow
@@ -36,8 +35,7 @@ Header: "Tools"
 Question: "Which tools do you want to enable?"
 Options:
   - "All (Recommended)" → --tools=all
-  - "Beads + OpenSpec" → --tools=beads+openspec
-  - "Beads only" → --tools=beads
+  - "OpenSpec only" → --tools=openspec
   - "None" → --tools=none
 ```
 
@@ -76,7 +74,7 @@ After gathering answers, run:
 1. **Initializes git** (if not already a repo)
 2. **Copies template files** to `.claude/`
 3. **Scaffolds rule files** (optional)
-4. **Initializes tools** (beads, openspec)
+4. **Initializes tools** (openspec)
 5. **Builds agents**
 
 ## What Gets Copied
@@ -108,14 +106,6 @@ Skills are **flattened** from template's nested structure to project's flat stru
 | `commands/fix.md` | `.claude/commands/fix.md` |
 | `commands/fix-tests.md` | `.claude/commands/fix-tests.md` |
 
-### If Beads Enabled
-
-| Template Source | Project Destination |
-|-----------------|---------------------|
-| `skills/tools/beads/beads-cleanup/` | `.claude/skills/beads-cleanup/` |
-| `skills/workflow/work/` | `.claude/skills/work/` |
-| `commands/status.md` | `.claude/commands/status.md` |
-
 ### If OpenSpec Enabled
 
 | Template Source | Project Destination |
@@ -124,10 +114,12 @@ Skills are **flattened** from template's nested structure to project's flat stru
 | `skills/tools/openspec/spec-review/` | `.claude/skills/spec-review/` |
 | `commands/openspec/` | `.claude/commands/openspec/` |
 
-### If Beads + OpenSpec Enabled
+### If OpenSpec Enabled (continued)
 
 | Template Source | Project Destination |
 |-----------------|---------------------|
+| `skills/workflow/work/` | `.claude/skills/work/` |
+| `commands/status.md` | `.claude/commands/status.md` |
 | `commands/wrap.md` | `.claude/commands/wrap.md` |
 
 ## Examples
@@ -138,9 +130,6 @@ Skills are **flattened** from template's nested structure to project's flat stru
 
 # Next.js project with all tools
 ~/.claude/skills/project-setup/setup-project.sh --tools=all --framework=nextjs --scaffold-rules
-
-# Just beads for issue tracking
-~/.claude/skills/project-setup/setup-project.sh --tools=beads --project-name=myapp
 
 # Minimal setup (no tools)
 ~/.claude/skills/project-setup/setup-project.sh --tools=none
@@ -157,7 +146,7 @@ Skills are **flattened** from template's nested structure to project's flat stru
    but branch new claude-setup       # Create branch
    # Stage files (use bulk-stage.sh for multiple files)
    ~/.claude/skills/gitbutler/bulk-stage.sh claude-setup .claude/ CLAUDE.md
-   # Add .beads/ openspec/ if applicable
+   # Add openspec/ if applicable
    but commit claude-setup --only -m "chore: add claude code configuration"
    ```
 
@@ -168,13 +157,9 @@ If tools are missing, install them:
 | Tool | Install Command |
 |------|-----------------|
 | GitButler | `curl -fsSL https://app.gitbutler.com/install.sh \| sh` |
-| Beads | `npm install -g beads-ui@latest` |
 | OpenSpec | `npm install -g @fission-ai/openspec@latest` |
 
 ## Troubleshooting
-
-### "bd: command not found"
-Install beads: `npm install -g beads-ui@latest`
 
 ### "openspec: command not found"
 Install openspec: `npm install -g @fission-ai/openspec@latest`

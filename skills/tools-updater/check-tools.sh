@@ -1,14 +1,13 @@
 #!/usr/bin/env bash
 #
-# check-tools.sh - Check installed vs latest versions of OpenSpec and beads
+# check-tools.sh - Check installed vs latest versions of OpenSpec
 #
 # Usage:
-#   check-tools.sh [--json|--report] [--tool openspec|beads]
+#   check-tools.sh [--json|--report]
 #
 # Options:
 #   --json      Output JSON for scripting
 #   --report    Human-readable report (default)
-#   --tool      Check specific tool only
 #   --help      Show this help
 #
 
@@ -22,7 +21,6 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 MODE="report"
-TOOL_FILTER=""
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -35,17 +33,12 @@ while [[ $# -gt 0 ]]; do
             MODE="report"
             shift
             ;;
-        --tool)
-            TOOL_FILTER="$2"
-            shift 2
-            ;;
         --help|-h)
-            echo "Usage: check-tools.sh [--json|--report] [--tool openspec|beads]"
+            echo "Usage: check-tools.sh [--json|--report]"
             echo ""
             echo "Options:"
             echo "  --json      Output JSON for scripting"
             echo "  --report    Human-readable report (default)"
-            echo "  --tool      Check specific tool only (openspec or beads)"
             echo "  --help      Show this help"
             exit 0
             ;;
@@ -55,19 +48,6 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
-# Detect platform
-detect_platform() {
-    local os arch
-    os=$(uname -s | tr '[:upper:]' '[:lower:]')
-    arch=$(uname -m)
-
-    # Normalize arch
-    [[ "$arch" == "x86_64" ]] && arch="amd64"
-    [[ "$arch" == "aarch64" ]] && arch="arm64"
-
-    echo "${os}_${arch}"
-}
 
 # Get installed OpenSpec version
 get_openspec_installed() {
@@ -81,23 +61,6 @@ get_openspec_installed() {
 # Get latest OpenSpec version from npm
 get_openspec_latest() {
     npm info @fission-ai/openspec version 2>/dev/null || echo ""
-}
-
-# Get installed beads version
-get_beads_installed() {
-    if command -v bd &>/dev/null; then
-        # Extract just the semver (e.g., "0.49.1" from "bd version 0.49.1 (...)")
-        bd version 2>/dev/null | sed -E 's/bd version ([0-9]+\.[0-9]+\.[0-9]+).*/\1/' || echo ""
-    else
-        echo ""
-    fi
-}
-
-# Get latest beads version from GitHub
-get_beads_latest() {
-    local response
-    response=$(curl -s "https://api.github.com/repos/steveyegge/beads/releases/latest" 2>/dev/null)
-    echo "$response" | jq -r '.tag_name // ""' 2>/dev/null | sed 's/^v//' || echo ""
 }
 
 # Compare versions (returns: "current", "outdated", "ahead", or "unknown")
@@ -154,16 +117,6 @@ check_openspec() {
     echo "$installed|$latest|$status"
 }
 
-# Check beads
-check_beads() {
-    local installed latest status
-    installed=$(get_beads_installed)
-    latest=$(get_beads_latest)
-    status=$(compare_versions "$installed" "$latest")
-
-    echo "$installed|$latest|$status"
-}
-
 # Output report format
 output_report() {
     local tool="$1" installed="$2" latest="$3" status="$4"
@@ -198,56 +151,24 @@ output_report() {
 
 # Main
 main() {
-    local platform openspec_result beads_result
+    local openspec_result
     local openspec_installed openspec_latest openspec_status
-    local beads_installed beads_latest beads_status
     local any_updates=false
 
-    platform=$(detect_platform)
-
-    # Check tools
-    if [[ -z "$TOOL_FILTER" ]] || [[ "$TOOL_FILTER" == "openspec" ]]; then
-        openspec_result=$(check_openspec)
-        IFS='|' read -r openspec_installed openspec_latest openspec_status <<< "$openspec_result"
-        [[ "$openspec_status" == "outdated" ]] && any_updates=true
-    fi
-
-    if [[ -z "$TOOL_FILTER" ]] || [[ "$TOOL_FILTER" == "beads" ]]; then
-        beads_result=$(check_beads)
-        IFS='|' read -r beads_installed beads_latest beads_status <<< "$beads_result"
-        [[ "$beads_status" == "outdated" ]] && any_updates=true
-    fi
+    # Check OpenSpec
+    openspec_result=$(check_openspec)
+    IFS='|' read -r openspec_installed openspec_latest openspec_status <<< "$openspec_result"
+    [[ "$openspec_status" == "outdated" ]] && any_updates=true
 
     # Output
     if [[ "$MODE" == "json" ]]; then
-        local json="{\"platform\":\"$platform\",\"tools\":{"
-        local first=true
-
-        if [[ -n "${openspec_installed+x}" ]]; then
-            json+="\"openspec\":{\"installed\":\"$openspec_installed\",\"latest\":\"$openspec_latest\",\"status\":\"$openspec_status\"}"
-            first=false
-        fi
-
-        if [[ -n "${beads_installed+x}" ]]; then
-            [[ "$first" == "false" ]] && json+=","
-            json+="\"beads\":{\"installed\":\"$beads_installed\",\"latest\":\"$beads_latest\",\"status\":\"$beads_status\"}"
-        fi
-
-        json+="},\"anyUpdates\":$any_updates}"
-        echo "$json"
+        echo "{\"tools\":{\"openspec\":{\"installed\":\"$openspec_installed\",\"latest\":\"$openspec_latest\",\"status\":\"$openspec_status\"}},\"anyUpdates\":$any_updates}"
     else
         echo "Tool Version Check"
         echo "=================="
-        echo "Platform: $platform"
         echo ""
 
-        if [[ -n "${openspec_installed+x}" ]]; then
-            output_report "OpenSpec" "$openspec_installed" "$openspec_latest" "$openspec_status"
-        fi
-
-        if [[ -n "${beads_installed+x}" ]]; then
-            output_report "beads" "$beads_installed" "$beads_latest" "$beads_status"
-        fi
+        output_report "OpenSpec" "$openspec_installed" "$openspec_latest" "$openspec_status"
 
         echo ""
         if [[ "$any_updates" == "true" ]]; then

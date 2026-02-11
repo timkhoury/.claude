@@ -1,13 +1,13 @@
 ---
 name: execute-plan
 description: >
-  Execute an approved plan via OpenSpec or direct beads.
+  Execute an approved plan via OpenSpec or direct tasks.
   Use when plan is approved, "go ahead", "implement this", or after ExitPlanMode.
 ---
 
 # Execute Plan
 
-Orchestrates plan implementation via OpenSpec or direct beads workflow.
+Orchestrates plan implementation via OpenSpec or direct task workflow.
 
 ## Usage
 
@@ -20,8 +20,8 @@ Orchestrates plan implementation via OpenSpec or direct beads workflow.
 
 | Plan Type | Workflow |
 |-----------|----------|
-| New feature, breaking change, cross-cutting | OpenSpec → epic + task beads from tasks.md |
-| Bug fix, refactor, config, single-component | Direct beads epic + task beads from plan |
+| New feature, breaking change, cross-cutting | OpenSpec → tasks from tasks.md |
+| Bug fix, refactor, config, single-component | Direct tasks from plan |
 
 ## Step 1: Get the Plan
 
@@ -43,12 +43,7 @@ Extract:
 
 ### From File (When Path Provided)
 
-```bash
-# Only if a file path was passed as argument
-cat <provided-path>
-```
-
-Extract:
+Read the provided file and extract:
 - **Title**: From the `# Plan:` header
 - **Summary**: From the `## Summary` section
 - **Steps**: From numbered lists or `## Implementation` sections
@@ -67,7 +62,7 @@ Look for these signals in the plan content:
 | Schema migration | Database changes, new tables, column modifications |
 | Architectural change | "Refactor architecture...", "Introduce pattern..." |
 
-### Direct Beads Signals (use epic + tasks)
+### Direct Task Signals (use tasks only)
 
 | Signal | Examples |
 |--------|----------|
@@ -77,7 +72,7 @@ Look for these signals in the plan content:
 | Single component | Changes isolated to one file or small area |
 | Documentation | "Update docs...", "Add README..." |
 
-**When unclear:** Default to direct beads. Can upgrade to OpenSpec if complexity emerges.
+**When unclear:** Default to direct tasks. Can upgrade to OpenSpec if complexity emerges.
 
 ## Step 3: Route to Workflow
 
@@ -89,67 +84,62 @@ Look for these signals in the plan content:
    ```
    This generates `openspec/changes/<change-id>/tasks.md` with the task breakdown.
 
-2. **Create epic to track the change:**
-   ```bash
-   bd create --title="<change-id>" --type=epic --priority=2
-   ```
-
-3. **Parse tasks.md and create child beads:**
+2. **Parse tasks.md and create tasks:**
 
    Read `openspec/changes/<change-id>/tasks.md` and for each unchecked task (`- [ ]`):
-   ```bash
-   bd create --title="<task description>" --type=task --priority=2
-   bd update <task-id> --parent=<epic-id>
+   ```
+   TaskCreate({
+     subject: "<task description>",
+     description: "<section context + task details>",
+     activeForm: "<-ing form of task>",
+     metadata: { specId: "<change-id>" }
+   })
    ```
 
    **Task grouping:** If tasks.md has section headers (## Section), include section context in task description.
 
-   **Skip creating beads for:**
+   **Skip creating tasks for:**
    - Already checked tasks (`- [x]`)
    - Manual testing tasks (leave for humans)
 
-4. **Set dependencies between sibling tasks only:**
+3. **Set dependencies between tasks:**
 
    If tasks have natural ordering (e.g., "Create migration" before "Run migration"):
-   ```bash
-   bd dep add <later-task-id> <earlier-task-id>
+   ```
+   TaskUpdate({ taskId: "<later>", addBlockedBy: ["<earlier>"] })
    ```
 
-   **Never add a dependency between a child task and its parent epic.** Use `--parent` for structural grouping, `bd dep add` for ordering between siblings.
-
-5. **Add standard tasks** (same as direct beads path):
+4. **Add standard tasks** (same as direct path):
    - Unit & integration tests (blocked by implementation tasks)
    - E2E tests (if user-facing)
    - Documentation updates
 
-### Direct Beads Path (Simpler Work)
+### Direct Task Path (Simpler Work)
 
-1. **Create epic from plan title:**
-   ```bash
-   bd create --title="<plan-title>" --type=epic --priority=2
-   ```
-
-2. **Create task beads from plan steps:**
+1. **Create tasks from plan steps:**
    For each implementation step:
-   ```bash
-   bd create --title="<step title>" --type=task --priority=2 \
-     --description="<step details>"
-   bd update <task-id> --parent=<epic-id>
+   ```
+   TaskCreate({
+     subject: "<step title>",
+     description: "<step details>",
+     activeForm: "<-ing form of step>"
+   })
    ```
 
-3. **Set dependencies between sibling tasks** (if steps depend on each other):
-   ```bash
-   bd dep add <later-task-id> <earlier-task-id>
+2. **Set dependencies between tasks** (if steps depend on each other):
    ```
-   Only between siblings - never between a child and its parent epic.
+   TaskUpdate({ taskId: "<later>", addBlockedBy: ["<earlier>"] })
+   ```
 
-4. **Add standard tasks:**
-   ```bash
-   bd create --title="Unit & integration tests" --type=task --priority=2
-   bd update <test-task-id> --parent=<epic-id>
+3. **Add standard tasks:**
+   ```
+   TaskCreate({
+     subject: "Unit & integration tests",
+     description: "Write tests for implementation tasks",
+     activeForm: "Writing tests"
+   })
    # Block tests on all implementation tasks
-   bd dep add <test-task-id> <impl-task-1-id>
-   bd dep add <test-task-id> <impl-task-2-id>
+   TaskUpdate({ taskId: "<test>", addBlockedBy: ["<impl-1>", "<impl-2>"] })
    ```
 
 ## Step 4: Create Branch
@@ -159,58 +149,56 @@ Create a single branch for all implementation work:
 | Path | Branch Name | Command |
 |------|-------------|---------|
 | OpenSpec | `<change-id>` | `but branch new <change-id>` |
-| Direct beads | `<epic-name>` (kebab-case) | `but branch new <epic-name>` |
+| Direct tasks | `<plan-name>` (kebab-case) | `but branch new <plan-name>` |
 
 **Examples:**
 - OpenSpec change `add-user-notifications` → `but branch new add-user-notifications`
-- Epic "Fix auth middleware bugs" → `but branch new fix-auth-middleware-bugs`
+- Plan "Fix auth middleware bugs" → `but branch new fix-auth-middleware-bugs`
 
 ## Step 5: Hand Off to /work
 
-Both paths create an epic with child beads. Hand off the same way:
+Hand off with the branch name:
 
 ```
-/work <epic-id>
+/work
 Branch: <branch-name>
 ```
 
 The `/work` skill will:
-- Find next ready child task
+- Find next ready task (pending + no blockers)
 - Delegate to task-implementer
-- Close bead when task completes
+- Complete task when done
 - Loop until all tasks done
 
-**OpenSpec note:** When closing task beads, also tick the corresponding checkbox in tasks.md to keep them in sync.
+**OpenSpec note:** When completing tasks, also tick the corresponding checkbox in tasks.md to keep them in sync.
 
-## Standard Epic Tasks
+## Standard Tasks
 
-**Every epic MUST include these tasks** (created after implementation tasks):
+**Every session MUST include these tasks** (created after implementation tasks):
 
-| Task | Type | Blocked By |
-|------|------|------------|
-| Unit & integration tests | `task` | All implementation tasks |
-| E2E tests | `task` | Unit tests (if user-facing) |
-| Documentation updates | `task` | Implementation tasks |
+| Task | Blocked By |
+|------|------------|
+| Unit & integration tests | All implementation tasks |
+| E2E tests (if user-facing) | Unit tests |
+| Documentation updates | Implementation tasks |
 
 **Rules:**
-- **Tests**: Must pass `npm run test` and achieve reasonable coverage
+- **Tests**: Must pass `bun run test` and achieve reasonable coverage
 - **E2E**: Required if feature has user-facing UI; skip if no UI changes
 - **Docs**: Update relevant docs in `docs/`; skip if no doc changes needed
 
 ## Why This Pattern
 
 - **Context preservation**: Each task gets fresh subagent context
-- **Crash recovery**: `bd ready` shows exactly where to resume
-- **Parallel safety**: Multiple sessions can't conflict on claimed tasks
+- **Dependency ordering**: Tasks unblock in the right sequence
 - **Commit granularity**: One commit per task, clear attribution
 
 ## After Setup
 
-Once beads and branch are created, the `/work` skill handles execution:
-- Receives branch name from this skill
-- Finds next ready child task
+Once tasks and branch are created, the `/work` skill handles execution:
+- Finds next ready task (pending + no blockers via TaskList)
 - Claims it (marking in_progress)
 - Delegates to task-implementer with branch name
 - Commits via gitbutler to the specified branch
-- Closes the task
+- Completes the task
 - Loops to next ready task

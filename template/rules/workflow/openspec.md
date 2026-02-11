@@ -92,15 +92,16 @@ Do NOT include "Generated with Claude Code" footer in PR descriptions or commit 
 
 **Archive failures:** If `openspec archive` fails due to spec validation errors, STOP and ask the user how to proceed. Never use `--skip-specs` without explicit user approval.
 
-## Beads Integration
+## Task Integration
 
-Use `/execute-plan` after plan approval - it handles creating the epic and child task beads from tasks.md automatically.
+Use `/execute-plan` after plan approval - it creates tasks with `metadata.specId` linking them to the OpenSpec change.
 
 **Completion order (critical):**
-1. Archive OpenSpec first: `/opsx:archive <change-id>`
-2. Then close the epic: `bd close <epic-id> --reason="Archived: <change-id>"`
+1. Complete all implementation tasks first
+2. Verify OpenSpec: `/opsx:verify <change-id>`
+3. Archive OpenSpec: `/opsx:archive <change-id>`
 
-Never close the tracking bead before archiving - it loses traceability.
+Always verify and archive OpenSpec before marking the session complete.
 
 ## Reference
 

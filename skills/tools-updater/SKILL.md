@@ -1,22 +1,21 @@
 ---
 name: tools-updater
 description: >
-  Manage OpenSpec and beads tool updates. Check versions, analyze release notes,
-  perform upgrades, and update Claude rules. Use when "update tools", "check beads",
+  Manage OpenSpec tool updates. Check versions, analyze release notes,
+  perform upgrades, and update Claude rules. Use when "update tools",
   "upgrade openspec", "tool updates", or "check for updates".
 ---
 
 # Tools Updater
 
-Check and upgrade OpenSpec and beads tools with release note analysis.
+Check and upgrade OpenSpec with release note analysis.
 
 ## Critical Rules
 
 1. **Check before upgrade** - Present findings first, never auto-upgrade
 2. **Dry-run default** - Require explicit user confirmation
 3. **Research breaking changes** - WebSearch for migration guides on major bumps
-4. **Platform awareness** - Detect OS/arch for beads binary
-5. **Backup rules** - Git snapshot before modifying any rule files
+4. **Backup rules** - Git snapshot before modifying any rule files
 
 **See `REFERENCE.md` for API endpoints and rule locations.**
 **See `KEYWORDS.md` for release note analysis patterns.**
@@ -49,7 +48,6 @@ For tools with updates, fetch release notes via GitHub API:
 | Tool | Endpoint |
 |------|----------|
 | OpenSpec | `https://api.github.com/repos/Fission-AI/OpenSpec/releases` |
-| beads | `https://api.github.com/repos/steveyegge/beads/releases/latest` |
 
 Use `WebFetch` with prompt to extract version, date, and changelog.
 
@@ -75,12 +73,6 @@ Present summary with `AskUserQuestion`:
 npm install -g @fission-ai/openspec@latest
 openspec --version  # Verify
 ```
-
-**beads:**
-1. Detect platform (see `REFERENCE.md`)
-2. Download from GitHub releases
-3. Extract and install to `~/.local/bin/bd`
-4. Verify: `bd version`
 
 ### Phase 5: Update Rules
 

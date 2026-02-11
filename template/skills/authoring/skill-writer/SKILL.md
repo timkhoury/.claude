@@ -1,6 +1,9 @@
 ---
 name: skill-writer
-description: Create and modify skill definitions in .claude/skills/. Use when writing new skills, updating existing ones, or optimizing skill structure.
+description: >
+  Create and modify skill definitions in .claude/skills/.
+  Use when writing new skills, editing SKILL.md files, updating skill descriptions
+  or frontmatter, or optimizing skill structure.
 ---
 
 # Skill Writing Guidelines

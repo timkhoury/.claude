@@ -20,7 +20,7 @@ Comprehensive OpenSpec analysis covering implementation coverage, test coverage,
 
 ## Output
 
-All output goes to `.spec-review/` with `{analysis}/results.json` and progress files for resume. Reports: `SPEC_COVERAGE_REPORT.md`, `TEST_QUALITY_REPORT.md`, `SPEC_QUALITY_REPORT.md`
+Per-spec JSON in `.spec-review/{analysis}/specs/`, aggregated `results.json`, and markdown reports: `SPEC_COVERAGE_REPORT.md`, `TEST_QUALITY_REPORT.md`, `SPEC_QUALITY_REPORT.md`
 
 ## Quick Start
 
@@ -28,11 +28,11 @@ All output goes to `.spec-review/` with `{analysis}/results.json` and progress f
 # Setup output directories (run once)
 .claude/skills/spec-review/review-specs.sh setup
 
-# Check prerequisites and progress
-.claude/skills/spec-review/review-specs.sh status
+# Check progress for an analysis
+.claude/skills/spec-review/review-specs.sh progress coverage --json
 
-# Enumerate specs with counts
-.claude/skills/spec-review/review-specs.sh enumerate
+# Get next batch of specs to analyze
+.claude/skills/spec-review/review-specs.sh batch coverage 12
 ```
 
 ## Workflow
@@ -71,34 +71,72 @@ If no OpenSpec directory:
 
 If active changes exist, mark affected specs as BLOCKED in the structure analysis.
 
-### Step 4: Enumerate Specs
+### Step 4: Check Progress
 
 ```bash
-# Get spec list with requirement/scenario counts
-.claude/skills/spec-review/review-specs.sh enumerate --json
+.claude/skills/spec-review/review-specs.sh progress coverage --json
 ```
 
-Resume from progress files if status is `in_progress`.
+Returns: `{"status": "not_started", "total": 43, "completed": 0, "pending": [...]}`.
+The orchestrator sees counts and a pending list -- never the full JSON results.
 
-### Step 5: Run Analyses
+### Step 5: Dispatch Loop (coverage/tests)
 
-Based on args, read the appropriate reference files:
+Repeat until `progress` shows `status: "complete"`:
 
-| Analysis | Reference File | Purpose |
-|----------|----------------|---------|
-| coverage | `COVERAGE.md` | Implementation evidence search |
-| tests | `TESTS.md` | Test matching strategies |
-| structure | `STRUCTURE.md` | Detection algorithms |
+**a. Get next batch:**
 
-**Shared formats:** Read `PATTERNS.md` for JSON structures and report templates.
+```bash
+.claude/skills/spec-review/review-specs.sh batch coverage 12
+# Returns comma-separated spec names, e.g.: spec-a,spec-b,...,spec-l
+```
 
-**Subtask delegation:** Each spec analysis spawns a subtask using the prompts in the reference files. This preserves main context.
+**b. Split into groups and spawn subagents:**
 
-### Step 6: Generate Reports
+Split the comma-separated result into 3 groups of ~4 specs each. Spawn 3 parallel Task subagents (subagent_type: "Explore", model: "sonnet").
 
-After all specs analyzed, aggregate results and generate markdown reports per PATTERNS.md.
+Each subagent receives:
+- The batch prompt from `COVERAGE.md` or `TESTS.md` (Subtask Prompt Template section)
+- Its group of spec names substituted into the `<spec-1>, <spec-2>, ...` placeholders
+- Instruction to write per-spec JSON files to `.spec-review/{analysis}/specs/<spec-name>.json`
+- Instruction to return ONLY a one-line summary per spec (e.g., `Done: spec-a (5/8 impl), spec-b (3/3 impl)`)
+
+**c. Check progress:**
+
+After all subagents in the batch return:
+
+```bash
+.claude/skills/spec-review/review-specs.sh progress coverage --json
+```
+
+The orchestrator sees updated counts. Loop back to (a) if pending > 0.
+
+**Context budget:** The orchestrator sees ~70 lines total across an entire run: progress counts + one-line summaries from subagents. It never reads per-spec JSON files or results.json.
+
+**For structure analysis:** Use the existing approach in `STRUCTURE.md` (scripted detections + AI-analyzed detections). Structure analysis does not use the batch dispatch loop.
+
+### Step 6: Aggregate and Report
+
+After dispatch loop completes (or for structure, after its analysis):
+
+```bash
+# Merge per-spec JSONs into results.json
+.claude/skills/spec-review/review-specs.sh aggregate coverage
+
+# Generate markdown report from results.json
+.claude/skills/spec-review/review-specs.sh report coverage
+```
+
+Repeat for each analysis type that was run.
 
 ### Step 7: Report Summary
+
+```bash
+.claude/skills/spec-review/review-specs.sh progress coverage
+.claude/skills/spec-review/review-specs.sh progress tests
+```
+
+Report the final counts to the user:
 
 ```markdown
 ## Spec Review Complete
@@ -127,18 +165,18 @@ This order allows structure analysis to reference coverage gaps.
 
 ## Pause/Resume
 
-Each analysis maintains its own progress file. To resume:
+Progress is tracked by per-spec JSON files on disk. To resume:
 
 1. Run `/spec-review` again
-2. Skill detects existing progress files
-3. Resumes from last checkpoint
+2. `review-specs.sh progress <analysis> --json` shows completed/pending counts
+3. The dispatch loop picks up from the first pending spec automatically
 
 ## Danger Zone
 
 | Never Do | Consequence |
 |----------|-------------|
 | Skip active changes check for structure | Suggests refactoring active work |
-| Auto-create beads issues | Clutters tracker without review |
+| Auto-create tasks without review | Clutters tracker without review |
 | Mark scenarios covered without evidence | False confidence |
 | Skip progress file updates | Lose resume capability |
 

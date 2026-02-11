@@ -11,10 +11,22 @@
 #   test-health     Run tests and report pass/fail/skip counts
 #   structure       Analyze spec organization (sizes, prefixes, cross-refs)
 #   changes         Check for active OpenSpec changes
+#   detect          Find spec issues (small, large, orphan refs, empty reqs, clusters)
+#   progress <analysis>  Show analysis progress (coverage|tests) [--json]
+#   batch <analysis> [N] Get next N pending specs as comma-separated list (default: 12)
+#   aggregate <analysis> Aggregate per-spec JSONs into results.json (coverage|tests)
+#   report <analysis>    Generate markdown report from results.json (coverage|tests)
 #
 # Options:
 #   --json          JSON output for scripting
 #   --help          Show this help
+#
+# Detect flags (combine any):
+#   --small         Specs with <3 requirements
+#   --large         Specs with >12 requirements
+#   --orphan-refs   Cross-references to non-existent specs
+#   --empty-reqs    Requirements with 0 scenarios
+#   --crossref-clusters  Specs with >3 cross-refs to same target
 
 set -euo pipefail
 
@@ -36,13 +48,21 @@ STRUCTURE_DIR="$AUDIT_DIR/structure"
 # Output mode
 OUTPUT_MODE="report"
 
+# Detect flags
+DETECT_SMALL=false
+DETECT_LARGE=false
+DETECT_ORPHAN_REFS=false
+DETECT_EMPTY_REQS=false
+DETECT_CROSSREF_CLUSTERS=false
+DETECT_ALL=true
+
 # Parse global options
 parse_options() {
   while [[ $# -gt 0 ]]; do
     case $1 in
       --json) OUTPUT_MODE="json"; shift ;;
       --help)
-        head -20 "$0" | tail -18 | sed 's/^# //'
+        head -29 "$0" | tail -27 | sed -E 's/^# ?//'
         exit 0
         ;;
       *) break ;;
@@ -460,6 +480,813 @@ cmd_changes() {
   fi
 }
 
+# === Detect Helpers ===
+
+detect_small() {
+  local results=()
+  while IFS= read -r spec_file; do
+    local spec_dir
+    spec_dir=$(dirname "$spec_file")
+    local name
+    name=$(basename "$spec_dir")
+    local reqs
+    reqs=$(count_requirements "$spec_file")
+    if (( reqs < 3 )); then
+      local prefix
+      prefix=$(get_prefix "$name")
+      results+=("$name|$reqs|$prefix")
+    fi
+  done < <(find "$SPECS_DIR" -name "spec.md" | sort)
+  printf '%s\n' "${results[@]}"
+}
+
+detect_large() {
+  local results=()
+  while IFS= read -r spec_file; do
+    local spec_dir
+    spec_dir=$(dirname "$spec_file")
+    local name
+    name=$(basename "$spec_dir")
+    local reqs
+    reqs=$(count_requirements "$spec_file")
+    if (( reqs > 12 )); then
+      results+=("$name|$reqs")
+    fi
+  done < <(find "$SPECS_DIR" -name "spec.md" | sort)
+  printf '%s\n' "${results[@]}"
+}
+
+detect_orphan_refs() {
+  local results=()
+  while IFS= read -r spec_file; do
+    local spec_dir
+    spec_dir=$(dirname "$spec_file")
+    local name
+    name=$(basename "$spec_dir")
+    local refs
+    refs=$(extract_crossrefs "$spec_file")
+    if [[ -n "$refs" ]]; then
+      IFS=',' read -ra ref_array <<< "$refs"
+      for ref in "${ref_array[@]}"; do
+        if [[ ! -d "$SPECS_DIR/$ref" ]]; then
+          results+=("$name|$ref")
+        fi
+      done
+    fi
+  done < <(find "$SPECS_DIR" -name "spec.md" | sort)
+  printf '%s\n' "${results[@]}"
+}
+
+detect_empty_reqs() {
+  local results=()
+  while IFS= read -r spec_file; do
+    local spec_dir
+    spec_dir=$(dirname "$spec_file")
+    local name
+    name=$(basename "$spec_dir")
+    local current_req=""
+    local scenario_count=0
+    local in_req=false
+
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^###\ Requirement:\ (.+) ]]; then
+        # Emit previous requirement if it had 0 scenarios
+        if $in_req && (( scenario_count == 0 )); then
+          results+=("$name|$current_req|0")
+        fi
+        current_req="${BASH_REMATCH[1]}"
+        scenario_count=0
+        in_req=true
+      elif [[ "$line" =~ ^####\ Scenario: ]]; then
+        scenario_count=$((scenario_count + 1))
+      fi
+    done < "$spec_file"
+
+    # Check last requirement
+    if $in_req && (( scenario_count == 0 )); then
+      results+=("$name|$current_req|0")
+    fi
+  done < <(find "$SPECS_DIR" -name "spec.md" | sort)
+  printf '%s\n' "${results[@]}"
+}
+
+detect_crossref_clusters() {
+  local results=()
+  while IFS= read -r spec_file; do
+    local spec_dir
+    spec_dir=$(dirname "$spec_file")
+    local name
+    name=$(basename "$spec_dir")
+
+    # Count each reference target (not deduplicated)
+    local raw_refs
+    raw_refs=$(grep -oE '\[([^\]]+)\]\(\.\.\/[^)]+\)' "$spec_file" 2>/dev/null || true)
+    if [[ -n "$raw_refs" ]]; then
+      # Extract target spec name from each ref, count per target
+      local targets
+      targets=$(echo "$raw_refs" | sed -E 's/.*\.\.\/([^/]+)\/.*/\1/' | sort | uniq -c | sort -rn)
+      while read -r count target; do
+        if (( count > 3 )); then
+          results+=("$name|$target|$count")
+        fi
+      done <<< "$targets"
+    fi
+  done < <(find "$SPECS_DIR" -name "spec.md" | sort)
+  printf '%s\n' "${results[@]}"
+}
+
+cmd_detect() {
+  if ! check_openspec; then
+    if [[ "$OUTPUT_MODE" == "json" ]]; then
+      echo '{"error": "No OpenSpec directory found"}'
+    else
+      echo -e "${RED}Error:${NC} No OpenSpec directory found at $SPECS_DIR"
+    fi
+    return 1
+  fi
+
+  # Determine which detections to run
+  local run_small=$DETECT_ALL
+  local run_large=$DETECT_ALL
+  local run_orphan=$DETECT_ALL
+  local run_empty=$DETECT_ALL
+  local run_clusters=$DETECT_ALL
+
+  $DETECT_SMALL && run_small=true
+  $DETECT_LARGE && run_large=true
+  $DETECT_ORPHAN_REFS && run_orphan=true
+  $DETECT_EMPTY_REQS && run_empty=true
+  $DETECT_CROSSREF_CLUSTERS && run_clusters=true
+
+  # Run detections and collect results
+  local small_results=() large_results=() orphan_results=() empty_results=() cluster_results=()
+
+  if $run_small; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && small_results+=("$line")
+    done < <(detect_small)
+  fi
+
+  if $run_large; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && large_results+=("$line")
+    done < <(detect_large)
+  fi
+
+  if $run_orphan; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && orphan_results+=("$line")
+    done < <(detect_orphan_refs)
+  fi
+
+  if $run_empty; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && empty_results+=("$line")
+    done < <(detect_empty_reqs)
+  fi
+
+  if $run_clusters; then
+    while IFS= read -r line; do
+      [[ -n "$line" ]] && cluster_results+=("$line")
+    done < <(detect_crossref_clusters)
+  fi
+
+  if [[ "$OUTPUT_MODE" == "json" ]]; then
+    echo "{"
+    echo "  \"detections\": {"
+
+    # small
+    echo "    \"small\": ["
+    local first=true
+    for item in "${small_results[@]}"; do
+      IFS='|' read -r name reqs prefix <<< "$item"
+      if $first; then first=false; else echo ","; fi
+      printf '      {"spec": "%s", "requirements": %s, "prefix": "%s"}' "$name" "$reqs" "$prefix"
+    done
+    if [[ ${#small_results[@]} -gt 0 ]]; then echo ""; fi
+    echo "    ],"
+
+    # large
+    echo "    \"large\": ["
+    first=true
+    for item in "${large_results[@]}"; do
+      IFS='|' read -r name reqs <<< "$item"
+      if $first; then first=false; else echo ","; fi
+      printf '      {"spec": "%s", "requirements": %s}' "$name" "$reqs"
+    done
+    if [[ ${#large_results[@]} -gt 0 ]]; then echo ""; fi
+    echo "    ],"
+
+    # orphanRefs
+    echo "    \"orphanRefs\": ["
+    first=true
+    for item in "${orphan_results[@]}"; do
+      IFS='|' read -r name target <<< "$item"
+      if $first; then first=false; else echo ","; fi
+      printf '      {"spec": "%s", "references": "%s", "exists": false}' "$name" "$target"
+    done
+    if [[ ${#orphan_results[@]} -gt 0 ]]; then echo ""; fi
+    echo "    ],"
+
+    # emptyReqs
+    echo "    \"emptyReqs\": ["
+    first=true
+    for item in "${empty_results[@]}"; do
+      IFS='|' read -r name requirement scenarios <<< "$item"
+      if $first; then first=false; else echo ","; fi
+      printf '      {"spec": "%s", "requirement": "%s", "scenarios": %s}' "$name" "$requirement" "$scenarios"
+    done
+    if [[ ${#empty_results[@]} -gt 0 ]]; then echo ""; fi
+    echo "    ],"
+
+    # crossrefClusters
+    echo "    \"crossrefClusters\": ["
+    first=true
+    for item in "${cluster_results[@]}"; do
+      IFS='|' read -r source target count <<< "$item"
+      if $first; then first=false; else echo ","; fi
+      printf '      {"source": "%s", "target": "%s", "count": %s}' "$source" "$target" "$count"
+    done
+    if [[ ${#cluster_results[@]} -gt 0 ]]; then echo ""; fi
+    echo "    ]"
+
+    echo "  },"
+    echo "  \"summary\": {"
+    echo "    \"small\": ${#small_results[@]},"
+    echo "    \"large\": ${#large_results[@]},"
+    echo "    \"orphanRefs\": ${#orphan_results[@]},"
+    echo "    \"emptyReqs\": ${#empty_results[@]},"
+    echo "    \"crossrefClusters\": ${#cluster_results[@]}"
+    echo "  }"
+    echo "}"
+  else
+    echo -e "${BOLD}Spec Issue Detection${NC}"
+    echo ""
+
+    local total_issues=0
+
+    if $run_small; then
+      echo -e "${BOLD}Small Specs${NC} (<3 requirements) - ${CYAN}${#small_results[@]}${NC} found"
+      if [[ ${#small_results[@]} -gt 0 ]]; then
+        for item in "${small_results[@]}"; do
+          IFS='|' read -r name reqs prefix <<< "$item"
+          echo -e "  ${YELLOW}$name${NC} ($reqs reqs, prefix: $prefix)"
+        done
+      else
+        echo -e "  ${GREEN}None${NC}"
+      fi
+      total_issues=$((total_issues + ${#small_results[@]}))
+      echo ""
+    fi
+
+    if $run_large; then
+      echo -e "${BOLD}Large Specs${NC} (>12 requirements) - ${CYAN}${#large_results[@]}${NC} found"
+      if [[ ${#large_results[@]} -gt 0 ]]; then
+        for item in "${large_results[@]}"; do
+          IFS='|' read -r name reqs <<< "$item"
+          echo -e "  ${YELLOW}$name${NC} ($reqs reqs)"
+        done
+      else
+        echo -e "  ${GREEN}None${NC}"
+      fi
+      total_issues=$((total_issues + ${#large_results[@]}))
+      echo ""
+    fi
+
+    if $run_orphan; then
+      echo -e "${BOLD}Orphan References${NC} (to non-existent specs) - ${CYAN}${#orphan_results[@]}${NC} found"
+      if [[ ${#orphan_results[@]} -gt 0 ]]; then
+        for item in "${orphan_results[@]}"; do
+          IFS='|' read -r name target <<< "$item"
+          echo -e "  ${RED}$name${NC} -> $target"
+        done
+      else
+        echo -e "  ${GREEN}None${NC}"
+      fi
+      total_issues=$((total_issues + ${#orphan_results[@]}))
+      echo ""
+    fi
+
+    if $run_empty; then
+      echo -e "${BOLD}Empty Requirements${NC} (0 scenarios) - ${CYAN}${#empty_results[@]}${NC} found"
+      if [[ ${#empty_results[@]} -gt 0 ]]; then
+        for item in "${empty_results[@]}"; do
+          IFS='|' read -r name requirement scenarios <<< "$item"
+          echo -e "  ${YELLOW}$name${NC}: $requirement"
+        done
+      else
+        echo -e "  ${GREEN}None${NC}"
+      fi
+      total_issues=$((total_issues + ${#empty_results[@]}))
+      echo ""
+    fi
+
+    if $run_clusters; then
+      echo -e "${BOLD}Cross-Reference Clusters${NC} (>3 refs to same target) - ${CYAN}${#cluster_results[@]}${NC} found"
+      if [[ ${#cluster_results[@]} -gt 0 ]]; then
+        for item in "${cluster_results[@]}"; do
+          IFS='|' read -r source target count <<< "$item"
+          echo -e "  ${YELLOW}$source${NC} -> $target (${RED}$count${NC} refs)"
+        done
+      else
+        echo -e "  ${GREEN}None${NC}"
+      fi
+      total_issues=$((total_issues + ${#cluster_results[@]}))
+      echo ""
+    fi
+
+    echo -e "${BOLD}Total issues:${NC} $total_issues"
+  fi
+}
+
+# === Progress & Batch ===
+
+# Compute progress for an analysis type (coverage or tests)
+# Sets these variables in the caller's scope:
+#   PROGRESS_TOTAL, PROGRESS_COMPLETED, PROGRESS_FAILED
+#   PROGRESS_PENDING (newline-separated), PROGRESS_COMPLETED_SPECS (newline-separated)
+#   PROGRESS_STATUS (not_started|in_progress|complete)
+compute_progress() {
+  local analysis="$1"
+  local analysis_dir="$AUDIT_DIR/$analysis/specs"
+
+  PROGRESS_TOTAL=0
+  PROGRESS_COMPLETED=0
+  PROGRESS_FAILED=0
+  PROGRESS_PENDING=""
+  PROGRESS_COMPLETED_SPECS=""
+  PROGRESS_STATUS="not_started"
+
+  if ! check_openspec; then
+    return 1
+  fi
+
+  # Collect all spec names
+  local all_specs=()
+  while IFS= read -r spec_file; do
+    local spec_dir
+    spec_dir=$(dirname "$spec_file")
+    all_specs+=("$(basename "$spec_dir")")
+  done < <(find "$SPECS_DIR" -name "spec.md" | sort)
+
+  PROGRESS_TOTAL=${#all_specs[@]}
+
+  if [[ $PROGRESS_TOTAL -eq 0 ]]; then
+    PROGRESS_STATUS="complete"
+    return 0
+  fi
+
+  # Check which specs have valid JSON in the analysis dir
+  local pending=()
+  local completed=()
+  local failed=0
+
+  for spec_name in "${all_specs[@]}"; do
+    local json_file="$analysis_dir/$spec_name.json"
+    if [[ -f "$json_file" ]]; then
+      if jq empty "$json_file" 2>/dev/null; then
+        completed+=("$spec_name")
+      else
+        failed=$((failed + 1))
+        pending+=("$spec_name")
+      fi
+    else
+      pending+=("$spec_name")
+    fi
+  done
+
+  PROGRESS_COMPLETED=${#completed[@]}
+  PROGRESS_FAILED=$failed
+  PROGRESS_PENDING=$(printf '%s\n' "${pending[@]}")
+  PROGRESS_COMPLETED_SPECS=$(printf '%s\n' "${completed[@]}")
+
+  if [[ $PROGRESS_COMPLETED -eq 0 ]]; then
+    PROGRESS_STATUS="not_started"
+  elif [[ $PROGRESS_COMPLETED -eq $PROGRESS_TOTAL ]]; then
+    PROGRESS_STATUS="complete"
+  else
+    PROGRESS_STATUS="in_progress"
+  fi
+}
+
+cmd_progress() {
+  local analysis="${ARG1:-}"
+
+  if [[ -z "$analysis" ]]; then
+    echo -e "${RED}Error:${NC} Missing analysis argument. Usage: $0 progress <coverage|tests> [--json]"
+    return 1
+  fi
+
+  if [[ "$analysis" != "coverage" && "$analysis" != "tests" ]]; then
+    echo -e "${RED}Error:${NC} Invalid analysis '$analysis'. Must be 'coverage' or 'tests'."
+    return 1
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    echo -e "${RED}Error:${NC} jq is required for progress tracking"
+    return 1
+  fi
+
+  if ! check_openspec; then
+    if [[ "$OUTPUT_MODE" == "json" ]]; then
+      echo '{"error": "No OpenSpec directory found"}'
+    else
+      echo -e "${RED}Error:${NC} No OpenSpec directory found at $SPECS_DIR"
+    fi
+    return 1
+  fi
+
+  compute_progress "$analysis"
+
+  local pending_count
+  if [[ -n "$PROGRESS_PENDING" ]]; then
+    pending_count=$(echo "$PROGRESS_PENDING" | wc -l | tr -d ' ')
+  else
+    pending_count=0
+  fi
+
+  if [[ "$OUTPUT_MODE" == "json" ]]; then
+    # Build pending array
+    local pending_json="[]"
+    if [[ -n "$PROGRESS_PENDING" ]]; then
+      pending_json=$(echo "$PROGRESS_PENDING" | jq -R . | jq -s .)
+    fi
+
+    # Build completed array
+    local completed_json="[]"
+    if [[ -n "$PROGRESS_COMPLETED_SPECS" ]]; then
+      completed_json=$(echo "$PROGRESS_COMPLETED_SPECS" | jq -R . | jq -s .)
+    fi
+
+    jq -n \
+      --arg status "$PROGRESS_STATUS" \
+      --argjson total "$PROGRESS_TOTAL" \
+      --argjson completed "$PROGRESS_COMPLETED" \
+      --argjson failed "$PROGRESS_FAILED" \
+      --argjson pending "$pending_json" \
+      --argjson completedSpecs "$completed_json" \
+      '{status: $status, total: $total, completed: $completed, failed: $failed, pending: $pending, completedSpecs: $completedSpecs}'
+  else
+    local pct=0
+    if [[ $PROGRESS_TOTAL -gt 0 ]]; then
+      pct=$(( (PROGRESS_COMPLETED * 100) / PROGRESS_TOTAL ))
+    fi
+
+    echo -e "Progress: ${BOLD}$analysis${NC}"
+    echo -e "  Status: ${CYAN}$PROGRESS_STATUS${NC}"
+    echo -e "  Completed: ${GREEN}$PROGRESS_COMPLETED${NC}/$PROGRESS_TOTAL ($pct%)"
+    echo -e "  Failed: ${YELLOW}$PROGRESS_FAILED${NC}"
+    echo -e "  Pending: ${CYAN}$pending_count${NC}"
+  fi
+}
+
+cmd_batch() {
+  local analysis="${ARG1:-}"
+  local batch_size="${ARG2:-12}"
+
+  if [[ -z "$analysis" ]]; then
+    echo -e "${RED}Error:${NC} Missing analysis argument. Usage: $0 batch <coverage|tests> [N]" >&2
+    return 1
+  fi
+
+  if [[ "$analysis" != "coverage" && "$analysis" != "tests" ]]; then
+    echo -e "${RED}Error:${NC} Invalid analysis '$analysis'. Must be 'coverage' or 'tests'." >&2
+    return 1
+  fi
+
+  if ! [[ "$batch_size" =~ ^[0-9]+$ ]]; then
+    echo -e "${RED}Error:${NC} Batch size must be a number, got '$batch_size'." >&2
+    return 1
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    echo -e "${RED}Error:${NC} jq is required for batch operations" >&2
+    return 1
+  fi
+
+  if ! check_openspec; then
+    echo -e "${RED}Error:${NC} No OpenSpec directory found at $SPECS_DIR" >&2
+    return 1
+  fi
+
+  compute_progress "$analysis"
+
+  if [[ -z "$PROGRESS_PENDING" ]]; then
+    exit 0
+  fi
+
+  # Take first N pending specs and output as comma-separated
+  echo "$PROGRESS_PENDING" | head -n "$batch_size" | paste -sd ',' -
+}
+
+# === Aggregate ===
+
+cmd_aggregate() {
+  local analysis="${ARG1:-}"
+
+  if [[ -z "$analysis" ]]; then
+    echo -e "${RED}Error:${NC} Missing analysis argument. Usage: $0 aggregate <coverage|tests>" >&2
+    return 1
+  fi
+
+  if [[ "$analysis" != "coverage" && "$analysis" != "tests" ]]; then
+    echo -e "${RED}Error:${NC} Invalid analysis '$analysis'. Must be 'coverage' or 'tests'." >&2
+    return 1
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    echo -e "${RED}Error:${NC} jq is required for aggregation" >&2
+    return 1
+  fi
+
+  if ! check_openspec; then
+    echo -e "${RED}Error:${NC} No OpenSpec directory found at $SPECS_DIR" >&2
+    return 1
+  fi
+
+  local specs_dir="$AUDIT_DIR/$analysis/specs"
+  local results_file="$AUDIT_DIR/$analysis/results.json"
+
+  if [[ ! -d "$specs_dir" ]]; then
+    echo -e "${RED}Error:${NC} No specs directory at $specs_dir. Run analysis first." >&2
+    return 1
+  fi
+
+  compute_progress "$analysis"
+
+  if [[ $PROGRESS_COMPLETED -eq 0 ]]; then
+    echo -e "${RED}Error:${NC} No completed spec analyses found in $specs_dir" >&2
+    return 1
+  fi
+
+  if [[ "$PROGRESS_STATUS" != "complete" ]]; then
+    echo -e "${YELLOW}Warning:${NC} Only $PROGRESS_COMPLETED/$PROGRESS_TOTAL specs completed. Aggregating available results."
+  fi
+
+  # Aggregate all per-spec JSONs into a single results.json
+  # shellcheck disable=SC2016
+  local jq_expr
+
+  if [[ "$analysis" == "coverage" ]]; then
+    jq_expr='
+def priority:
+  if test("auth|security|permission|payment|error|fail|deny|invalid"; "i") then "high"
+  elif test("create|update|delete|save|submit"; "i") then "medium"
+  else "low"
+  end;
+
+{
+  generatedAt: (now | todate),
+  summary: {
+    specsAnalyzed: length,
+    totalScenarios: ([.[].scenarios.total] | add // 0),
+    implementedScenarios: ([.[].scenarios.implemented] | add // 0),
+    partialScenarios: ([.[].scenarios.partial] | add // 0),
+    unimplementedScenarios: ([.[].scenarios.unimplemented] | add // 0),
+    outdatedScenarios: ([.[].scenarios.outdated] | add // 0),
+    coveragePercent: (
+      ([.[].scenarios.total] | add // 0) as $total |
+      if $total == 0 then 0
+      else (([.[].scenarios.implemented] | add // 0) / $total * 100 | . * 10 | round / 10)
+      end
+    )
+  },
+  byCategory: (
+    group_by(.spec | split("-")[0]) | map({
+      key: .[0].spec | split("-")[0],
+      value: {
+        specs: length,
+        scenarios: ([.[].scenarios.total] | add // 0),
+        implemented: ([.[].scenarios.implemented] | add // 0),
+        partial: ([.[].scenarios.partial] | add // 0),
+        unimplemented: ([.[].scenarios.unimplemented] | add // 0),
+        outdated: ([.[].scenarios.outdated] | add // 0)
+      }
+    }) | from_entries
+  ),
+  gaps: [
+    .[] | .spec as $spec | .details[]? |
+    select(.status == "unimplemented" or .status == "partial") |
+    {
+      spec: $spec,
+      scenario: .scenario,
+      priority: (.scenario | priority),
+      missingConditions: (.missingConditions // [])
+    }
+  ],
+  drift: [
+    .[] | .spec as $spec | .details[]? |
+    select(.status == "outdated") |
+    {
+      spec: $spec,
+      scenario: .scenario,
+      notes: (.notes // "")
+    }
+  ]
+}'
+  else
+    # tests analysis
+    jq_expr='
+def priority:
+  if test("auth|security|permission|payment|error|fail|deny|invalid"; "i") then "high"
+  elif test("create|update|delete|save|submit"; "i") then "medium"
+  else "low"
+  end;
+
+{
+  generatedAt: (now | todate),
+  summary: {
+    specsAnalyzed: length,
+    totalScenarios: ([.[].scenarios.total] | add // 0),
+    coveredScenarios: ([.[].scenarios.covered] | add // 0),
+    partialScenarios: ([.[].scenarios.partial] | add // 0),
+    missingScenarios: ([.[].scenarios.missing] | add // 0),
+    coveragePercent: (
+      ([.[].scenarios.total] | add // 0) as $total |
+      if $total == 0 then 0
+      else (([.[].scenarios.covered] | add // 0) / $total * 100 | . * 10 | round / 10)
+      end
+    )
+  },
+  byCategory: (
+    group_by(.spec | split("-")[0]) | map({
+      key: .[0].spec | split("-")[0],
+      value: {
+        specs: length,
+        scenarios: ([.[].scenarios.total] | add // 0),
+        covered: ([.[].scenarios.covered] | add // 0),
+        partial: ([.[].scenarios.partial] | add // 0),
+        missing: ([.[].scenarios.missing] | add // 0)
+      }
+    }) | from_entries
+  ),
+  gaps: [
+    .[] | .spec as $spec | .details[]? |
+    select(.status == "missing" or .status == "partial") |
+    {
+      spec: $spec,
+      scenario: .scenario,
+      priority: (.scenario | priority),
+      suggestion: (.suggestion // "")
+    }
+  ]
+}'
+  fi
+
+  jq -s "$jq_expr" "$specs_dir"/*.json > "$results_file"
+
+  echo -e "Wrote ${GREEN}$results_file${NC} ($PROGRESS_COMPLETED specs aggregated)"
+}
+
+# === Report ===
+
+cmd_report() {
+  local analysis="${ARG1:-}"
+
+  if [[ -z "$analysis" ]]; then
+    echo -e "${RED}Error:${NC} Missing analysis argument. Usage: $0 report <coverage|tests>" >&2
+    return 1
+  fi
+
+  if [[ "$analysis" != "coverage" && "$analysis" != "tests" ]]; then
+    echo -e "${RED}Error:${NC} Invalid analysis '$analysis'. Must be 'coverage' or 'tests'." >&2
+    return 1
+  fi
+
+  if ! command -v jq &> /dev/null; then
+    echo -e "${RED}Error:${NC} jq is required for report generation" >&2
+    return 1
+  fi
+
+  local results_file="$AUDIT_DIR/$analysis/results.json"
+
+  if [[ ! -f "$results_file" ]]; then
+    echo -e "${RED}Error:${NC} No results file at $results_file. Run 'aggregate $analysis' first." >&2
+    return 1
+  fi
+
+  if [[ "$analysis" == "coverage" ]]; then
+    report_coverage "$results_file"
+  else
+    report_tests "$results_file"
+  fi
+}
+
+report_coverage() {
+  local results_file="$1"
+  local report_file="SPEC_COVERAGE_REPORT.md"
+
+  # Extract values from results.json
+  local generated_at specs_analyzed total_scenarios implemented partial unimplemented outdated coverage_pct
+  generated_at=$(jq -r '.generatedAt' "$results_file")
+  specs_analyzed=$(jq -r '.summary.specsAnalyzed' "$results_file")
+  total_scenarios=$(jq -r '.summary.totalScenarios' "$results_file")
+  implemented=$(jq -r '.summary.implementedScenarios' "$results_file")
+  partial=$(jq -r '.summary.partialScenarios' "$results_file")
+  unimplemented=$(jq -r '.summary.unimplementedScenarios' "$results_file")
+  outdated=$(jq -r '.summary.outdatedScenarios' "$results_file")
+  coverage_pct=$(jq -r '.summary.coveragePercent' "$results_file")
+
+  # Compute percentages
+  local impl_pct=0 partial_pct=0 unimpl_pct=0 outdated_pct=0
+  if [[ $total_scenarios -gt 0 ]]; then
+    impl_pct=$(echo "scale=0; $implemented * 100 / $total_scenarios" | bc)
+    partial_pct=$(echo "scale=0; $partial * 100 / $total_scenarios" | bc)
+    unimpl_pct=$(echo "scale=0; $unimplemented * 100 / $total_scenarios" | bc)
+    outdated_pct=$(echo "scale=0; $outdated * 100 / $total_scenarios" | bc)
+  fi
+
+  # Generate gaps table
+  local gaps_table
+  gaps_table=$(jq -r '.gaps[] | "| \(.spec) | \(.scenario) | \(.priority) | \(.missingConditions | join("; ")) |"' "$results_file" 2>/dev/null || echo "")
+
+  # Generate drift table
+  local drift_table
+  drift_table=$(jq -r '.drift[] | "| \(.spec) | \(.scenario) | \(.notes) |"' "$results_file" 2>/dev/null || echo "")
+
+  cat > "$report_file" <<EOF
+# Spec Coverage Report
+
+**Generated:** $generated_at
+**Implementation Coverage:** $implemented/$total_scenarios scenarios ($coverage_pct%)
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Specs Analyzed | $specs_analyzed |
+| Implemented | $implemented ($impl_pct%) |
+| Partial | $partial ($partial_pct%) |
+| Unimplemented | $unimplemented ($unimpl_pct%) |
+| Outdated (Drift) | $outdated ($outdated_pct%) |
+
+## Unimplemented Scenarios
+
+| Spec | Scenario | Priority | Missing |
+|------|----------|----------|---------|
+$gaps_table
+
+## Spec Drift
+
+| Spec | Scenario | Issue |
+|------|----------|-------|
+$drift_table
+EOF
+
+  echo -e "Wrote ${GREEN}$report_file${NC}"
+}
+
+report_tests() {
+  local results_file="$1"
+  local report_file="TEST_QUALITY_REPORT.md"
+
+  # Extract values from results.json
+  local generated_at specs_analyzed total_scenarios covered partial missing coverage_pct
+  generated_at=$(jq -r '.generatedAt' "$results_file")
+  specs_analyzed=$(jq -r '.summary.specsAnalyzed' "$results_file")
+  total_scenarios=$(jq -r '.summary.totalScenarios' "$results_file")
+  covered=$(jq -r '.summary.coveredScenarios' "$results_file")
+  partial=$(jq -r '.summary.partialScenarios' "$results_file")
+  missing=$(jq -r '.summary.missingScenarios' "$results_file")
+  coverage_pct=$(jq -r '.summary.coveragePercent' "$results_file")
+
+  # Compute percentages
+  local covered_pct=0 partial_pct=0 missing_pct=0
+  if [[ $total_scenarios -gt 0 ]]; then
+    covered_pct=$(echo "scale=0; $covered * 100 / $total_scenarios" | bc)
+    partial_pct=$(echo "scale=0; $partial * 100 / $total_scenarios" | bc)
+    missing_pct=$(echo "scale=0; $missing * 100 / $total_scenarios" | bc)
+  fi
+
+  # Generate gaps table (high priority first)
+  local gaps_table
+  gaps_table=$(jq -r '[.gaps[] | select(.priority == "high")] + [.gaps[] | select(.priority == "medium")] + [.gaps[] | select(.priority == "low")] | .[] | "| \(.spec) | \(.scenario) | \(.priority) | \(.suggestion) |"' "$results_file" 2>/dev/null || echo "")
+
+  cat > "$report_file" <<EOF
+# Test Quality Report
+
+**Generated:** $generated_at
+**Spec Coverage:** $covered/$total_scenarios scenarios ($coverage_pct%)
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| Specs Analyzed | $specs_analyzed |
+| Covered | $covered ($covered_pct%) |
+| Partial | $partial ($partial_pct%) |
+| Missing | $missing ($missing_pct%) |
+
+## High Priority Gaps
+
+| Spec | Scenario | Priority | Suggestion |
+|------|----------|----------|------------|
+$gaps_table
+EOF
+
+  echo -e "Wrote ${GREEN}$report_file${NC}"
+}
+
 # === Main ===
 
 main() {
@@ -469,14 +1296,37 @@ main() {
     exit 1
   fi
 
+  # Handle --help before command extraction
+  if [[ "$1" == "--help" ]]; then
+    head -29 "$0" | tail -27 | sed -E 's/^# ?//'
+    exit 0
+  fi
+
   local cmd="$1"
   shift
 
-  # Parse remaining options
+  # Capture positional args (non-flag) and flags separately
+  ARG1=""
+  ARG2=""
+  local positional_index=0
+
   while [[ $# -gt 0 ]]; do
     case $1 in
       --json) OUTPUT_MODE="json"; shift ;;
-      *) shift ;;
+      --small) DETECT_SMALL=true; DETECT_ALL=false; shift ;;
+      --large) DETECT_LARGE=true; DETECT_ALL=false; shift ;;
+      --orphan-refs) DETECT_ORPHAN_REFS=true; DETECT_ALL=false; shift ;;
+      --empty-reqs) DETECT_EMPTY_REQS=true; DETECT_ALL=false; shift ;;
+      --crossref-clusters) DETECT_CROSSREF_CLUSTERS=true; DETECT_ALL=false; shift ;;
+      *)
+        if [[ $positional_index -eq 0 ]]; then
+          ARG1="$1"
+        elif [[ $positional_index -eq 1 ]]; then
+          ARG2="$1"
+        fi
+        positional_index=$((positional_index + 1))
+        shift
+        ;;
     esac
   done
 
@@ -487,6 +1337,11 @@ main() {
     test-health) cmd_test_health ;;
     structure)  cmd_structure ;;
     changes)    cmd_changes ;;
+    detect)     cmd_detect ;;
+    progress)   cmd_progress ;;
+    batch)      cmd_batch ;;
+    aggregate)  cmd_aggregate ;;
+    report)     cmd_report ;;
     *)
       echo "Unknown command: $cmd"
       echo "Run '$0 --help' for available commands"

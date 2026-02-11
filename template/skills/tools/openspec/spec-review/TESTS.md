@@ -58,10 +58,15 @@ test('displays GitHub OAuth button', ...)
 
 ## Subtask Prompt Template
 
+Use this prompt when spawning subtasks to analyze a batch of specs. Each subtask receives 3-4 specs and writes results to disk.
+
 ```
-Analyze test coverage for the `<spec-name>` spec.
+Analyze test coverage for these specs: <spec-1>, <spec-2>, <spec-3>, <spec-4>
 
 ## Instructions
+
+For EACH spec in the batch:
+
 1. Read `openspec/specs/<spec-name>/spec.md`
 2. Extract ALL scenarios (lines starting with `#### Scenario:`)
 3. For EACH scenario:
@@ -76,8 +81,9 @@ Analyze test coverage for the `<spec-name>` spec.
       - E2E: `e2e/tests/**/*.spec.ts`
 4. Assign status: "covered", "partial", or "missing"
 
-## Output Format (JSON)
-Return ONLY valid JSON:
+## Output
+
+For each spec, write a JSON file to `.spec-review/tests/specs/<spec-name>.json`:
 
 {
   "spec": "<spec-name>",
@@ -99,6 +105,9 @@ Return ONLY valid JSON:
     }
   ]
 }
+
+After writing all JSON files, return ONLY a one-line summary per spec:
+Done: <spec-1> (X/Y covered), <spec-2> (X/Y covered), <spec-3> (X/Y covered)
 
 Check both unit tests (*.test.ts) and E2E tests (*.spec.ts).
 ```
@@ -167,19 +176,10 @@ If no `openspec/specs/` exists, generate minimal report:
 ## Quick Commands
 
 ```bash
-# List all test files
-ls src/**/*.test.ts e2e/**/*.spec.ts
-
-# Find test definitions
-rg "describe\(|test\(|it\(" src/**/*.test.ts
-
-# Search for scenario keywords
-rg "<keywords>" src/**/*.test.ts e2e/**/*.spec.ts
-
 # Run tests
 npm run test
 npm run test:e2e
 
-# Find skipped tests
-rg "(it|test)\.skip\(" src e2e
+# Test health check (file counts, skipped tests)
+./review-specs.sh test-health
 ```

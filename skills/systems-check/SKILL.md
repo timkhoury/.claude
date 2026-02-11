@@ -20,7 +20,7 @@ Aggregate dashboard for maintenance tasks with cadence-based recommendations.
 | skills-review | 7 days | Project | Skill context efficiency |
 | permissions-review | 7 days | Project | Permission promotion to global settings |
 | spec-review | 14 days | Project | OpenSpec implementation and test coverage |
-| tools-updater | 14 days | Global | Check for beads/OpenSpec updates |
+| tools-updater | 14 days | Global | Check for OpenSpec updates |
 | deps-updater | 14 days | Project | Dependency updates and security audit |
 | memory-review | 14 days | Project | Prune redundant auto-memory entries |
 | claude-audit | 30 days | Global | Audit Claude Code config against platform changes |

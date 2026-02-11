@@ -1,13 +1,13 @@
 ---
 name: Status
-description: Show unified workflow status - OpenSpec changes, beads, and git state
+description: Show unified workflow status - OpenSpec changes, tasks, and git state
 category: Workflow
 tags: [status, overview, orientation]
 ---
 
 # Status Command
 
-Display a unified view of current workflow state including OpenSpec changes, beads issues, and git status. Use this for orientation at session start or to check progress mid-session.
+Display a unified view of current workflow state including OpenSpec changes, tasks, and git status. Use this for orientation at session start or to check progress mid-session.
 
 ## Usage
 
@@ -19,14 +19,21 @@ No arguments needed.
 
 ## Information Gathered
 
-Run these commands to collect status:
+Run these to collect status:
 
-```bash
-openspec list                    # Active OpenSpec changes (if using OpenSpec)
-bd list --status=in_progress     # In-progress beads
-bd ready                         # Ready-to-work beads (no blockers)
-but status                       # Git branches and uncommitted changes
 ```
+TaskList                        # All tasks with status and blockers
+openspec list                   # Active OpenSpec changes (if using OpenSpec)
+but status                      # Git branches and uncommitted changes
+```
+
+### Task Status Partitioning
+
+Partition tasks from TaskList into:
+- **In Progress**: status = "in_progress"
+- **Ready**: status = "pending" AND blockedBy is empty
+- **Blocked**: status = "pending" AND blockedBy is not empty
+- **Completed**: status = "completed"
 
 ### Checking Remote Push Status
 
@@ -37,16 +44,14 @@ To accurately determine if branches are pushed, compare local branch commits wit
 git ls-remote --heads origin | grep -E "(branch1|branch2)"
 
 # Compare: if remote SHA matches local SHA, branch is pushed
-# Local SHA from `but status` output
-# Remote SHA from `git ls-remote` output
 ```
 
 **Logic:**
 - If branch exists on remote AND remote SHA = local SHA → **Pushed**
-- If branch exists on remote AND remote SHA ≠ local SHA → **Unpushed commits**
+- If branch exists on remote AND remote SHA != local SHA → **Unpushed commits**
 - If branch does NOT exist on remote → **Not pushed**
 
-Do NOT rely on `git branch -vv` tracking info in GitButler workspaces - branches may be pushed without tracking configured.
+Do NOT rely on `git branch -vv` tracking info in GitButler workspaces.
 
 ## Output Format
 
@@ -62,19 +67,15 @@ Present the information in this format:
 
 _None active_ (if empty or not using OpenSpec)
 
-### In-Progress Beads
-| ID | Title | Linked to OpenSpec? |
-|----|-------|---------------------|
-| <id> | <title> | Yes: <change-id> / No |
+### Tasks
+| # | Subject | Status | Blocked By |
+|---|---------|--------|------------|
+| 1 | <subject> | in_progress | - |
+| 2 | <subject> | pending (ready) | - |
+| 3 | <subject> | pending (blocked) | #1, #2 |
+| 4 | <subject> | completed | - |
 
-_None in progress_ (if empty)
-
-### Ready to Work
-| ID | Title | Priority |
-|----|-------|----------|
-| <id> | <title> | P<n> |
-
-_None ready_ (if empty)
+_No tasks_ (if empty)
 
 ### Git Status
 **GitButler Branches:**
@@ -99,53 +100,11 @@ After gathering status, check for these inconsistencies:
 
 | Check | Warning Message |
 |-------|-----------------|
-| OpenSpec change exists but no matching in-progress bead | "OpenSpec `<id>` has no tracking bead - create one with `bd create --title=\"<id>\" --type=feature`" |
-| In-progress bead matches archived OpenSpec | "Bead `<id>` tracks archived OpenSpec - close it with `bd close <id>`" |
-| Uncommitted changes but no in-progress bead | "Uncommitted changes but no bead in progress - consider creating one" |
+| OpenSpec change exists but no task with matching metadata.specId | "OpenSpec `<id>` has no tracking tasks" |
+| In-progress task matches archived OpenSpec | "Task #<id> tracks archived OpenSpec - complete it" |
+| Uncommitted changes but no in-progress task | "Uncommitted changes but no task in progress" |
 | Multiple OpenSpec changes active | "Multiple OpenSpec changes active - ensure they don't conflict" |
 | Branch not pushed to remote | "Branch `<branch>` not pushed - run `but push <branch>` if work is complete" |
-
-## Linking Detection
-
-To detect if a bead is linked to an OpenSpec change:
-- Check if bead title matches a change-id exactly
-- Check if bead title contains the change-id
-- Check if bead description references the change
-
-## Example Output
-
-```markdown
-## Workflow Status
-
-### Active OpenSpec Changes
-| Change ID | Summary |
-|-----------|---------|
-| add-user-preferences | Add user preference settings to dashboard |
-
-### In-Progress Beads
-| ID | Title | Linked to OpenSpec? |
-|----|-------|---------------------|
-| PROJ-42 | add-user-preferences | Yes: add-user-preferences |
-
-### Ready to Work
-| ID | Title | Priority |
-|----|-------|----------|
-| PROJ-38 | Fix login timeout | P1 |
-| PROJ-45 | Update error messages | P2 |
-
-### Git Status
-**GitButler Branches:**
-| Branch | Local SHA | Remote Status |
-|--------|-----------|---------------|
-| add-user-preferences | 85f03b3 | Not pushed |
-| fix-login-bug | 7af62d2 | Pushed |
-
-**Uncommitted changes:**
-- add-user-preferences: 3 files modified
-
-### Warnings
-_No warnings_
-```
 
 ## Usage Tips
 

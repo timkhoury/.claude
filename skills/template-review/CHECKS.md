@@ -15,7 +15,7 @@ Validates `~/.claude/config/sync-config.yaml` references.
 ### Skills Paths
 - Every path in `always.skills[]` must exist in `template/skills/`
 - Skill directories must contain `SKILL.md`
-- Nested paths like `tools/beads/beads-cleanup/` are valid
+- Nested paths like `tools/openspec/spec-review/` are valid
 
 ### Commands Paths
 - Every path in `tools.<name>.commands[]` must exist in `template/commands/`
@@ -80,7 +80,7 @@ Detects circular dependencies in requires chains.
 ### Example Cycle
 ```
 ERROR: Circular dependency detected:
-  beads+openspec -> beads -> openspec -> beads+openspec
+  tool-a -> tool-b -> tool-c -> tool-a
 ```
 
 ## Severity Levels

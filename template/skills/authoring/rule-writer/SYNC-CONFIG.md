@@ -60,16 +60,17 @@ technologies:
 
 # Workflow tools
 tools:
-  beads:
+  openspec:
     detect:
       directories:
-        - .beads/
+        - openspec/
     rules:
-      - workflow/beads-workflow.md
+      - workflow/openspec.md
+      - workflow/task-workflow.md
     skills:
-      - workflow/beads-cleanup/
+      - tools/openspec/spec-review/
     commands:
-      - work.md
+      - status.md
 ```
 
 ## Adding New Technologies

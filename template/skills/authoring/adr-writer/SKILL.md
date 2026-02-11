@@ -2,8 +2,9 @@
 name: adr-writer
 description: >
   Write Architecture Decision Records following standard conventions.
-  Use when creating ADRs, documenting technical decisions, or formalizing
-  architectural choices. Handles file naming, template format, and index updates.
+  Handles file naming, template format, and index updates.
+  Use when creating ADRs, documenting technical decisions, formalizing
+  architectural choices, superseding decisions, or writing to docs/decisions/.
 ---
 
 # ADR Writer

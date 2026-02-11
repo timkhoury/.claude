@@ -11,8 +11,7 @@
 #   - Never syncs: project/ directories (project-specific)
 #
 # Tool detection for workflow files:
-#   .beads/   → includes beads rules/skills/commands
-#   openspec/ → includes openspec rules
+#   openspec/ → includes openspec rules/skills/commands
 
 set -eo pipefail
 
@@ -29,16 +28,12 @@ HOOKS_SCRIPT="$HOME/.claude/skills/project-updater/sync-hooks.sh"
 EXCLUDED_PATTERNS="README.md|rules/project/|skills/project/"
 
 # Detect enabled tools (for workflow files)
-HAS_BEADS=false
 HAS_OPENSPEC=false
-[[ -d ".beads" ]] && HAS_BEADS=true
 [[ -d "openspec" ]] && HAS_OPENSPEC=true
 
 # Files that require specific tools (for workflow detection)
 # Paths match template structure (before flattening)
-BEADS_FILES="rules/workflow/beads-workflow.md|skills/tools/beads/|skills/workflow/work/|commands/work.md|commands/status.md|commands/wrap.md"
-OPENSPEC_FILES="rules/workflow/openspec.md|skills/tools/openspec/"
-BEADS_AND_OPENSPEC_FILES="rules/workflow/workflow-integration.md"
+OPENSPEC_FILES="rules/workflow/openspec.md|rules/workflow/workflow-integration.md|rules/workflow/task-workflow.md|skills/tools/openspec/|skills/workflow/work/|commands/status.md|commands/wrap.md"
 
 # Get detected technologies and required rules/skills
 DETECTED_RULES=""
@@ -63,8 +58,7 @@ case "${1:-}" in
     echo "  rules for detected technologies (package.json, config files)."
     echo ""
     echo "Tool detection:"
-    echo "  .beads/   directory → checks beads rules/skills/commands"
-    echo "  openspec/ directory → checks openspec rules"
+    echo "  openspec/ directory → checks openspec rules/skills/commands"
     exit 0
     ;;
   "")
@@ -174,24 +168,10 @@ should_sync_tech_skill() {
 should_skip_for_tools() {
   local file="$1"
 
-  # Beads-only files
-  if echo "$file" | grep -qE "^($BEADS_FILES)"; then
-    if [[ "$HAS_BEADS" != "true" ]]; then
-      return 0  # Skip - beads not enabled
-    fi
-  fi
-
-  # OpenSpec-only files
-  if echo "$file" | grep -qE "^($OPENSPEC_FILES)$"; then
+  # OpenSpec files
+  if echo "$file" | grep -qE "^($OPENSPEC_FILES)"; then
     if [[ "$HAS_OPENSPEC" != "true" ]]; then
       return 0  # Skip - openspec not enabled
-    fi
-  fi
-
-  # Files requiring both beads and openspec
-  if echo "$file" | grep -qE "^($BEADS_AND_OPENSPEC_FILES)$"; then
-    if [[ "$HAS_BEADS" != "true" ]] || [[ "$HAS_OPENSPEC" != "true" ]]; then
-      return 0  # Skip - need both tools
     fi
   fi
 
@@ -211,7 +191,6 @@ if [[ -n "$DETECTED_TECHS" ]]; then
 fi
 
 echo -e "Tools detected:"
-echo -e "  Beads:    $([[ "$HAS_BEADS" == "true" ]] && echo "${GREEN}yes${NC}" || echo "${YELLOW}no${NC} (.beads/ not found)")"
 echo -e "  OpenSpec: $([[ "$HAS_OPENSPEC" == "true" ]] && echo "${GREEN}yes${NC}" || echo "${YELLOW}no${NC} (openspec/ not found)")"
 echo ""
 

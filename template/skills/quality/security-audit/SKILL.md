@@ -162,7 +162,7 @@ After presenting the report, use `AskUserQuestion`:
 Question: "What would you like to do next?"
 Header: "Next step"
 Options:
-  - "Create issues" / "Create beads/issues for each remediation phase"
+  - "Create tasks" / "Create tasks for each remediation phase"
   - "Fix critical" / "Implement HIGH severity fixes now"
   - "Full remediation" / "Plan and implement all phases"
   - "Export report" / "Save report to docs/security-audit.md"

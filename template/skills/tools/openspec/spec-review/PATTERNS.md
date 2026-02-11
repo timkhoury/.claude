@@ -2,26 +2,19 @@
 
 Common formats and structures used across all spec-review analyses.
 
-## Progress File Format
+## Progress Tracking
 
-Each analysis uses the same progress structure:
+Progress is computed from file existence (no mutable progress file). The script scans `.spec-review/{analysis}/specs/` for valid JSON files and compares against `openspec/specs/`.
 
-```json
-{
-  "startedAt": "2026-01-20T15:30:00Z",
-  "lastUpdated": "2026-01-20T16:00:00Z",
-  "status": "in_progress|complete",
-  "specs": {
-    "total": 37,
-    "completed": 12,
-    "inProgress": "billing-management-ui",
-    "pending": ["dashboard-view", "..."]
-  },
-  "completedSpecs": ["oauth-authentication", "repository-linking", "..."]
-}
+```bash
+# Check progress
+review-specs.sh progress coverage --json
+
+# Get next batch of pending specs
+review-specs.sh batch coverage 12
 ```
 
-**Resume:** Skip specs in `completedSpecs`, continue from `inProgress`.
+**Resume:** Re-run `/spec-review` - progress auto-detects completed specs from existing JSON files.
 
 ## Per-Spec Result Format
 
@@ -129,20 +122,6 @@ Extract category from spec name prefix (before first hyphen):
 - `billing-management-ui` → `billing`
 - `repository-linking` → `repository`
 
-## Subtask Spawning
-
-Use Task tool with these settings for spec analysis:
-
-```
-Task tool call:
-  description: "Analyze <spec-name> <analysis-type>"
-  subagent_type: "Explore"
-  model: "sonnet"
-  prompt: (see analysis-specific reference file)
-```
-
-**Parallel:** Spawn 2-3 subtasks at once for faster analysis.
-
 ## Report Template (Coverage)
 
 ```markdown
@@ -203,29 +182,4 @@ Task tool call:
 | Spec | Scenario | Suggestion |
 |------|----------|------------|
 | ... | ... | ... |
-```
-
-## Quick Commands
-
-```bash
-# === Setup (use script) ===
-.claude/skills/spec-review/review-specs.sh setup
-
-# === Status and Progress ===
-.claude/skills/spec-review/review-specs.sh status
-
-# === Enumerate Specs ===
-.claude/skills/spec-review/review-specs.sh enumerate
-
-# === Structure Analysis ===
-.claude/skills/spec-review/review-specs.sh structure
-
-# === Test Health ===
-.claude/skills/spec-review/review-specs.sh test-health
-
-# === Check Active Changes ===
-.claude/skills/spec-review/review-specs.sh changes
-
-# === JSON Output (for any command) ===
-.claude/skills/spec-review/review-specs.sh enumerate --json
 ```
