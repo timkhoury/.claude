@@ -40,7 +40,7 @@ case "${1:-}" in
     echo "Outputs:"
     echo "  --report   Human-readable report (default)"
     echo "  --techs    List of detected technology names"
-    echo "  --tools    List of detected tool names (beads, openspec)"
+    echo "  --tools    List of detected tool names (openspec)"
     echo "  --rules    List of rule paths to copy"
     echo "  --skills   List of skill paths to copy"
     echo "  --commands List of command paths to copy"
