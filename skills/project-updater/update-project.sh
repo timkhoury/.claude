@@ -33,7 +33,7 @@ HAS_OPENSPEC=false
 
 # Files that require specific tools (for workflow detection)
 # Paths match template structure (before flattening)
-OPENSPEC_FILES="rules/workflow/openspec.md|rules/workflow/workflow-integration.md|rules/workflow/task-workflow.md|skills/tools/openspec/|skills/workflow/work/|commands/status.md|commands/wrap.md"
+OPENSPEC_FILES="rules/workflow/openspec.md|rules/workflow/workflow-integration.md|skills/tools/openspec/|commands/wrap.md"
 
 # Get detected technologies and required rules/skills
 DETECTED_RULES=""

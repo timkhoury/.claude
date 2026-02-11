@@ -186,14 +186,15 @@ for (const [name, tool] of toolEntries) {
   }
 }
 
-// Always rules and skills
+// Always rules, skills, and commands
 const alwaysRules = config.always?.rules || [];
 const alwaysSkills = config.always?.skills || [];
+const alwaysCommands = config.always?.commands || [];
 
 // Output based on mode
 const mode = '$MODE';
 if (mode === 'json') {
-  console.log(JSON.stringify({ detectedTechs, detectedTools, techRules, techSkills, toolRules, toolSkills, toolCommands, alwaysRules, alwaysSkills }, null, 2));
+  console.log(JSON.stringify({ detectedTechs, detectedTools, techRules, techSkills, toolRules, toolSkills, toolCommands, alwaysRules, alwaysSkills, alwaysCommands }, null, 2));
 } else if (mode === 'techs') {
   detectedTechs.forEach(t => console.log(t));
 } else if (mode === 'tools') {
@@ -203,7 +204,7 @@ if (mode === 'json') {
 } else if (mode === 'skills') {
   [...new Set([...alwaysSkills, ...techSkills, ...toolSkills])].forEach(s => console.log(s));
 } else if (mode === 'commands') {
-  [...new Set(toolCommands)].forEach(c => console.log(c));
+  [...new Set([...alwaysCommands, ...toolCommands])].forEach(c => console.log(c));
 } else {
   // report mode
   console.log('Detected technologies:');
