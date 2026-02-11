@@ -37,9 +37,7 @@ The script also detects workflow tools by directory existence:
 
 | Directory | Detected Tool | Files Synced |
 |-----------|---------------|--------------|
-| `.beads/` | Beads | `workflow/beads-workflow.md`, `beads-cleanup/`, `work.md`, `status.md` |
-| `openspec/` | OpenSpec | `workflow/openspec.md`, hooks (see below) |
-| Both | Beads + OpenSpec | `workflow/workflow-integration.md`, `wrap.md` |
+| `openspec/` | OpenSpec | `workflow/openspec.md`, `workflow/workflow-integration.md`, `workflow/task-workflow.md`, `work/`, `status.md`, `wrap.md`, hooks |
 
 **Files for disabled tools are skipped**, not copied.
 
@@ -88,7 +86,7 @@ Template rules are organized in folders:
 
 ```
 ~/.claude/template/rules/
-├── workflow/     # Beads, OpenSpec, session management
+├── workflow/     # OpenSpec, task workflow, session management
 ├── tech/         # Technology-specific (Next.js, Supabase, etc.)
 ├── patterns/     # Cross-cutting patterns (data retention, organization)
 └── meta/         # Process rules (research, documentation lookup)
@@ -177,7 +175,7 @@ Which unused rules should be removed?
 
 The script reports:
 1. Detected technologies (package.json, config files, directories)
-2. Detected tools (beads, openspec)
+2. Detected tools (openspec)
 3. **Changed** - Files that differ, with timestamps and sync direction
 4. **Added** - Files missing from project
 5. **Skipped** - Files for undetected technologies/tools

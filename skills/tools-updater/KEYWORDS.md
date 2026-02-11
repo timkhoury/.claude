@@ -66,16 +66,6 @@ Informational only, no rule changes needed.
 | `archive` | Feature | Check archive workflow |
 | `spec format` | Breaking | Update spec examples |
 
-### beads
-
-| Pattern | Category | Action |
-|---------|----------|--------|
-| `bd ` | Command | Check command syntax |
-| `sync` | Feature | Check sync workflow |
-| `epic` | Feature | Check epic patterns |
-| `priority` | Feature | Check priority usage |
-| `--` flags | Command | Check flag syntax |
-
 ## Analysis Workflow
 
 1. Fetch release notes

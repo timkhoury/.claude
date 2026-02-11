@@ -1,43 +1,41 @@
 ---
 name: work
 description: >
-  Execute beads tasks via subagent delegation. Use for "work on <id>",
-  epic execution, or bead ID references. Requires task/epic ID.
+  Execute tasks via subagent delegation. Use for "work on tasks",
+  task execution, or continuing implementation after /execute-plan.
 ---
 
 # Work Skill
 
-Execute beads tasks with subagent delegation for context efficiency.
+Execute tasks with subagent delegation for context efficiency.
 
 ## Critical Rules
 
-1. **Always require an ID** - prevents race conditions between parallel sessions
-2. **Claim immediately** - `bd update <id> --status=in_progress` before any work
-3. **One commit per task** - never batch multiple tasks into one commit
-4. **Pass target branch** - every task-implementer invocation needs the branch name
+1. **Claim immediately** - `TaskUpdate({ status: "in_progress" })` before any work
+2. **One commit per task** - never batch multiple tasks into one commit
+3. **Pass target branch** - every task-implementer invocation needs the branch name
 
 ## Usage
 
 ```
-/work <task-id>    # Work on one specific task
-/work <epic-id>    # Work through all ready tasks in the epic
+/work              # Work through all ready tasks
+/work
+Branch: <name>     # Work on branch (from execute-plan)
 ```
-
-Find available work: `bd ready`
 
 ## Architecture
 
 ```
 Main Orchestrator (stays lean)
-  │
-  ├─ /work <id>
-  ├─ If epic: find next ready child
-  ├─ bd update <task-id> --status=in_progress
-  ├─ Delegate to task-implementer (fresh context)
-  ├─ Commit via gitbutler
-  ├─ bd close <task-id>
-  ├─ If epic: loop to next ready child
-  └─ Done when no more ready tasks
+  |
+  +- /work
+  +- TaskList -> find next ready (pending + no blockers)
+  +- TaskUpdate({ status: "in_progress" })
+  +- Delegate to task-implementer (fresh context)
+  +- Commit via gitbutler
+  +- TaskUpdate({ status: "completed" })
+  +- Loop to next ready task
+  +- Done when no more ready tasks
 ```
 
 ## Branch Management
@@ -46,32 +44,33 @@ Main Orchestrator (stays lean)
 
 The orchestrator may specify a branch in the invocation:
 ```
-/work <epic-id>
+/work
 Branch: <branch-name>
 ```
 
 **If no branch specified, create one:**
 ```bash
-but branch new <epic-name>    # kebab-case, no feat/fix/ prefixes
+but branch new <task-name>    # kebab-case, no feat/fix/ prefixes
 ```
 
-**One branch for entire epic** - all tasks commit to the same branch.
+**One branch for all tasks** - all tasks commit to the same branch.
 
 ## Workflow
 
-### Step 1: Validate ID
+### Step 1: Find Next Task
 
-```bash
-bd show $ARGUMENTS
+```
+TaskList -> find tasks where status="pending" AND blockedBy is empty
 ```
 
-- **Task**: Proceed to Step 2
-- **Epic**: Find first ready child via `bd list --parent=$ARGUMENTS --status=open`
+- **Found**: Proceed to Step 2
+- **None ready but blocked tasks exist**: Report what's blocking and stop
+- **All completed**: Proceed to Step 5
 
 ### Step 2: Claim Task
 
-```bash
-bd update <task-id> --status=in_progress
+```
+TaskUpdate({ taskId: "<id>", status: "in_progress" })
 ```
 
 ### Step 3: Assess Delegation
@@ -89,25 +88,24 @@ bd update <task-id> --status=in_progress
 Use the task-implementer agent:
 
 Target Branch: <branch-name>   # REQUIRED - from execute-plan or created in Branch Management
-Task ID: <bead-id>
-Task: <title>
+Task: <subject>
 Description: <description>
 ```
 
 **After completion:**
-- Tick tasks.md checkbox (if applicable)
+- Tick tasks.md checkbox (if OpenSpec with metadata.specId)
 - Verify commit on correct branch: `but status`
-- Close bead: `bd close <id> --reason="<summary>"`
+- Complete task: `TaskUpdate({ taskId: "<id>", status: "completed" })`
 
-### Step 5: Next Task (Epic Mode)
+### Step 5: Next Task
 
-- Check for more ready children
+- Check TaskList for more ready tasks
 - If ready: go to Step 2
 - If none: proceed to Step 6
 
-### Step 6: Epic Complete
+### Step 6: All Done
 
-When all tasks are done (no more ready children):
+When all tasks are completed:
 
 1. Run `code-reviewer` agent
 2. If passes, run `/pr-check`
@@ -122,19 +120,9 @@ When all tasks are done (no more ready children):
 | Needs previous task context | Work directly |
 | User wants to see the work | Work directly |
 
-## Session Handoff
-
-**Ending mid-workflow:**
-1. Commit in-progress work
-2. `bd sync`
-
-**Starting new session:**
-1. `bd ready` shows next task
-2. `/work <epic-id>` to continue
-
 ## Task Completion Sync
 
-Tick tasks.md when closing beads:
+Tick tasks.md when completing OpenSpec-linked tasks:
 
 ```markdown
 - [x] Task description

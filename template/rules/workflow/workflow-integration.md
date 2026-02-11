@@ -1,38 +1,38 @@
-# Unified Workflow: Beads + OpenSpec
+# Unified Workflow: Tasks + OpenSpec
 
-This rule defines how beads (issue tracking) and OpenSpec (spec-driven development) work together.
+This rule defines how Task tools (work tracking) and OpenSpec (spec-driven development) work together.
 
 ## Starting Work
 
-**After plan approval, always invoke `/execute-plan`.** This is mandatory - it sets up the correct workflow structure (epic, tasks, branch) regardless of complexity.
+**After plan approval, always invoke `/execute-plan`.** This is mandatory - it sets up the correct workflow structure (tasks, dependencies, branch) regardless of complexity.
 
 `/execute-plan` analyzes the plan and routes to:
 - **OpenSpec** (`/opsx:ff`) for new features, breaking changes, cross-cutting work
-- **Direct beads** (epic + tasks) for bug fixes, refactors, config changes
+- **Direct tasks** for bug fixes, refactors, config changes
 
 See the `execute-plan` skill for decision criteria and full setup workflow.
 
 ## During Implementation
 
-```bash
-bd ready                              # Find next unblocked task
-bd update <task-id> --status=in_progress
+```
+TaskList                                          # Find next unblocked task (pending + no blockers)
+TaskUpdate({ taskId: "<id>", status: "in_progress" })
 # ... implement task ...
-bd close <task-id> --reason="Implemented in <commit>"
-bd ready                              # See what's unblocked next
+TaskUpdate({ taskId: "<id>", status: "completed" })
+TaskList                                          # See what's unblocked next
 ```
 
-The epic stays open until all tasks are closed and OpenSpec (if applicable) is archived.
+Work continues until all tasks are completed and OpenSpec (if applicable) is archived.
 
 ## Completion Order
 
 **Follow this order exactly:**
 
-1. Verify all child tasks are closed
-2. Archive OpenSpec (if applicable): `/opsx:archive <change-id>`
-3. Close the epic: `bd close <epic-id> --reason="Archived: <change-id>"`
+1. Verify all tasks are completed (`TaskList` - check for remaining pending/in_progress)
+2. Verify OpenSpec (if applicable): `/opsx:verify <change-id>`
+3. Archive OpenSpec (if applicable): `/opsx:archive <change-id>`
 4. Run quality gates: `code-reviewer` agent, then `/pr-check`
-5. Land the plane: push, sync, verify
+5. Land the plane: push, verify
 
 See `completion-criteria.md` for quality bar at each level.
 
@@ -41,10 +41,9 @@ See `completion-criteria.md` for quality bar at each level.
 | Command | Purpose |
 |---------|---------|
 | `/execute-plan` | Set up workflow after plan approval (mandatory) |
-| `/work <task-id>` | Execute one specific task, then stop |
-| `/work <epic-id>` | Work through all ready tasks in the epic sequentially |
-| `/status` | Show unified view of OpenSpec, beads, and git state |
-| `/wrap` | End-of-session workflow - archive, close, push, verify |
+| `/work` | Work through all ready tasks sequentially |
+| `/status` | Show unified view of OpenSpec, tasks, and git state |
+| `/wrap` | End-of-session workflow - archive, complete tasks, push, verify |
 
 ## Subagent Strategy
 
@@ -53,7 +52,7 @@ Use parallel subagents for independent exploration; sequential subagents for imp
 | Situation | Strategy |
 |-----------|----------|
 | Exploring multiple files/areas | 2-4 parallel Explore agents |
-| Implementing tasks from an epic | Sequential task-implementer (one at a time) |
+| Implementing tasks | Sequential task-implementer (one at a time) |
 | Research + implementation | Research in parallel, then implement sequentially |
 | Broad codebase questions | 2-3 parallel agents covering different areas |
 
@@ -65,10 +64,7 @@ Use parallel subagents for independent exploration; sequential subagents for imp
 
 | Never Do | Consequence |
 |----------|-------------|
-| Skip `/execute-plan` after plan approval | No epic, no task tracking, no structure |
-| Close epic before archiving OpenSpec | Loses traceability, spec not updated |
-| Add dependency between child and its parent | Circular blocking, child never becomes ready |
-| Skip `--parent` on task beads | Tasks not grouped under epic |
-| Close epic before all tasks closed | Premature completion, tasks orphaned |
+| Skip `/execute-plan` after plan approval | No task tracking, no structure |
+| Archive OpenSpec before all tasks completed | Spec archived with incomplete work |
 | Work 3+ tasks in main context | Context exhaustion - use `/work` with subagents |
 | Batch multiple tasks into one commit | Loses granularity, harder to review/revert |

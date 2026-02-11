@@ -7,7 +7,7 @@ Prefer build systems and scripts that generate outputs from structured sources o
 | Pattern | Source | Generated Output |
 |---------|--------|------------------|
 | Agent definitions | YAML in `.claude/agents-src/` | Markdown in `.claude/agents/` |
-| Issue tracking | Structured YAML (beads) | Git-backed state |
+| Task tracking | Built-in Task tools | Session-scoped state |
 | Change proposals | OpenSpec format | Specs and tasks |
 | File sync operations | Shell script with flags | Copied/updated files |
 
@@ -41,6 +41,7 @@ When a skill involves repetitive file operations or complex conditional logic, e
 - Operations that should be testable independently
 - Complex conditional logic based on file system state
 - Pattern matching on file paths
+- Iterating over files with filtering/counting logic (for-loops over spec files, counting patterns)
 
 **Keep in skill when:**
 - Gathering user input (AskUserQuestion)
@@ -80,6 +81,7 @@ Consider a deterministic system when you notice:
 - **Configuration** scattered across files
 - **Skills with complex file operations** that could be scripted
 - **AI making the same classification decisions repeatedly**
+- **Pseudocode algorithms in skill docs** that agents translate into bash for-loops - extract the deterministic parts into script subcommands
 
 ## Benefits
 

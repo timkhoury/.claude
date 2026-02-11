@@ -145,7 +145,7 @@ changes:
 ## When to Use
 
 - After improving a generic skill (deps-update, pr-check, etc.)
-- After updating workflow rules (beads-workflow, workflow-integration, etc.)
+- After updating workflow rules (task-workflow, workflow-integration, etc.)
 - After fixing issues in shared patterns
 
 ## Design Philosophy

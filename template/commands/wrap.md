@@ -1,6 +1,6 @@
 ---
 name: Wrap
-description: End-of-session workflow - archive specs, close beads, run quality gates, push changes
+description: End-of-session workflow - archive specs, complete tasks, run quality gates, push changes
 category: Workflow
 tags: [wrap, session, end, landing]
 ---
@@ -28,21 +28,23 @@ openspec list
 ```
 
 For each active change:
-1. **Ask the user**: "OpenSpec change `<change-id>` is still active. Should I archive it?"
-2. If yes: Run `/opsx:archive <change-id>`
+1. **Ask the user**: "OpenSpec change `<change-id>` is still active. Should I verify and archive it?"
+2. If yes: Run `/opsx:verify <change-id>` first, then `/opsx:archive <change-id>`
 3. If no: Note it as remaining work
 
-### Step 2: Check In-Progress Beads
+### Step 2: Check In-Progress Tasks
 
-```bash
-bd list --status=in_progress
+```
+TaskList -> find tasks where status = "in_progress" or status = "pending"
 ```
 
-For each in-progress bead:
-1. **Check if linked to archived OpenSpec**: If the bead title matches a just-archived change-id, close it automatically with `bd close <id> --reason="Archived: <change-id>"`
-2. **Otherwise ask the user**: "Bead `<id>: <title>` is still in progress. Should I close it?"
-3. If yes: `bd close <id> --reason="Completed"`
-4. If no: Note it as remaining work
+For each in-progress task:
+1. **Ask the user**: "Task #<id>: <subject> is still in progress. Should I complete it?"
+2. If yes: `TaskUpdate({ taskId: "<id>", status: "completed" })`
+3. If no: Note it as remaining work
+
+For pending tasks (not blocked):
+1. Note as remaining work in handoff summary
 
 ### Step 3: Run Quality Gates (if code changed)
 
@@ -63,26 +65,18 @@ If code files were changed:
 
 Skip this step entirely for documentation-only sessions.
 
-### Step 4: Sync and Push
+### Step 4: Push
 
 ```bash
-bd sync                      # Sync beads to remote
 but push <branch>            # Push only branches worked on THIS session
 ```
 
 **Only push branches where you made commits during this session.** Do not push unrelated branches that happen to have unpushed commits from previous sessions.
 
-To identify session branches:
-- Track which branches you committed to during the conversation
-- These are the only branches to push
-
-If other branches have unpushed commits, mention them in the handoff summary but do not push them.
-
 ### Step 5: Verify Completion and Check PRs
 
 ```bash
 but status                   # Verify all branches pushed
-bd list --status=in_progress # Verify no forgotten beads
 openspec list                # Verify no forgotten changes (if using OpenSpec)
 ```
 
@@ -103,11 +97,11 @@ Output a summary:
 ### Archived
 - [x] OpenSpec: <change-id> (if any)
 
-### Closed
-- [x] Bead: <id> - <title> (if any)
+### Completed Tasks
+- [x] Task #<id>: <subject> (if any)
 
 ### Pushed (this session)
-- [x] Branch: `<branch-name>` → origin
+- [x] Branch: `<branch-name>` -> origin
   - PR: <pr-url> (OPEN/MERGED) _or_ "No PR - create with `gh pr create --head <branch-name>`"
 
 ### Other Unpushed Branches
@@ -124,7 +118,7 @@ _None_ (if all branches are pushed)
 
 ## Important Rules
 
-- **Never skip archiving OpenSpec before closing related beads** - The order matters
+- **Verify before archiving OpenSpec** - Run `/opsx:verify` before `/opsx:archive`
 - **Always push** - Work is not complete until pushed to remote
 - **Report remaining work** - If user chooses not to complete something, document it clearly
 - **Generate handoff** - Always provide context for the next session

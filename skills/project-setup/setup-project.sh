@@ -30,7 +30,6 @@ FORCE=false
 while [[ $# -gt 0 ]]; do
   case $1 in
     --tools=*)
-      # Accept for backwards compatibility but gitbutler is always assumed
       TOOLS="${1#*=}"
       shift
       ;;
@@ -40,10 +39,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --scaffold-rules)
       SCAFFOLD_RULES=true
-      shift
-      ;;
-    --project-name=*)
-      PROJECT_NAME="${1#*=}"
       shift
       ;;
     --skip-init)
@@ -62,12 +57,11 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: setup-project.sh [options]"
       echo ""
       echo "Options:"
-      echo "  --tools=TOOLS        Tools to enable: all, beads+openspec, beads, openspec, none"
-      echo "                       (default: all = beads+openspec)"
+      echo "  --tools=TOOLS        Tools to enable: all, openspec, none"
+      echo "                       (default: all = openspec)"
       echo "  --framework=NAME     Framework hint (deprecated - uses auto-detection)"
       echo "  --scaffold-rules     Create scaffolded rule files (architecture.md, etc.)"
-      echo "  --project-name=NAME  Project name for beads prefix (default: directory name)"
-      echo "  --skip-init          Skip tool initialization (bd init, openspec init)"
+      echo "  --skip-init          Skip tool initialization (openspec init)"
       echo "  --skip-build         Skip agent building step"
       echo "  --force, -f          Skip confirmation if .claude/ already exists"
       echo ""
@@ -77,7 +71,7 @@ while [[ $# -gt 0 ]]; do
       echo ""
       echo "Examples:"
       echo "  setup-project.sh --tools=all --scaffold-rules"
-      echo "  setup-project.sh --tools=beads --project-name=myapp"
+      echo "  setup-project.sh --tools=openspec --scaffold-rules"
       echo "  setup-project.sh --tools=none  # Just copy base template"
       exit 0
       ;;
@@ -95,29 +89,17 @@ if [[ -z "$PROJECT_NAME" ]]; then
 fi
 
 # Parse tool flags
-ENABLE_BEADS=false
 ENABLE_OPENSPEC=false
 
 case "$TOOLS" in
-  all)
-    ENABLE_BEADS=true
-    ENABLE_OPENSPEC=true
-    ;;
-  beads+openspec|openspec+beads)
-    ENABLE_BEADS=true
-    ENABLE_OPENSPEC=true
-    ;;
-  beads)
-    ENABLE_BEADS=true
-    ;;
-  openspec)
+  all|openspec)
     ENABLE_OPENSPEC=true
     ;;
   none)
     ;;
   *)
     echo -e "${RED}Unknown tools option: $TOOLS${NC}"
-    echo "Valid options: all, beads+openspec, beads, openspec, none"
+    echo "Valid options: all, openspec, none"
     exit 1
     ;;
 esac
@@ -223,8 +205,8 @@ copy_dir() {
 # Template: skills/{category}/{skill}/ or skills/tools/{tool}/{skill}/
 # Project:  skills/{skill}/
 copy_skill() {
-  local template_skill_path="$1"  # e.g., "quality/rules-review" or "tools/beads/beads-cleanup"
-  local skill_name="$2"           # e.g., "rules-review" or "beads-cleanup"
+  local template_skill_path="$1"  # e.g., "quality/rules-review" or "tools/openspec/spec-review"
+  local skill_name="$2"           # e.g., "rules-review" or "spec-review"
 
   local src="skills/$template_skill_path"
   local dst="$PROJECT_DIR/skills/$skill_name"
@@ -359,30 +341,17 @@ if [[ -d "$TEMPLATE_DIR/hooks" ]]; then
 fi
 
 # Tool-specific files
-if [[ "$ENABLE_BEADS" == "true" ]]; then
-  echo -e "${BLUE}Phase 2a: Copying Beads files...${NC}"
-  # beads-workflow.md should already be in rules/workflow/ from Phase 1
-  copy_skill "tools/beads/beads-cleanup" "beads-cleanup"
-  copy_skill "workflow/work" "work"
-  copy_file "commands/status.md" "$PROJECT_DIR/commands/status.md"
-  echo ""
-fi
-
 if [[ "$ENABLE_OPENSPEC" == "true" ]]; then
-  echo -e "${BLUE}Phase 2b: Copying OpenSpec files...${NC}"
-  # openspec.md should already be in rules/workflow/ from Phase 1
+  echo -e "${BLUE}Phase 2: Copying OpenSpec files...${NC}"
+  # openspec.md, workflow-integration.md, task-workflow.md should already be in rules/workflow/ from Phase 1
   copy_skill "quality/rules-review" "rules-review"
   copy_skill "tools/openspec/spec-review" "spec-review"
+  copy_skill "workflow/work" "work"
   mkdir -p "$PROJECT_DIR/commands/openspec"
   copy_file "commands/openspec/proposal.md" "$PROJECT_DIR/commands/openspec/proposal.md"
   copy_file "commands/openspec/apply.md" "$PROJECT_DIR/commands/openspec/apply.md"
   copy_file "commands/openspec/archive.md" "$PROJECT_DIR/commands/openspec/archive.md"
-  echo ""
-fi
-
-if [[ "$ENABLE_BEADS" == "true" ]] && [[ "$ENABLE_OPENSPEC" == "true" ]]; then
-  echo -e "${BLUE}Phase 2c: Copying Beads+OpenSpec integration files...${NC}"
-  # workflow-integration.md should already be in rules/workflow/ from Phase 1
+  copy_file "commands/status.md" "$PROJECT_DIR/commands/status.md"
   copy_file "commands/wrap.md" "$PROJECT_DIR/commands/wrap.md"
   echo ""
 fi
@@ -464,17 +433,6 @@ fi
 if [[ "$SKIP_INIT" != "true" ]]; then
   echo -e "${BLUE}Phase 4: Tool initialization...${NC}"
 
-  if [[ "$ENABLE_BEADS" == "true" ]]; then
-    if [[ -d ".beads" ]]; then
-      echo -e "  ${YELLOW}Beads:${NC} Already initialized"
-    elif command -v bd &> /dev/null; then
-      echo -e "  ${GREEN}Beads:${NC} Initializing..."
-      bd init --prefix="$PROJECT_NAME" 2>/dev/null || echo -e "    ${YELLOW}Warning: bd init failed${NC}"
-    else
-      echo -e "  ${YELLOW}Beads:${NC} CLI not installed (run: npm install -g beads-ui@latest)"
-    fi
-  fi
-
   if [[ "$ENABLE_OPENSPEC" == "true" ]]; then
     if [[ -d "openspec" ]]; then
       echo -e "  ${YELLOW}OpenSpec:${NC} Already initialized"
@@ -549,7 +507,6 @@ echo "Files copied: $files_copied"
 [[ $files_skipped -gt 0 ]] && echo "Files skipped: $files_skipped"
 echo ""
 echo "Tools enabled:"
-[[ "$ENABLE_BEADS" == "true" ]] && echo "  - Beads"
 [[ "$ENABLE_OPENSPEC" == "true" ]] && echo "  - OpenSpec"
 [[ "$TOOLS" == "none" ]] && echo "  - (none)"
 echo ""
@@ -557,7 +514,6 @@ echo ""
 echo -e "${BLUE}Next steps:${NC}"
 echo "  1. Review and customize CLAUDE.md"
 echo "  2. Review and customize .claude/rules/ files"
-[[ "$ENABLE_BEADS" == "true" ]] && echo "  3. Run 'bd ready' to see available work"
 echo ""
 echo "  but status  # See files to commit"
 echo "  but stage <file> <branch>  # Stage files"

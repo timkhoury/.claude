@@ -3,7 +3,7 @@
 This template provides a standardized Claude Code configuration with:
 
 - **Agent YAML Build System** - Define agents in YAML, compile to markdown
-- **Workflow Commands** - `/work`, `/wrap`, `/status` for beads + OpenSpec
+- **Workflow Commands** - `/work`, `/wrap`, `/status` for task + OpenSpec workflows
 - **Quality Gates** - Pre-PR checks via `/pr-check`
 - **Session Management** - Landing the plane protocol
 
@@ -54,17 +54,14 @@ rsync -av ~/.claude/template/ /path/to/your/project/.claude/
 ├── agents/               # Generated markdown (don't edit)
 ├── baseline-agent.md     # Common agent instructions
 ├── commands/             # Slash commands
-│   ├── work.md           # /work - execute beads tasks
-│   ├── wrap.md           # /wrap - session completion
-│   └── status.md         # /status - workflow overview
+│   ├── status.md         # /status - workflow overview
+│   └── wrap.md           # /wrap - session completion
 ├── rules/                # Modular rules
-│   ├── beads-workflow.md
+│   ├── task-workflow.md
 │   ├── openspec.md
-│   ├── workflow-integration.md
-│   └── landing-the-plane.md
+│   └── workflow-integration.md
 ├── skills/               # Auto-activated skills
-│   ├── pr-check/         # Pre-PR quality checks
-│   └── beads-cleanup/    # Database maintenance
+│   └── pr-check/         # Pre-PR quality checks
 └── scripts/
     └── build-agents.ts   # Agent compiler
 ```
@@ -146,9 +143,9 @@ ruleBundles:
 
 This template assumes you're using:
 
-- **Beads** for issue tracking (`bd` CLI)
 - **GitButler** for virtual branches (`but` CLI)
 - **OpenSpec** for change management (optional)
+- **Built-in Task tools** for work tracking (TaskCreate, TaskList, etc.)
 
 If not using these tools, remove the related commands and rules.
 
@@ -169,9 +166,8 @@ These are automatically available in all projects.
 ### Starting Work
 
 ```bash
-bd ready              # Find available tasks
-/work <task-id>       # Execute a task
-/work <epic-id>       # Execute all tasks in epic
+TaskList              # Find available tasks (pending, no blockers)
+/work                 # Execute ready tasks via subagent delegation
 ```
 
 ### During Work

@@ -11,7 +11,7 @@
 | `git status`, `git diff`, `git log` | Read-only git |
 | `but status` | GitButler read |
 | `npx *` | Package runners |
-| `bd ready`, `bd list`, `bd show` | Beads read |
+| `openspec list`, `openspec validate` | OpenSpec read |
 | Linting/formatting | Non-destructive |
 
 ### ⚠️ Requires Confirmation
@@ -41,7 +41,7 @@
 | Building | `build`, `dev`, `start`, `compile` | ✅ |
 | Git (Read) | `git status/diff/log/show`, `but status` | ✅ |
 | Git (Write) | `git commit/push`, `but commit/push` | ⚠️ |
-| Issue Tracking | `bd ready/list/show` (✅), `bd close/update` (⚠️) | Mixed |
+| OpenSpec | `openspec list/validate` (✅), `openspec archive` (⚠️) | Mixed |
 | Linting | `lint`, `eslint`, `prettier`, `typecheck` | ✅ |
 | Packages | `npm install/ci`, `npx *` | ✅ |
 | Database | `db:types` (✅), `db:migrate/seed/push` (⚠️) | Mixed |

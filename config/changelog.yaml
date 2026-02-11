@@ -14,3 +14,13 @@ changes:
     path: rules/workflow/plan-execution.md
     date: 2026-02-02
     reason: Replaced by execute-plan skill
+
+  - type: delete
+    path: rules/workflow/beads-workflow.md
+    date: 2026-02-11
+    reason: Replaced beads with built-in Task tools
+
+  - type: delete
+    path: skills/tools/beads/beads-cleanup/SKILL.md
+    date: 2026-02-11
+    reason: Beads removed, using built-in Task tools

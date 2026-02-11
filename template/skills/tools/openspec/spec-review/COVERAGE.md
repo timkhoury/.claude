@@ -26,12 +26,15 @@ Implementation coverage analysis - maps OpenSpec scenarios to code.
 
 ## Subtask Prompt Template
 
-Use this prompt when spawning subtasks to analyze individual specs:
+Use this prompt when spawning subtasks to analyze a batch of specs. Each subtask receives 3-4 specs and writes results to disk.
 
 ```
-Analyze implementation coverage for the `<spec-name>` spec.
+Analyze implementation coverage for these specs: <spec-1>, <spec-2>, <spec-3>, <spec-4>
 
 ## Instructions
+
+For EACH spec in the batch:
+
 1. Read `openspec/specs/<spec-name>/spec.md`
 2. Extract ALL scenarios (lines starting with `#### Scenario:`)
 3. For EACH scenario:
@@ -50,8 +53,9 @@ Analyze implementation coverage for the `<spec-name>` spec.
    - "unimplemented" = No implementation found
    - "outdated" = Implementation differs from spec
 
-## Output Format (JSON)
-Return ONLY valid JSON:
+## Output
+
+For each spec, write a JSON file to `.spec-review/coverage/specs/<spec-name>.json`:
 
 {
   "spec": "<spec-name>",
@@ -76,6 +80,9 @@ Return ONLY valid JSON:
   ]
 }
 
+After writing all JSON files, return ONLY a one-line summary per spec:
+Done: <spec-1> (X/Y impl), <spec-2> (X/Y impl), <spec-3> (X/Y impl)
+
 Be thorough. Check server actions, components, routes, and database migrations.
 ```
 
@@ -89,22 +96,6 @@ After all specs analyzed:
 4. Collect unimplemented scenarios into `gaps` with priority
 5. Collect outdated scenarios into `drift`
 6. Write `.spec-review/coverage/results.json`
-
-## Search Commands
-
-```bash
-# Search server actions
-rg "<keywords>" src/server/actions/
-
-# Search components
-rg "<keywords>" src/components/
-
-# Search routes
-rg "<keywords>" src/app/
-
-# Search database
-rg "<keywords>" supabase/migrations/
-```
 
 ## Relationship to Test Analysis
 
