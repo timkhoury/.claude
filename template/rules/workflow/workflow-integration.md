@@ -42,7 +42,6 @@ See `completion-criteria.md` for quality bar at each level.
 |---------|---------|
 | `/execute-plan` | Set up workflow after plan approval (mandatory) |
 | `/work` | Work through all ready tasks sequentially |
-| `/status` | Show unified view of OpenSpec, tasks, and git state |
 | `/wrap` | End-of-session workflow - archive, complete tasks, push, verify |
 
 ## Subagent Strategy
