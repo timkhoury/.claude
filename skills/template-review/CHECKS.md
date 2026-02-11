@@ -18,6 +18,7 @@ Validates `~/.claude/config/sync-config.yaml` references.
 - Nested paths like `tools/openspec/spec-review/` are valid
 
 ### Commands Paths
+- Every path in `always.commands[]` must exist in `template/commands/`
 - Every path in `tools.<name>.commands[]` must exist in `template/commands/`
 - Subdirectory paths like `openspec/proposal.md` are valid
 

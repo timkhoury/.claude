@@ -37,7 +37,7 @@ The script also detects workflow tools by directory existence:
 
 | Directory | Detected Tool | Files Synced |
 |-----------|---------------|--------------|
-| `openspec/` | OpenSpec | `workflow/openspec.md`, `workflow/workflow-integration.md`, `workflow/task-workflow.md`, `work/`, `status.md`, `wrap.md`, hooks |
+| `openspec/` | OpenSpec | `workflow/openspec.md`, `workflow/workflow-integration.md`, `spec-review/`, `wrap.md`, hooks |
 
 **Files for disabled tools are skipped**, not copied.
 

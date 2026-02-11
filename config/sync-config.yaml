@@ -24,8 +24,7 @@ always:
     - workflow/execute-plan/
     - workflow/work/
     - automation/
-  commands:
-    - status.md
+  commands: []
 
 # Technology-specific rules
 technologies:

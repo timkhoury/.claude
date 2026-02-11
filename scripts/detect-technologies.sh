@@ -230,7 +230,10 @@ if (mode === 'json') {
   toolSkills.length ? [...new Set(toolSkills)].forEach(s => console.log('    - ' + s)) : console.log('    (none)');
   console.log('');
   console.log('Commands to copy:');
-  toolCommands.length ? [...new Set(toolCommands)].forEach(c => console.log('  - ' + c)) : console.log('  (none)');
+  console.log('  Always:');
+  alwaysCommands.length ? alwaysCommands.forEach(c => console.log('    - ' + c)) : console.log('    (none)');
+  console.log('  Tool-specific:');
+  toolCommands.length ? [...new Set(toolCommands)].forEach(c => console.log('    - ' + c)) : console.log('    (none)');
 }
 "
   local exit_code=$?
@@ -255,6 +258,7 @@ detect_with_yq() {
   fi
   ALWAYS_RULES=($(yq -r '.always.rules[]' "$CONFIG_FILE" 2>/dev/null || true))
   ALWAYS_SKILLS=($(yq -r '.always.skills[]' "$CONFIG_FILE" 2>/dev/null || true))
+  ALWAYS_COMMANDS=($(yq -r '.always.commands[]' "$CONFIG_FILE" 2>/dev/null || true))
 
   # Arrays for detection
   declare -a DETECTED_TOOLS=()
@@ -422,7 +426,8 @@ detect_with_yq() {
       echo "  \"toolSkills\": [$(printf '"%s",' "${TOOL_SKILLS[@]}" | sed 's/,$//')],"
       echo "  \"toolCommands\": [$(printf '"%s",' "${TOOL_COMMANDS[@]}" | sed 's/,$//')],"
       echo "  \"alwaysRules\": [$(printf '"%s",' "${ALWAYS_RULES[@]}" | sed 's/,$//')],"
-      echo "  \"alwaysSkills\": [$(printf '"%s",' "${ALWAYS_SKILLS[@]}" | sed 's/,$//')]"
+      echo "  \"alwaysSkills\": [$(printf '"%s",' "${ALWAYS_SKILLS[@]}" | sed 's/,$//')],"
+      echo "  \"alwaysCommands\": [$(printf '"%s",' "${ALWAYS_COMMANDS[@]}" | sed 's/,$//')]"
       echo "}"
       ;;
     techs)
@@ -438,7 +443,7 @@ detect_with_yq() {
       printf '%s\n' "${ALWAYS_SKILLS[@]}" "${TECH_SKILLS[@]}" "${TOOL_SKILLS[@]}" | sort -u
       ;;
     commands)
-      printf '%s\n' "${TOOL_COMMANDS[@]}" | sort -u
+      printf '%s\n' "${ALWAYS_COMMANDS[@]}" "${TOOL_COMMANDS[@]}" | sort -u
       ;;
     report)
       echo -e "${GREEN}Detected technologies:${NC}"
@@ -504,11 +509,20 @@ detect_with_yq() {
       fi
       echo ""
       echo -e "${BLUE}Commands to copy:${NC}"
+      echo "  Always:"
+      if [[ ${#ALWAYS_COMMANDS[@]} -eq 0 ]]; then
+        echo "    (none)"
+      else
+        for cmd in "${ALWAYS_COMMANDS[@]}"; do
+          echo "    - $cmd"
+        done
+      fi
+      echo "  Tool-specific:"
       if [[ ${#TOOL_COMMANDS[@]} -eq 0 ]]; then
-        echo "  (none)"
+        echo "    (none)"
       else
         printf '%s\n' "${TOOL_COMMANDS[@]}" | sort -u | while read -r cmd; do
-          echo "  - $cmd"
+          echo "    - $cmd"
         done
       fi
       ;;

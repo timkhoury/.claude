@@ -150,6 +150,17 @@ check_sync_config() {
     fi
   done < <(yq -r '.always.skills[]' "$CONFIG_FILE" 2>/dev/null || true)
 
+  # Check always.commands
+  while IFS= read -r cmd; do
+    [[ -z "$cmd" ]] && continue
+    local path="$TEMPLATE_DIR/commands/$cmd"
+    if [[ -e "$path" ]]; then
+      report_ok "always.commands: $cmd"
+    else
+      report_error "always.commands: $cmd not found"
+    fi
+  done < <(yq -r '.always.commands[]' "$CONFIG_FILE" 2>/dev/null || true)
+
   # Check technology rules and skills
   while IFS= read -r tech; do
     [[ -z "$tech" ]] && continue
