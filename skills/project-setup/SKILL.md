@@ -113,13 +113,6 @@ Skills are **flattened** from template's nested structure to project's flat stru
 | `skills/quality/rules-review/` | `.claude/skills/rules-review/` |
 | `skills/tools/openspec/spec-review/` | `.claude/skills/spec-review/` |
 | `commands/openspec/` | `.claude/commands/openspec/` |
-
-### If OpenSpec Enabled (continued)
-
-| Template Source | Project Destination |
-|-----------------|---------------------|
-| `skills/workflow/work/` | `.claude/skills/work/` |
-| `commands/status.md` | `.claude/commands/status.md` |
 | `commands/wrap.md` | `.claude/commands/wrap.md` |
 
 ## Examples

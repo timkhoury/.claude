@@ -342,12 +342,10 @@ if [[ "$ENABLE_OPENSPEC" == "true" ]]; then
   # openspec.md, workflow-integration.md, task-workflow.md should already be in rules/workflow/ from Phase 1
   copy_skill "quality/rules-review" "rules-review"
   copy_skill "tools/openspec/spec-review" "spec-review"
-  copy_skill "workflow/work" "work"
   mkdir -p "$PROJECT_DIR/commands/openspec"
   copy_file "commands/openspec/proposal.md" "$PROJECT_DIR/commands/openspec/proposal.md"
   copy_file "commands/openspec/apply.md" "$PROJECT_DIR/commands/openspec/apply.md"
   copy_file "commands/openspec/archive.md" "$PROJECT_DIR/commands/openspec/archive.md"
-  copy_file "commands/status.md" "$PROJECT_DIR/commands/status.md"
   copy_file "commands/wrap.md" "$PROJECT_DIR/commands/wrap.md"
   echo ""
 fi
