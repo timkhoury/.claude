@@ -70,7 +70,7 @@ tools:
     skills:
       - tools/openspec/spec-review/
     commands:
-      - status.md
+      - wrap.md
 ```
 
 ## Adding New Technologies

@@ -73,7 +73,6 @@ All git operations use GitButler virtual branches instead of traditional git:
 ## Tool Integrations
 
 - **GitButler** - Required for git operations (virtual branches)
-- **Beads** - Optional issue tracking with dependencies (`bd` CLI)
 - **OpenSpec** - Optional change/spec management (`openspec` CLI)
 
 ## Getting Started
@@ -104,8 +103,8 @@ Reviews differences and copies relevant rules based on detected technologies.
 
 Key settings:
 - **Model**: `opus`
-- **Plugins**: frontend-design, security-guidance, beads
-- **Permissions**: Granular bash/skill access for GitButler, Beads, npm, Docker, GitHub
+- **Plugins**: frontend-design, security-guidance, typescript-lsp
+- **Permissions**: Granular bash/skill access for GitButler, OpenSpec, npm, Docker, GitHub
 
 ### CLAUDE.md
 

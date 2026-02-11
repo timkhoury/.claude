@@ -54,7 +54,6 @@ rsync -av ~/.claude/template/ /path/to/your/project/.claude/
 ├── agents/               # Generated markdown (don't edit)
 ├── baseline-agent.md     # Common agent instructions
 ├── commands/             # Slash commands
-│   ├── status.md         # /status - workflow overview
 │   └── wrap.md           # /wrap - session completion
 ├── rules/                # Modular rules
 │   ├── task-workflow.md
